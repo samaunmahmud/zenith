@@ -16,13 +16,13 @@ public final class NumberCheck {
     private static final List<Pattern> NOISE = List.of(
             Pattern.compile("\\b\\d{4}-\\d{2}-\\d{2}\\b"), // ISO dates
             Pattern.compile("(?i)\\b(?:SMA|EMA)\\s?\\d+\\b"), // SMA200, EMA 50
-            Pattern.compile("(?i)\\bRSI\\s?\\(?\\d+\\)?"), // RSI (14)
+            Pattern.compile("(?i)\\bRSI\\s?\\(\\d+\\)|\\bRSI\\d+\\b"), // RSI (14), RSI14 (not "RSI 85": that's a reading)
             Pattern.compile("(?i)\\bMACD\\s?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*\\)"), // MACD(12,26,9)
             Pattern.compile("(?i)\\b\\d+[-\\s](?:day|week|month|year|quarter|session)s?\\b"), // 52-week, 3 months
-            Pattern.compile("(?i)\\b\\d+\\s?[dwmy]\\b"), // 20d, 1y
+            Pattern.compile("(?i)(?<![\\d.,])\\b\\d+\\s?[dwmy]\\b"), // 20d, 1y (not the 23M of 45.23M)
             Pattern.compile("(?i)\\bS&P\\s?500\\b"),
             Pattern.compile("\\bQ[1-4]\\b"), // Q3
-            Pattern.compile("\\b(?:19|20)\\d{2}\\b")); // years
+            Pattern.compile("(?<![$\\d.,])\\b(?:19|20)\\d{2}\\b(?![.,]\\d)")); // years (not a $1950.25 price)
 
     private static final Pattern NUMBER = Pattern.compile("-?\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|-?\\d+(?:\\.\\d+)?");
 
