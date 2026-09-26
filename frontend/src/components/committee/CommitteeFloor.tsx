@@ -1,7 +1,7 @@
-import type { AgentModel, AnalystName, AnalystReport, ChairDecision, CostSummary, NewsDigest, Stage } from "../types";
-import { TierBadge } from "./common";
-
-export type Timing = Partial<Record<string, { start?: number; end?: number }>>;
+import type { AgentModel, AnalystName, AnalystReport, ChairDecision, CostSummary, NewsDigest, Stage } from "../../types";
+import type { Timing } from "../../state/committee";
+import { ANALYSTS, secs } from "../../lib/format";
+import { TierBadge } from "../ui/Badges";
 
 export interface FloorProps {
   agents: AgentModel[];
@@ -18,18 +18,14 @@ export interface FloorProps {
   costs: CostSummary | null;
 }
 
-const ANALYSTS: AnalystName[] = ["fundamentals", "technicals", "risk"];
-
 type SeatState = "ready" | "waiting" | "thinking" | "done" | "failed" | "skipped";
 
 interface SeatView {
   state: SeatState;
   status: string;
   tone?: string; // CSS class for the status colour
-  meta?: string; // "7.4s · 3,380 tokens"
+  meta?: string; // "7.4s · 3,380 tok"
 }
-
-const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`;
 
 /** After a run, the real model latency and tokens for an agent (its retries and rebuttal included). */
 function measured(costs: CostSummary | null, id: string): string | undefined {
@@ -43,31 +39,30 @@ function measured(costs: CostSummary | null, id: string): string | undefined {
 
 function clock(timing: Timing, id: string, now: number): string | undefined {
   const t = timing[id];
-  if (!t?.start) return undefined;
-  return secs((t.end ?? now) - t.start);
+  if (t?.start === undefined) return undefined;
+  return secs(Math.max(0, (t.end ?? now) - t.start));
 }
 
 function seatFor(id: string, p: FloorProps): SeatView {
   if (p.mode === "preview") return { state: "ready", status: "Ready" };
   const running = p.mode === "running";
-  const started = Boolean(p.timing[id]?.start);
+  const started = p.timing[id]?.start !== undefined;
   const halted = p.mode === "error";
+  const meta = () => measured(p.costs, id) ?? clock(p.timing, id, p.now);
 
   if (id === "news") {
     if (p.digest !== undefined) {
       const s = p.digest?.sentiment ?? "none";
-      return { state: "done", status: s === "none" ? "No headlines" : `${s} news`, tone: `sent-${s}`, meta: measured(p.costs, id) ?? clock(p.timing, id, p.now) };
+      return { state: "done", status: s === "none" ? "No headlines" : `${s} news`, tone: `sent-${s}`, meta: meta() };
     }
-    if (started && running) return { state: "thinking", status: "Reading headlines", meta: clock(p.timing, id, p.now) };
+    if (started && running) return { state: "thinking", status: "Reading headlines", meta: meta() };
     return halted ? { state: "skipped", status: "Not run" } : { state: "waiting", status: "Waiting for data" };
   }
 
   if (id === "chair") {
-    if (p.decision) {
-      return { state: "done", status: p.decision.recommendation, tone: `call-${p.decision.recommendation}`, meta: measured(p.costs, id) ?? clock(p.timing, id, p.now) };
-    }
+    if (p.decision) return { state: "done", status: p.decision.recommendation, tone: `call-${p.decision.recommendation}`, meta: meta() };
     if (p.chairError) return { state: "failed", status: "No valid decision" };
-    if (started && running) return { state: "thinking", status: "Deliberating", meta: clock(p.timing, id, p.now) };
+    if (started && running) return { state: "thinking", status: "Deliberating", meta: meta() };
     return halted ? { state: "skipped", status: "Not run" } : { state: "waiting", status: "Waiting for reports" };
   }
 
@@ -79,12 +74,12 @@ function seatFor(id: string, p: FloorProps): SeatView {
       state: rebutting ? "thinking" : "done",
       status: rebutting ? "Writing rebuttal" : `${report.stance} · ${Math.round(report.confidence * 100)}%`,
       tone: rebutting ? undefined : `stance-${report.stance}`,
-      meta: measured(p.costs, id) ?? clock(p.timing, id, p.now),
+      meta: meta(),
     };
   }
   // The backend fails fast before any analyst starts, so an analyst error always means that analyst really failed.
   if (p.errors[a]) return { state: "failed", status: "No valid report" };
-  if (started && running) return { state: "thinking", status: "Analysing", meta: clock(p.timing, id, p.now) };
+  if (started && running) return { state: "thinking", status: "Analysing", meta: meta() };
   return halted ? { state: "skipped", status: "Not run" } : { state: "waiting", status: "Waiting" };
 }
 
@@ -125,19 +120,19 @@ export function CommitteeFloor(p: FloorProps) {
     return agent ? <Seat key={id} agent={agent} view={seatFor(id, p)} /> : null;
   };
 
-  const total = p.timing.run?.start ? (p.timing.run.end ?? p.now) - p.timing.run.start : 0;
+  const run = p.timing.run;
+  const total = run?.start !== undefined ? Math.max(0, (run.end ?? p.now) - run.start) : 0;
   let caption: string;
   if (p.mode === "preview") caption = "Five agents, three Nemotron sizes, one decision";
   else if (p.mode === "running") caption = p.stage ? STAGE_TEXT[p.stage] : "Convening the committee";
   else if (p.mode === "error") caption = p.digest === undefined ? "Adjourned before any model was called" : "Adjourned before the committee finished";
-  else if (p.costs) {
-    caption = `${p.costs.calls.length} model calls · ${(p.costs.totalPromptTokens + p.costs.totalCompletionTokens).toLocaleString()} tokens · $${p.costs.totalUsd.toFixed(4)}`;
-  } else caption = "Session complete";
+  else if (p.costs) caption = `${p.costs.calls.length} model calls · ${(p.costs.totalPromptTokens + p.costs.totalCompletionTokens).toLocaleString()} tokens`;
+  else caption = "Session complete";
 
   return (
     <div className={`floor floor-${p.mode}`}>
       <div className="floor-head">
-        <span className="label">{p.mode === "preview" ? "The committee" : "Committee in session"}</span>
+        <h3>{p.mode === "preview" ? "The committee" : "Committee session"}</h3>
         <span className="floor-caption" aria-live="polite">
           {p.mode === "running" && <i className="live" aria-hidden="true" />}
           {caption}
@@ -147,7 +142,7 @@ export function CommitteeFloor(p: FloorProps) {
       <div className="floor-grid">
         <div className="floor-col">{seat("news")}</div>
         <div className={`wire ${flowing(["analysts"]) ? "flowing" : ""}`} aria-hidden="true" />
-        <div className="floor-col analysts">{ANALYSTS.map(seat)}</div>
+        <div className="floor-col">{ANALYSTS.map(seat)}</div>
         <div className={`wire ${flowing(["rebuttals", "chair"]) ? "flowing" : ""}`} aria-hidden="true" />
         <div className="floor-col">{seat("chair")}</div>
       </div>

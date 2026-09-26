@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState, type MouseEvent } from "react";
-import type { Snapshot } from "../types";
+import { useId, useMemo, useRef, useState, type MouseEvent } from "react";
+import type { Snapshot } from "../../types";
+import { money, shortDate } from "../../lib/format";
 
 type Point = Snapshot["priceHistory"][number];
 
@@ -14,18 +15,12 @@ const RANGES = [
 ] as const;
 type RangeId = (typeof RANGES)[number]["id"];
 
-function money(x: number | null, currency: string | null) {
-  if (x === null) return "n/a";
-  return currency && currency !== "USD" ? `${x.toFixed(2)} ${currency}` : `$${x.toFixed(2)}`;
-}
-
-const shortDate = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
-
 /** Price chart with SMA50/SMA200 (all values computed by the backend), a range picker and a hover readout. */
 export function PriceChart({ points: all, currency }: { points: Point[]; currency: string | null }) {
   const [range, setRange] = useState<RangeId>("1Y");
   const [hover, setHover] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+  const gradientId = `fill-${useId().replace(/:/g, "")}`; // SVG ids are page-global: never share one between charts
 
   const points = useMemo(() => {
     const bars = RANGES.find((r) => r.id === range)!.bars;
@@ -57,7 +52,7 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
   const lastClose = points[points.length - 1].close;
   const change = lastClose / first - 1;
   const up = change >= 0;
-  const colour = up ? "var(--bull)" : "var(--bear)";
+  const colour = up ? "var(--pos)" : "var(--neg)";
 
   const onMove = (e: MouseEvent<HTMLDivElement>) => {
     const rect = ref.current!.getBoundingClientRect();
@@ -74,7 +69,7 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
         <div className="legend">
           <span><i style={{ background: colour }} />Close</span>
           <span><i className="dashed" />SMA50</span>
-          <span><i style={{ background: "var(--dim)" }} />SMA200</span>
+          <span><i style={{ background: "#5d666c" }} />SMA200</span>
         </div>
         <div className="ranges" role="tablist" aria-label="Chart range">
           {RANGES.map((r) => (
@@ -82,7 +77,6 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
               key={r.id}
               role="tab"
               aria-selected={range === r.id}
-              className={range === r.id ? "on" : ""}
               onClick={() => { setRange(r.id); setHover(null); }}
             >
               {r.id}
@@ -90,26 +84,26 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
           ))}
         </div>
       </div>
-      <div className={`chart-change num ${up ? "stance-bullish" : "stance-bearish"}`}>
+      <div className={`chart-change num ${up ? "pos" : "neg"}`}>
         {up ? "+" : ""}{(change * 100).toFixed(1)}% <span className="dim">over {range === "1Y" ? "the year" : range}</span>
       </div>
       <div className="plot" ref={ref} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${range} price chart, ${up ? "up" : "down"} ${(Math.abs(change) * 100).toFixed(1)}%`}>
           <defs>
-            <linearGradient id="fill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={up ? "#76b900" : "#ff5c5c"} stopOpacity="0.28" />
-              <stop offset="100%" stopColor={up ? "#76b900" : "#ff5c5c"} stopOpacity="0" />
+            <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor={up ? "#3fbf72" : "#f0585d"} stopOpacity="0.22" />
+              <stop offset="100%" stopColor={up ? "#3fbf72" : "#f0585d"} stopOpacity="0" />
             </linearGradient>
           </defs>
           {geo.ticks.map((t) => (
-            <line key={t.top} x1="0" x2={W} y1={(t.top / 100) * H} y2={(t.top / 100) * H} stroke="#262626" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <line key={t.top} x1="0" x2={W} y1={(t.top / 100) * H} y2={(t.top / 100) * H} stroke="#1f2629" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           ))}
-          <path d={`${geo.close} L${W},${H} L0,${H} Z`} fill="url(#fill)" />
-          <path d={geo.sma200} fill="none" stroke="#6b6b6b" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-          <path d={geo.sma50} fill="none" stroke="#ffffff" strokeWidth="1.2" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
+          <path d={`${geo.close} L${W},${H} L0,${H} Z`} fill={`url(#${gradientId})`} />
+          <path d={geo.sma200} fill="none" stroke="#5d666c" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          <path d={geo.sma50} fill="none" stroke="#d9dee1" strokeWidth="1.1" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
           <path d={geo.close} fill="none" stroke={colour} strokeWidth="2" vectorEffect="non-scaling-stroke" />
           {hover !== null && (
-            <line x1={geo.x(hover)} x2={geo.x(hover)} y1="0" y2={H} stroke="#a3a3a3" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <line x1={geo.x(hover)} x2={geo.x(hover)} y1="0" y2={H} stroke="#818a90" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           )}
         </svg>
         {geo.ticks.map((t) => (

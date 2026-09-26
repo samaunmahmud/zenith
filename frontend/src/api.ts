@@ -1,9 +1,18 @@
-import type { AppConfig, CommitteeEvent } from "./types";
+import type { AppConfig, CommitteeEvent, Health } from "./types";
 
 export async function fetchConfig(): Promise<AppConfig | null> {
   try {
     const res = await fetch("/api/config");
     return res.ok ? ((await res.json()) as AppConfig) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchHealth(): Promise<Health | null> {
+  try {
+    const res = await fetch("/api/health");
+    return res.ok ? ((await res.json()) as Health) : null;
   } catch {
     return null;
   }

@@ -1,0 +1,47 @@
+/* Design tokens: every colour, radius, shadow and font in one place. */
+:root {
+  /* Surfaces, darkest to lightest */
+  --bg: #08090a;
+  --bg-2: #0c0e10;
+  --panel: #111416;
+  --panel-2: #161a1d;
+  --panel-3: #1c2124;
+  --line: #232a2e;
+  --line-2: #2f373c;
+
+  /* Text */
+  --text: #eef1f2;
+  --text-2: #b4bcc1;
+  --text-3: #818a90;
+  --text-4: #5d666c;
+
+  /* Brand accent (NVIDIA green): actions, focus, model tiers */
+  --accent: #76b900;
+  --accent-hi: #8fd414;
+  --accent-soft: rgba(118, 185, 0, 0.1);
+  --accent-line: rgba(118, 185, 0, 0.32);
+
+  /* Semantics: kept distinct from the brand accent so "up" and "brand" never read as the same signal */
+  --pos: #3fbf72;
+  --pos-soft: rgba(63, 191, 114, 0.12);
+  --neg: #f0585d;
+  --neg-soft: rgba(240, 88, 93, 0.12);
+  --warn: #e7b43f;
+  --warn-soft: rgba(231, 180, 63, 0.12);
+
+  /* Nemotron tiers */
+  --nano: #b9e27a;
+  --super: #76b900;
+  --ultra: #76b900;
+
+  --r-sm: 6px;
+  --r: 10px;
+  --r-lg: 14px;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+
+  --font: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  --topbar-h: 56px;
+  color-scheme: dark;
+}

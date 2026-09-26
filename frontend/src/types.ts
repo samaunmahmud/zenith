@@ -3,10 +3,11 @@
 
 export type AnalystName = "fundamentals" | "technicals" | "risk";
 export type Tier = "nano" | "super" | "ultra";
+export type Stance = "bullish" | "neutral" | "bearish";
 
 export interface AnalystReport {
   analyst: AnalystName;
-  stance: "bullish" | "neutral" | "bearish";
+  stance: Stance;
   confidence: number;
   headline: string;
   keyPoints: string[];
@@ -133,4 +134,12 @@ export interface AppConfig {
   demoMode: boolean;
   demoTickers: string[];
   agents: AgentModel[];
+}
+
+/** GET /api/health: whether live AI runs are possible right now. */
+export interface Health {
+  status: string;
+  demoMode: boolean;
+  budget: { maxUsd: number; spentUsd: number };
+  keys: { tokenFactory: boolean; fmp: boolean; finnhub: boolean };
 }
