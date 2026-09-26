@@ -20,8 +20,10 @@ export function useCommittee() {
     runningRef.current = true; // block a double submit before React re-renders
     stopRef.current?.();
     dispatch({ type: "start", ticker, rebuttals, at: performance.now() });
-    const qs = new URLSearchParams({ ticker, ...(rebuttals ? { rebuttals: "true" } : {}) });
-    window.history.pushState(null, "", `?${qs}`);
+    const qs = `?${new URLSearchParams({ ticker, ...(rebuttals ? { rebuttals: "true" } : {}) })}`;
+    // Same URL (a shared link being resumed, or the same search again): replace, so Back isn't a dead click.
+    if (window.location.search === qs) window.history.replaceState(null, "", qs);
+    else window.history.pushState(null, "", qs);
     stopRef.current = streamCommittee(ticker, rebuttals, (event) => dispatch({ type: "event", event, at: performance.now() }));
   }, []);
 
