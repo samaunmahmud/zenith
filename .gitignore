@@ -1,0 +1,29 @@
+# Private project brief for Claude — never commit
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Private notes
+docs/feedback-notes.md
+
+# Market data cache
+cache/*
+!cache/.gitkeep
+
+# Dependencies & builds
+node_modules/
+dist/
+build/
+coverage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
