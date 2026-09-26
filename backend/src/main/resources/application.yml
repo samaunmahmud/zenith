@@ -45,6 +45,10 @@ zenith:
     finnhub-api-key: ${FINNHUB_API_KEY:}
   budget:
     max-usd: ${MAX_SPEND_USD:0} # hard cap on total Token Factory spend; 0 (the default) switches AI calls off
+  limits:
+    reuse-hours: ${REUSE_HOURS:6} # serve a ticker's saved decision if younger than this; 0 = always run live
+    live-runs-per-hour: ${LIVE_RUNS_PER_HOUR:20} # paid committee runs per rolling hour; 0 = no hourly limit
+    max-concurrent-runs: ${MAX_CONCURRENT_RUNS:2}
   cache:
     dir: ${CACHE_DIR:}
     ttl-hours: ${CACHE_TTL_HOURS:12}

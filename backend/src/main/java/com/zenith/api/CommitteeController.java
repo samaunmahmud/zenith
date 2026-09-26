@@ -1,7 +1,7 @@
 package com.zenith.api;
 
 import com.zenith.committee.CommitteeEvent;
-import com.zenith.committee.CommitteeResult;
+import com.zenith.committee.CommitteeGate;
 import com.zenith.committee.CommitteeService;
 import com.zenith.config.ZenithProperties;
 import com.zenith.data.DataException;
@@ -34,11 +34,13 @@ public class CommitteeController {
     private static final String BAD_TICKER = "Enter a valid ticker symbol, e.g. AAPL";
 
     private final CommitteeService committee;
+    private final CommitteeGate gate;
     private final ZenithProperties props;
     private final com.zenith.llm.SpendGuard spendGuard;
 
-    public CommitteeController(CommitteeService committee, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard) {
+    public CommitteeController(CommitteeService committee, CommitteeGate gate, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard) {
         this.committee = committee;
+        this.gate = gate;
         this.props = props;
         this.spendGuard = spendGuard;
     }
@@ -51,6 +53,7 @@ public class CommitteeController {
     }
 
     static int statusFor(Throwable e) {
+        if (e instanceof CommitteeGate.BusyException) return 429;
         if (e instanceof CommitteeService.NotConfiguredException) return 503;
         if (e instanceof com.zenith.llm.SpendGuard.BudgetExceededException) return 503;
         if (e instanceof LlmException && e.getCause() instanceof com.zenith.llm.SpendGuard.BudgetExceededException) return 503;
@@ -86,30 +89,13 @@ public class CommitteeController {
         return json(200, body);
     }
 
-    /**
-     * Run the committee; if it fails and we have a saved run for this ticker, serve that instead
-     * (clearly flagged as a replay). This keeps a live demo from ever showing a blank screen.
-     */
-    private CommitteeResult runWithFallback(String ticker, boolean rebuttals, Consumer<CommitteeEvent> emit) {
-        try {
-            return committee.run(ticker, rebuttals, emit);
-        } catch (RuntimeException e) {
-            Optional<CommitteeResult> saved = committee.lastSavedRun(ticker);
-            if (saved.isPresent()) {
-                log.warn("Live run failed for {}, replaying last saved run: {}", ticker, e.getMessage());
-                return saved.get();
-            }
-            throw e;
-        }
-    }
-
     /** Plain request/response version. */
     @PostMapping("/committee")
     public ResponseEntity<String> run(@RequestBody(required = false) CommitteeRequest req) {
         Optional<String> ticker = parseTicker(req == null ? null : req.ticker());
         if (ticker.isEmpty()) return json(400, Map.of("error", BAD_TICKER));
         try {
-            return json(200, runWithFallback(ticker.get(), Boolean.TRUE.equals(req.rebuttals()), e -> {}));
+            return json(200, gate.run(ticker.get(), Boolean.TRUE.equals(req.rebuttals()), e -> {}));
         } catch (RuntimeException e) {
             log.error("Committee failed for {}", ticker.get(), e);
             return json(statusFor(e), Map.of("error", String.valueOf(e.getMessage())));
@@ -139,7 +125,7 @@ public class CommitteeController {
                     send.accept(new CommitteeEvent.Error(BAD_TICKER, 400));
                     return;
                 }
-                send.accept(new CommitteeEvent.Done(runWithFallback(parsed.get(), rebuttals, send)));
+                send.accept(new CommitteeEvent.Done(gate.run(parsed.get(), rebuttals, send)));
             } catch (RuntimeException e) {
                 log.error("Committee stream failed for {}", ticker, e);
                 send.accept(new CommitteeEvent.Error(String.valueOf(e.getMessage()), statusFor(e)));

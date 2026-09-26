@@ -24,6 +24,7 @@ public final class TestProps {
                 new ZenithProperties.MarketData("", ""),
                 new ZenithProperties.Cache(cacheDir.toString(), ttlHours),
                 new ZenithProperties.Budget(budgetUsd),
+                ZenithProperties.Limits.NONE,
                 demoMode,
                 "AAPL,NVDA");
     }

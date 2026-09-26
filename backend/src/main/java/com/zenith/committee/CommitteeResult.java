@@ -28,7 +28,9 @@ public record CommitteeResult(
         CostTracker.Summary costs,
         List<IntegrityFlag> integrity,
         List<AgentModel> agents,
-        boolean replayed) {
+        boolean replayed,
+        // Why a saved decision was served instead of a live run: "recent", "busy" or "fallback". Null for live runs.
+        String replayReason) {
 
     public record AnalystError(AnalystName analyst, String message) {}
 
@@ -37,12 +39,12 @@ public record CommitteeResult(
 
     public CommitteeResult withMemo(String memo) {
         return new CommitteeResult(ticker, generatedAt, snapshot, sources, news, newsDigest, reports, analystErrors,
-                rebuttals, decision, chairError, memo, costs, integrity, agents, replayed);
+                rebuttals, decision, chairError, memo, costs, integrity, agents, replayed, replayReason);
     }
 
-    /** Served from the last saved run (demo safety net). */
-    public CommitteeResult asReplay() {
+    /** Served from the last saved run instead of a live one; see CommitteeGate for the reasons. */
+    public CommitteeResult asReplay(String reason) {
         return new CommitteeResult(ticker, generatedAt, snapshot, sources, news, newsDigest, reports, analystErrors,
-                rebuttals, decision, chairError, memoMarkdown, costs, integrity, agents, true);
+                rebuttals, decision, chairError, memoMarkdown, costs, integrity, agents, true, reason);
     }
 }

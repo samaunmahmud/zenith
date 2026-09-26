@@ -15,6 +15,7 @@ public record ZenithProperties(
         MarketData marketData,
         Cache cache,
         Budget budget,
+        Limits limits,
         boolean demoMode,
         String demoTickers) {
 
@@ -37,6 +38,16 @@ public record ZenithProperties(
 
     /** Hard cap on total Token Factory spend (USD), tracked across restarts. 0 = no model calls at all. */
     public record Budget(double maxUsd) {}
+
+    /**
+     * Protects a public demo's budget from bursts of visitors.
+     * reuseHours: serve a ticker's saved decision if it is younger than this (0 = always run live).
+     * liveRunsPerHour: live (paid) committee runs allowed per rolling hour (0 = no hourly limit).
+     * maxConcurrentRuns: live runs allowed at the same time (at least 1).
+     */
+    public record Limits(double reuseHours, int liveRunsPerHour, int maxConcurrentRuns) {
+        public static final Limits NONE = new Limits(0, 0, Integer.MAX_VALUE);
+    }
 
     public List<String> demoTickerList() {
         return Arrays.stream(demoTickers.split(",")).map(String::trim).map(String::toUpperCase).filter(s -> !s.isEmpty()).toList();

@@ -47,7 +47,7 @@ import org.springframework.stereotype.Service;
  * which are missing. Progress is emitted as events so the UI can stream it.
  */
 @Service
-public class CommitteeService {
+public class CommitteeService implements CommitteeRunner {
 
     private static final Logger log = LoggerFactory.getLogger(CommitteeService.class);
 
@@ -74,6 +74,7 @@ public class CommitteeService {
         return Roster.all().stream().map(a -> new AgentModel(a.id(), a.label(), a.tier(), llm.modelFor(a.tier()), a.why())).toList();
     }
 
+    @Override
     public CommitteeResult run(String ticker, boolean withRebuttals, Consumer<CommitteeEvent> emit) {
         CostTracker tracker = new CostTracker();
         List<AgentModel> agents = roster();
@@ -167,7 +168,8 @@ public class CommitteeService {
                 tracker.summary(llm.priceFor(ModelTier.ULTRA)),
                 integrityFlags(snapshot, digest, sortedReports, sortedRebuttals, decision),
                 agents,
-                false);
+                false,
+                null);
         CommitteeResult result = partial.withMemo(MemoBuilder.build(partial));
 
         // Keep the last complete run per ticker: the demo safety net if Token Factory is unreachable on stage.
@@ -182,9 +184,10 @@ public class CommitteeService {
         }
     }
 
+    @Override
     public Optional<CommitteeResult> lastSavedRun(String ticker) {
         return cache.<CommitteeResult>read(ticker, "last-committee", Json.MAPPER.constructType(CommitteeResult.class))
-                .map(e -> e.data().asReplay());
+                .map(e -> e.data().asReplay(CommitteeGate.FALLBACK));
     }
 
     private static <T> void runInParallel(List<T> items, Consumer<T> task) {
