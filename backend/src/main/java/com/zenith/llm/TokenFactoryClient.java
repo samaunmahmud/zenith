@@ -53,6 +53,10 @@ public class TokenFactoryClient {
         return spendGuard;
     }
 
+    public ZenithProperties.Price priceFor(ModelTier tier) {
+        return props.tokenFactory().pricing().get(tier);
+    }
+
     public String modelFor(ModelTier tier) {
         return props.tokenFactory().models().get(tier);
     }

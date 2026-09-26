@@ -3,6 +3,7 @@ package com.zenith.llm;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import com.zenith.config.ZenithProperties.Price;
 import com.zenith.json.Json;
 import org.junit.jupiter.api.Test;
 
@@ -29,5 +30,16 @@ class CostTrackerTest {
         t.record(new CallCost("a", "m", ModelTier.ULTRA, 1000, 200, 5, 0.0016, 1, true));
         String json = Json.MAPPER.writeValueAsString(t.summary());
         assertThat(json).contains("\"byTier\":{\"nano\":").contains("\"tier\":\"ultra\"");
+    }
+
+    @Test
+    void comparesTheRunWithWhatItWouldHaveCostOnUltraOnly() {
+        CostTracker t = new CostTracker();
+        t.record(new CallCost("news", "m", ModelTier.NANO, 1_000_000, 0, 1, 0.06, 1, true));
+        t.record(new CallCost("chair", "m", ModelTier.ULTRA, 0, 1_000_000, 1, 3.0, 1, true));
+        var s = t.summary(new Price(1.0, 3.0));
+        assertThat(s.totalUsd()).isCloseTo(3.06, within(1e-9));
+        assertThat(s.allUltraUsd()).isCloseTo(4.0, within(1e-9)); // 1M in at $1 + 1M out at $3
+        assertThat(t.summary().allUltraUsd()).isNull();
     }
 }

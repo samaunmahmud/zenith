@@ -1,5 +1,6 @@
 package com.zenith.llm;
 
+import com.zenith.config.ZenithProperties.Price;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -15,7 +16,10 @@ public class CostTracker {
             double totalUsd,
             long totalPromptTokens,
             long totalCompletionTokens,
-            Map<ModelTier, TierTotal> byTier) {}
+            Map<ModelTier, TierTotal> byTier,
+            // What the same calls (same tokens) would have cost if every one ran on Ultra: the case for tier routing.
+            // Null when the Ultra price isn't known (older saved runs, CLI).
+            Double allUltraUsd) {}
 
     private final List<CallCost> calls = new ArrayList<>();
 
@@ -37,19 +41,25 @@ public class CostTracker {
         return List.copyOf(calls);
     }
 
-    public synchronized Summary summary() {
+    public Summary summary() {
+        return summary(null);
+    }
+
+    public synchronized Summary summary(Price ultraPrice) {
         Map<ModelTier, TierTotal> byTier = new EnumMap<>(ModelTier.class);
         for (ModelTier t : ModelTier.values()) byTier.put(t, new TierTotal(0, 0, 0));
         double usd = 0;
+        double allUltra = 0;
         long in = 0;
         long out = 0;
         for (CallCost c : calls) {
+            if (ultraPrice != null) allUltra += estimateCostUsd(c.promptTokens(), c.completionTokens(), ultraPrice.input(), ultraPrice.output());
             usd += c.estimatedCostUsd();
             in += c.promptTokens();
             out += c.completionTokens();
             TierTotal t = byTier.get(c.tier());
             byTier.put(c.tier(), new TierTotal(t.calls() + 1, t.usd() + c.estimatedCostUsd(), t.tokens() + c.promptTokens() + c.completionTokens()));
         }
-        return new Summary(List.copyOf(calls), usd, in, out, byTier);
+        return new Summary(List.copyOf(calls), usd, in, out, byTier, ultraPrice == null ? null : allUltra);
     }
 }

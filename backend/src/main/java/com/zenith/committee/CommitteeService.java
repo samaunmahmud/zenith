@@ -15,6 +15,7 @@ import com.zenith.indicators.SnapshotBuilder;
 import com.zenith.json.Json;
 import com.zenith.llm.CostTracker;
 import com.zenith.llm.LlmException;
+import com.zenith.llm.ModelTier;
 import com.zenith.llm.TokenFactoryClient;
 import com.zenith.memo.MemoBuilder;
 import com.zenith.schema.AnalystName;
@@ -163,7 +164,7 @@ public class CommitteeService {
                 decision,
                 chairError,
                 null,
-                tracker.summary(),
+                tracker.summary(llm.priceFor(ModelTier.ULTRA)),
                 integrityFlags(snapshot, digest, sortedReports, sortedRebuttals, decision),
                 agents,
                 false);

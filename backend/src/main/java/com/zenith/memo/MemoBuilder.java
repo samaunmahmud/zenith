@@ -94,6 +94,11 @@ public final class MemoBuilder {
                     c.promptTokens(), c.completionTokens(), c.latencyMs() / 1000.0, c.estimatedCostUsd()));
         }
         lines.add(f("| **Total** | | %d/%d | | **$%.5f** |", costs.totalPromptTokens(), costs.totalCompletionTokens(), costs.totalUsd()));
+        if (costs.allUltraUsd() != null && costs.allUltraUsd() > 0) {
+            lines.add("");
+            lines.add(f("The same calls on Nemotron Ultra alone would have cost $%.5f; routing each role to the smallest model that can do it cost %.0f%% of that.",
+                    costs.allUltraUsd(), 100 * costs.totalUsd() / costs.allUltraUsd()));
+        }
 
         lines.addAll(List.of("", "## Data sources"));
         result.sources().forEach(src -> lines.add("- " + src.name() + ", fetched "
