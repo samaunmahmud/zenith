@@ -56,6 +56,7 @@ function seatFor(id: string, p: FloorProps): SeatView {
       return { state: "done", status: s === "none" ? "No headlines" : `${s} news`, tone: `sent-${s}`, meta: meta() };
     }
     if (started && running) return { state: "thinking", status: "Reading headlines", meta: meta() };
+    if (started && halted) return { state: "failed", status: "Interrupted", meta: meta() };
     return halted ? { state: "skipped", status: "Not run" } : { state: "waiting", status: "Waiting for data" };
   }
 
@@ -63,6 +64,7 @@ function seatFor(id: string, p: FloorProps): SeatView {
     if (p.decision) return { state: "done", status: p.decision.recommendation, tone: `call-${p.decision.recommendation}`, meta: meta() };
     if (p.chairError) return { state: "failed", status: "No valid decision" };
     if (started && running) return { state: "thinking", status: "Deliberating", meta: meta() };
+    if (started && halted) return { state: "failed", status: "Interrupted", meta: meta() };
     return halted ? { state: "skipped", status: "Not run" } : { state: "waiting", status: "Waiting for reports" };
   }
 
@@ -80,6 +82,7 @@ function seatFor(id: string, p: FloorProps): SeatView {
   // The backend fails fast before any analyst starts, so an analyst error always means that analyst really failed.
   if (p.errors[a]) return { state: "failed", status: "No valid report" };
   if (started && running) return { state: "thinking", status: "Analysing", meta: meta() };
+  if (started && halted) return { state: "failed", status: "Interrupted", meta: meta() };
   return halted ? { state: "skipped", status: "Not run" } : { state: "waiting", status: "Waiting" };
 }
 
@@ -125,7 +128,7 @@ export function CommitteeFloor(p: FloorProps) {
   let caption: string;
   if (p.mode === "preview") caption = "Five agents, three Nemotron sizes, one decision";
   else if (p.mode === "running") caption = p.stage ? STAGE_TEXT[p.stage] : "Convening the committee";
-  else if (p.mode === "error") caption = p.digest === undefined ? "Adjourned before any model was called" : "Adjourned before the committee finished";
+  else if (p.mode === "error") caption = p.timing.news?.start === undefined ? "Adjourned before any model was called" : "Adjourned before the committee finished";
   else if (p.costs) caption = `${p.costs.calls.length} model calls · ${(p.costs.totalPromptTokens + p.costs.totalCompletionTokens).toLocaleString()} tokens`;
   else caption = "Session complete";
 
