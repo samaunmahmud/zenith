@@ -3,8 +3,9 @@ import { fetchConfig, streamCommittee } from "./api";
 import { AnalystCard } from "./components/AnalystCard";
 import { CostPanel } from "./components/CostPanel";
 import { MemoPanel } from "./components/MemoPanel";
-import { Roster } from "./components/Roster";
 import { SnapshotBar } from "./components/SnapshotBar";
+import { BrandMark } from "./components/Brand";
+import { Landing } from "./components/Landing";
 import { Verdict } from "./components/Verdict";
 import type {
   AgentModel,
@@ -65,10 +66,11 @@ const initial: State = {
   error: null,
 };
 
-type Action = { type: "start"; ticker: string } | { type: "event"; event: CommitteeEvent };
+type Action = { type: "start"; ticker: string } | { type: "reset" } | { type: "event"; event: CommitteeEvent };
 
 function reducer(state: State, action: Action): State {
   if (action.type === "start") return { ...initial, status: "running", ticker: action.ticker };
+  if (action.type === "reset") return initial;
   const e = action.event;
   switch (e.type) {
     case "stage":
@@ -106,16 +108,6 @@ function reducer(state: State, action: Action): State {
     case "error":
       return { ...state, status: "error", stage: null, error: e.message };
   }
-}
-
-function Logo() {
-  return (
-    <svg className="logo" viewBox="0 0 36 36" aria-hidden="true">
-      <circle cx="18" cy="18" r="17" fill="none" stroke="var(--accent)" strokeWidth="2" />
-      <path d="M6 26 L14 16 L20 21 L30 8" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="30" cy="8" r="2.5" fill="var(--accent)" />
-    </svg>
-  );
 }
 
 export default function App() {
@@ -159,155 +151,191 @@ export default function App() {
     convene(input);
   };
 
+  const goHome = () => {
+    stopRef.current?.();
+    window.history.replaceState(null, "", window.location.pathname);
+    dispatch({ type: "reset" });
+    setInput("");
+  };
+
   const running = state.status === "running";
+  const halted = state.status === "error";
   const agentFor = (id: string) => state.agents.find((a) => a.id === id) ?? config?.agents.find((a) => a.id === id);
   const stages = STAGES.filter((s) => s.id !== "rebuttals" || withRebuttals || state.rebuttals.length > 0);
-  const showRoom = state.status !== "idle" && (state.snapshot || state.status === "running");
+  const showRoom = state.status !== "idle" && (state.snapshot || running);
+  const lastSeen = state.stagesSeen[state.stagesSeen.length - 1];
 
   return (
-    <div className="app">
-      <header className="header">
-        <div className="brand">
-          <Logo />
-          <div>
-            <h1>Zenith</h1>
-            <p>An AI investment committee: three analysts argue, the chair decides.</p>
-          </div>
-        </div>
-        <div className="powered">
-          Powered by <b>NVIDIA Nemotron</b> on Nebius Token Factory
+    <>
+      <header className="topbar">
+        <div className="container">
+          <a className="brand" href="/" onClick={(e) => { e.preventDefault(); goHome(); }}>
+            <BrandMark />
+            ZENITH
+          </a>
+          <nav className="nav">
+            <a className="hide-sm" href="#how" onClick={() => state.status !== "idle" && goHome()}>How it works</a>
+            <a className="hide-sm" href="#committee" onClick={() => state.status !== "idle" && goHome()}>Committee</a>
+            <a href="https://github.com/samaunmahmud/zenith" target="_blank" rel="noreferrer">GitHub</a>
+          </nav>
         </div>
       </header>
 
-      <div className="disclaimer">
-        ⚠ Research and education tool only. <b>Not financial advice.</b> Figures are computed from public market data
-        that may be delayed or incomplete, and the AI analysts can be wrong.
-      </div>
-
-      <form className="panel" onSubmit={onSubmit}>
-        <div className="form">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ticker, e.g. AAPL"
-            aria-label="Stock ticker"
-            maxLength={10}
-            autoFocus
-          />
-          <button className="btn" type="submit" disabled={running || !input.trim()}>
-            {running ? "In session…" : "Convene the committee"}
-          </button>
-        </div>
-        <div className="chips">
-          {config?.demoTickers.map((t) => (
-            <button key={t} type="button" className="chip" disabled={running} onClick={() => convene(t)}>
-              {t}
+      <section className={`hero ${state.status === "idle" ? "" : "compact"}`}>
+        <div className="container">
+          <div className="eyebrow">Powered by NVIDIA Nemotron on Nebius Token Factory</div>
+          <h1>
+            Three AI analysts argue. <span className="accent">One chair decides.</span>
+          </h1>
+          <p className="lede">
+            Enter a stock ticker to convene an AI investment committee. Every figure is computed in code, every argument
+            is on the record, and every decision comes with its dissent and its cost.
+          </p>
+          <form className="form" onSubmit={onSubmit}>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Enter a ticker, e.g. AAPL"
+              aria-label="Stock ticker"
+              maxLength={10}
+              autoFocus
+            />
+            <button className="btn" type="submit" disabled={running}>
+              {running ? "In session…" : "Convene the committee"}
             </button>
-          ))}
-          {config?.demoMode && <span className="small muted">Demo mode: cached tickers only</span>}
-          <label className="toggle" style={{ marginLeft: "auto" }}>
-            <input type="checkbox" checked={withRebuttals} onChange={(e) => setWithRebuttals(e.target.checked)} disabled={running} />
-            Rebuttal round
-          </label>
-        </div>
-      </form>
-
-      {state.status === "idle" && config && (
-        <>
-          <div className="section-title">Who's on the committee</div>
-          <Roster agents={config.agents} />
-        </>
-      )}
-
-      {state.status !== "idle" && (
-        <div className="progress" aria-live="polite">
-          {stages.map((s) => {
-            const active = state.stage === s.id;
-            const done = !active && (state.status === "done" || state.stagesSeen.includes(s.id));
-            return (
-              <div key={s.id} className={`step ${active ? "active" : done ? "done" : ""}`}>
-                {s.label}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {state.status === "error" && (
-        <div className="notice error">
-          <b>The committee couldn't meet.</b> {state.error}
-        </div>
-      )}
-      {state.result?.replayed && (
-        <div className="notice warn">
-          Live analysis wasn't available, so this is the committee's last saved decision for {state.result.ticker} (
-          {state.result.generatedAt.slice(0, 10)}).
-        </div>
-      )}
-
-      {showRoom && (
-        <>
-          {state.snapshot && (
-            <>
-              <div className="section-title">The stock</div>
-              <SnapshotBar snapshot={state.snapshot} sources={state.sources} digest={state.digest} />
-            </>
-          )}
-
-          <div className="section-title">Analyst reports</div>
-          <div className="cards">
-            {ANALYSTS.map((a) => (
-              <AnalystCard
-                key={a}
-                analyst={a}
-                agent={agentFor(a)}
-                report={state.reports[a]}
-                error={state.errors[a]}
-                pending={running && (state.stage === "analysts" || state.stage === "data" || state.stage === "news")}
-              />
+          </form>
+          <div className="form-meta">
+            <span className="label">Try</span>
+            {config?.demoTickers.map((t) => (
+              <button key={t} type="button" className="chip" disabled={running} onClick={() => convene(t)}>
+                {t}
+              </button>
             ))}
+            {config?.demoMode && <span className="small dim">Demo mode: cached tickers only</span>}
+            <label className="toggle">
+              <input type="checkbox" checked={withRebuttals} onChange={(e) => setWithRebuttals(e.target.checked)} disabled={running} />
+              Rebuttal round
+            </label>
           </div>
+        </div>
+      </section>
 
-          {state.rebuttals.length > 0 && (
-            <>
-              <div className="section-title">Rebuttal round</div>
-              <div className="rebuttals">
-                {state.rebuttals.map((r) => (
-                  <div key={r.analyst} className="rebuttal">
-                    <b>{r.analyst}</b> <span className="muted">→ {r.respondingTo}</span>
-                    {r.stanceChanged && <span className="badge stance-neutral" style={{ marginLeft: 8 }}>stance changed</span>}
-                    <div>{r.response}</div>
-                  </div>
+      <main className="container">
+        {state.status === "idle" && config && <Landing agents={config.agents} />}
+
+        {state.status !== "idle" && (
+          <div className="progress" aria-live="polite">
+            {stages.map((s) => {
+              const active = state.stage === s.id;
+              const done = !active && (state.status === "done" || (state.stagesSeen.includes(s.id) && s.id !== lastSeen) || (state.stagesSeen.includes(s.id) && !halted));
+              const failedHere = halted && s.id === lastSeen;
+              return (
+                <div key={s.id} className={`pstep ${failedHere ? "halted" : active ? "active" : done ? "done" : ""}`}>
+                  {s.label}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {halted && (
+          <div className="notice error">
+            <b>The committee couldn't finish.</b> {state.error}
+            {state.snapshot && <div className="small muted">The market data below was computed successfully; the AI analysis did not run.</div>}
+          </div>
+        )}
+        {state.result?.replayed && (
+          <div className="notice warn">
+            Live analysis wasn't available, so this is the committee's last saved decision for {state.result.ticker} (
+            {state.result.generatedAt.slice(0, 10)}).
+          </div>
+        )}
+
+        {showRoom && (
+          <>
+            {state.snapshot && (
+              <section className="section">
+                <div className="section-head"><h2>The stock</h2></div>
+                <SnapshotBar snapshot={state.snapshot} sources={state.sources} digest={state.digest} />
+              </section>
+            )}
+
+            <section className="section">
+              <div className="section-head">
+                <h2>Analyst reports</h2>
+                <p>Each analyst works independently from its own fact sheet. Open "What this analyst sees" to check every number it was given.</p>
+              </div>
+              <div className="cards">
+                {ANALYSTS.map((a) => (
+                  <AnalystCard
+                    key={a}
+                    analyst={a}
+                    agent={agentFor(a)}
+                    report={state.reports[a]}
+                    error={state.errors[a]}
+                    pending={running && (state.stage === "analysts" || state.stage === "news")}
+                    halted={halted}
+                    facts={state.snapshot?.facts[a]}
+                  />
                 ))}
               </div>
-            </>
-          )}
+            </section>
 
-          <div className="section-title">Decision</div>
-          {state.decision ? (
-            <Verdict decision={state.decision} />
-          ) : state.result?.chairError ? (
-            <div className="notice error">The chair couldn't reach a valid decision: {state.result.chairError}</div>
-          ) : (
-            <div className="panel muted">{state.stage === "chair" ? "The chair is deliberating…" : "Waiting for the analysts…"}</div>
-          )}
+            {state.rebuttals.length > 0 && (
+              <section className="section">
+                <div className="section-head"><h2>Rebuttal round</h2></div>
+                <div className="rebuttals">
+                  {state.rebuttals.map((r) => (
+                    <div key={r.analyst} className="rebuttal">
+                      <div className="who">
+                        <b>{r.analyst}</b> <span className="dim">→ {r.respondingTo}</span>
+                        {r.stanceChanged && <span className="badge stance-neutral" style={{ marginLeft: 8 }}>stance changed</span>}
+                      </div>
+                      <div>{r.response}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-          {state.result && (
-            <>
-              <div className="section-title">Cost & memo</div>
-              <div style={{ display: "grid", gap: 16 }}>
-                <CostPanel costs={state.result.costs} />
-                <MemoPanel result={state.result} />
-              </div>
-            </>
-          )}
-        </>
-      )}
+            {!halted && (
+              <section className="section">
+                <div className="section-head"><h2>Decision</h2></div>
+                {state.decision ? (
+                  <Verdict decision={state.decision} />
+                ) : state.result?.chairError ? (
+                  <div className="notice error">The chair couldn't reach a valid decision: {state.result.chairError}</div>
+                ) : (
+                  <div className="panel muted">{state.stage === "chair" ? "The chair is deliberating…" : "Waiting for the analysts…"}</div>
+                )}
+              </section>
+            )}
+
+            {state.result && (
+              <section className="section">
+                <div className="section-head"><h2>Cost &amp; memo</h2></div>
+                <div className="two-col">
+                  <CostPanel costs={state.result.costs} />
+                  <MemoPanel result={state.result} />
+                </div>
+              </section>
+            )}
+          </>
+        )}
+      </main>
 
       <footer className="footer">
-        Zenith is open source (MIT). Every number is calculated in code; the Nemotron models only interpret it. Not financial advice.
+        <div className="container">
+          <p>
+            <b style={{ color: "var(--text)" }}>Research and education tool only. Not financial advice.</b> Figures are computed from public
+            market data that may be delayed or incomplete, and the AI analysts can be wrong.
+          </p>
+          <p>
+            Zenith · MIT licensed · <a href="https://github.com/samaunmahmud/zenith" target="_blank" rel="noreferrer">Source on GitHub</a>
+          </p>
+        </div>
       </footer>
-    </div>
+    </>
   );
 }
