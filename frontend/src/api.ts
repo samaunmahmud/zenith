@@ -30,6 +30,17 @@ const EVENT_TYPES: CommitteeEvent["type"][] = [
   "error",
 ];
 
+/** One SSE data payload as a committee event, or null if it isn't one (never throws). */
+export function parseEvent(data: unknown): CommitteeEvent | null {
+  if (typeof data !== "string") return null;
+  try {
+    const event = JSON.parse(data) as CommitteeEvent;
+    return event && typeof event === "object" && EVENT_TYPES.includes(event.type) ? event : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Open the SSE stream for one committee run. Returns a function that closes it.
  * EventSource is built into the browser, so streaming needs no extra dependency.
@@ -39,21 +50,26 @@ export function streamCommittee(ticker: string, rebuttals: boolean, onEvent: (e:
   const source = new EventSource(`/api/committee/stream?${qs}`);
   let finished = false;
 
+  const finish = (event: CommitteeEvent) => {
+    finished = true;
+    source.close();
+    onEvent(event);
+  };
+
   for (const type of EVENT_TYPES) {
     source.addEventListener(type, (msg) => {
-      const event = JSON.parse((msg as MessageEvent<string>).data) as CommitteeEvent;
-      if (event.type === "done" || event.type === "error") {
-        finished = true;
-        source.close();
-      }
+      // The browser's own connection-error Event also arrives on the "error" listener, with no data:
+      // leave that to onerror below.
+      if (finished || !(msg instanceof MessageEvent)) return;
+      const event = parseEvent(msg.data);
+      if (!event) return finish({ type: "error", message: "The server sent a malformed update.", status: 0 });
+      if (event.type === "done" || event.type === "error") return finish(event);
       onEvent(event);
     });
   }
   // Without this, EventSource would silently reconnect and start a second committee run.
   source.onerror = () => {
-    if (finished) return;
-    source.close();
-    onEvent({ type: "error", message: "Lost connection to the server.", status: 0 });
+    if (!finished) finish({ type: "error", message: "Lost connection to the server.", status: 0 });
   };
   return () => source.close();
 }
