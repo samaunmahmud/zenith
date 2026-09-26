@@ -7,8 +7,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -73,8 +75,11 @@ public class DiskCache {
             return new Result<>(hit.get().data(), new SourceInfo(label, hit.get().fetchedAt(), false));
         }
         if (props.demoMode()) {
-            throw new DataException("Demo mode: no cached " + label + " for " + ticker + ". Try one of: "
-                    + String.join(", ", props.demoTickerList()), 404);
+            List<String> available = tickersWith(name);
+            throw new DataException("Demo mode: no cached " + label + " for " + ticker + ". "
+                    + (available.isEmpty()
+                            ? "The cache is empty: run `npm run precache` (and rebuild the image) first."
+                            : "Try one of: " + String.join(", ", available)), 404);
         }
         try {
             Entry<T> entry = write(ticker, name, fetcher.get());
@@ -85,6 +90,20 @@ public class DiskCache {
                 return new Result<>(hit.get().data(), new SourceInfo(label, hit.get().fetchedAt(), true));
             }
             throw e;
+        }
+    }
+
+    /** Tickers that actually have a cached &lt;name&gt;.json, so demo-mode errors suggest what can really be served. */
+    List<String> tickersWith(String name) {
+        Path root = props.cacheDir();
+        if (!Files.isDirectory(root)) return List.of();
+        try (Stream<Path> dirs = Files.list(root)) {
+            return dirs.filter(d -> Files.isRegularFile(d.resolve(name + ".json")))
+                    .map(d -> d.getFileName().toString())
+                    .sorted()
+                    .toList();
+        } catch (IOException e) {
+            return List.of();
         }
     }
 

@@ -53,6 +53,20 @@ class DiskCacheTest {
     }
 
     @Test
+    void demoModeSuggestsOnlyTickersThatAreActuallyCached() {
+        DiskCache demo = new DiskCache(TestProps.create(dir, true, 12));
+        assertThatThrownBy(() -> demo.cached("AAPL", "x", "X", STRINGS, List::of))
+                .hasMessageContaining("cache is empty")
+                .hasMessageContaining("npm run precache");
+
+        demo.write("NVDA", "x", List.of("a"));
+        demo.write("JPM", "x", List.of("a"));
+        demo.write("TSLA", "other", List.of("a")); // a different file does not count
+        assertThatThrownBy(() -> demo.cached("AAPL", "x", "X", STRINGS, List::of))
+                .hasMessageEndingWith("Try one of: JPM, NVDA");
+    }
+
+    @Test
     void sanitisesTickerForTheFilePath() {
         DiskCache cache = new DiskCache(TestProps.create(dir, false, 12));
         cache.write("../evil", "x", List.of("a"));
