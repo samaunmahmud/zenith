@@ -33,4 +33,9 @@ describe("Markdown (memo renderer)", () => {
     expect(out).toContain("MAX_SPEND_USD");
     expect(out).toContain("<em>read this</em>");
   });
+
+  it("survives a table made only of separator rows", () => {
+    expect(() => html("Before\n|---|---|\nAfter")).not.toThrow();
+    expect(html("Before\n|---|---|\nAfter")).toContain("<p>After</p>");
+  });
 });

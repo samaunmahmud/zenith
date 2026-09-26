@@ -32,6 +32,7 @@ export function Markdown({ source }: { source: string }) {
         i++;
       }
       const [head, ...body] = rows;
+      if (!head) continue; // a lone |---| line: nothing to show
       out.push(
         <div className="table-wrap" key={key}>
           <table>
