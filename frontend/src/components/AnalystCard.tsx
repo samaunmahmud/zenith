@@ -44,11 +44,11 @@ export function AnalystCard({ analyst, agent, report, error, pending, halted, fa
 
   if (error) {
     return (
-      <div className={`panel card ${halted ? "" : "failed"}`}>
+      <div className="panel card failed">
         {head}
         <p className="small">
           {halted
-            ? "Not run: the AI analysis is unavailable right now. The data this analyst would use is below."
+            ? "This analyst couldn't produce a valid report, and the committee stopped before a decision."
             : "This analyst couldn't produce a valid report, so the chair decided without it."}
         </p>
         <p className="small dim">{error}</p>

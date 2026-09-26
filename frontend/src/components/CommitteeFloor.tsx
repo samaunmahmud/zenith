@@ -82,7 +82,8 @@ function seatFor(id: string, p: FloorProps): SeatView {
       meta: measured(p.costs, id) ?? clock(p.timing, id, p.now),
     };
   }
-  if (p.errors[a]) return halted ? { state: "skipped", status: "Not run" } : { state: "failed", status: "No valid report" };
+  // The backend fails fast before any analyst starts, so an analyst error always means that analyst really failed.
+  if (p.errors[a]) return { state: "failed", status: "No valid report" };
   if (started && running) return { state: "thinking", status: "Analysing", meta: clock(p.timing, id, p.now) };
   return halted ? { state: "skipped", status: "Not run" } : { state: "waiting", status: "Waiting" };
 }
