@@ -113,9 +113,11 @@ public final class Technicals {
     public static Range52w range52w(List<PriceBar> bars) {
         if (bars.isEmpty()) return null;
         List<PriceBar> window = bars.subList(Math.max(0, bars.size() - YEAR), bars.size());
-        double high = window.stream().mapToDouble(PriceBar::high).max().orElseThrow();
-        double low = window.stream().mapToDouble(PriceBar::low).min().orElseThrow();
+        // A missing high/low arrives as 0 from the data provider; skip those rather than report a $0.00 low.
+        double high = window.stream().mapToDouble(PriceBar::high).filter(v -> v > 0).max().orElse(Double.NaN);
+        double low = window.stream().mapToDouble(PriceBar::low).filter(v -> v > 0).min().orElse(Double.NaN);
         double last = bars.get(bars.size() - 1).close();
+        if (Double.isNaN(high) || Double.isNaN(low)) return null;
         return new Range52w(high, low, last / high - 1, last / low - 1);
     }
 

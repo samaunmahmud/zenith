@@ -90,4 +90,16 @@ class TechnicalsTest {
         assertThat(r.pctFromHigh()).isCloseTo(96.0 / 120 - 1, within(EPS)); // -20%
         assertThat(r.pctFromLow()).isCloseTo(96.0 / 80 - 1, within(EPS)); // +20%
     }
+
+    @Test
+    void range52wIgnoresBarsWithAMissingLowOrHigh() {
+        List<PriceBar> bars = new java.util.ArrayList<>(List.of(
+                new PriceBar("2026-01-01", 100, 105, 95, 100, 1),
+                new PriceBar("2026-01-02", 101, 106, 0, 101, 1), // provider sent no low
+                new PriceBar("2026-01-03", 102, 0, 97, 102, 1)));
+        Technicals.Range52w r = Technicals.range52w(bars);
+        assertThat(r.low()).isEqualTo(95);
+        assertThat(r.high()).isEqualTo(106);
+        assertThat(Double.isFinite(r.pctFromLow())).isTrue();
+    }
 }
