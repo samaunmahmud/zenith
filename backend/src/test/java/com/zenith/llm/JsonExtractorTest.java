@@ -45,4 +45,11 @@ class JsonExtractorTest {
     void keepsAnAnswerThatPrecedesAStrayOpeningTag() {
         assertThat(JsonExtractor.extract("{\"a\": 1}\n<think>afterthought {\"b\": 2}")).isEqualTo("{\"a\": 1}");
     }
+
+    @Test
+    void charactersThatChangeLengthWhenLowerCasedDoNotShiftTheCut() {
+        // "İ" lower-cases to two chars; an index found in the lower-cased copy would cut one char too late.
+        String reply = "İstanbul reasoning {\"draft\": 1}</think>{\"stance\": \"bullish\", \"inner\": {\"x\": 1}}";
+        assertThat(JsonExtractor.extract(reply)).isEqualTo("{\"stance\": \"bullish\", \"inner\": {\"x\": 1}}");
+    }
 }
