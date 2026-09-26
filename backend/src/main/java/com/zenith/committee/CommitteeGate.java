@@ -1,6 +1,7 @@
 package com.zenith.committee;
 
 import com.zenith.config.ZenithProperties;
+import com.zenith.data.DataException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -73,13 +74,17 @@ public class CommitteeGate {
             return busy(ticker, saved, "The committee is already in session for other visitors. Try again in a minute.");
         }
         try {
-            if (!takeHourlySlot()) {
+            Instant slot = takeHourlySlot();
+            if (slot == null) {
                 return busy(ticker, saved, "The committee has held its " + limits.liveRunsPerHour()
                         + " live sessions for this hour. Try again later, or pick one of the demo tickers.");
             }
             try {
                 return committee.run(ticker, rebuttals, emit);
             } catch (RuntimeException e) {
+                // These fail before any model call, so they cost nothing and shouldn't use up the hour's quota;
+                // otherwise a string of unknown tickers could lock real visitors out for free.
+                if (e instanceof DataException || e instanceof CommitteeService.NotConfiguredException) releaseHourlySlot(slot);
                 if (saved.isPresent()) {
                     log.warn("Live run failed for {}, replaying last saved run: {}", ticker, e.getMessage());
                     return saved.get().asReplay(FALLBACK);
@@ -106,13 +111,17 @@ public class CommitteeGate {
         }
     }
 
-    /** Sliding one-hour window of live-run start times. */
-    private synchronized boolean takeHourlySlot() {
-        if (limits.liveRunsPerHour() <= 0) return true;
+    /** Sliding one-hour window of live-run start times. Returns the slot taken, or null if the hour is full. */
+    private synchronized Instant takeHourlySlot() {
         Instant now = clock.instant();
+        if (limits.liveRunsPerHour() <= 0) return now;
         while (!liveStarts.isEmpty() && liveStarts.peekFirst().isBefore(now.minus(Duration.ofHours(1)))) liveStarts.pollFirst();
-        if (liveStarts.size() >= limits.liveRunsPerHour()) return false;
+        if (liveStarts.size() >= limits.liveRunsPerHour()) return null;
         liveStarts.addLast(now);
-        return true;
+        return now;
+    }
+
+    private synchronized void releaseHourlySlot(Instant slot) {
+        liveStarts.removeLastOccurrence(slot);
     }
 }

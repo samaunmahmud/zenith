@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.zenith.config.ZenithProperties.Limits;
+import com.zenith.data.DataException;
 import com.zenith.schema.AnalystName;
 import com.zenith.schema.Rebuttal;
 import java.time.Clock;
@@ -150,5 +151,25 @@ class CommitteeGateTest {
         assertThatThrownBy(() -> gate.run("MSFT", false, e -> {})).hasMessageContaining("Token Factory down");
         committee.failWith = null;
         assertThat(gate.run("MSFT", false, e -> {}).replayed()).isFalse();
+    }
+
+    @Test
+    void runsThatFailBeforeAnyModelCallDoNotUseUpTheHourlyQuota() {
+        CommitteeGate gate = gate(0, 1, 1);
+        committee.failWith = new DataException("Unknown ticker", 404);
+        for (int i = 0; i < 5; i++) {
+            assertThatThrownBy(() -> gate.run("NOPE", false, e -> {})).isInstanceOf(DataException.class);
+        }
+        committee.failWith = null;
+        assertThat(gate.run("AAPL", false, e -> {}).replayed()).isFalse(); // the single slot is still free
+    }
+
+    @Test
+    void aRunThatFailsAfterSpendingStillCountsAgainstTheHour() {
+        CommitteeGate gate = gate(0, 1, 1);
+        committee.failWith = new IllegalStateException("Chair timed out");
+        assertThatThrownBy(() -> gate.run("AAPL", false, e -> {})).hasMessageContaining("Chair timed out");
+        committee.failWith = null;
+        assertThatThrownBy(() -> gate.run("MSFT", false, e -> {})).isInstanceOf(CommitteeGate.BusyException.class);
     }
 }
