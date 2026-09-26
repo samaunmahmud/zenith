@@ -56,7 +56,7 @@ export function OverviewTab({ state, agents, now, openTab }: Props) {
   const running = state.status === "running";
   return (
     <div className="stack-16">
-      <CommitteeFloor
+      {(s || running) && <CommitteeFloor
         agents={agents}
         mode={running ? "running" : state.status === "error" ? "error" : "done"}
         stage={state.stage}
@@ -69,7 +69,7 @@ export function OverviewTab({ state, agents, now, openTab }: Props) {
         chairError={state.result?.chairError ?? null}
         costs={state.result?.costs ?? null}
         replayed={state.result?.replayed ?? false}
-      />
+      />}
       <div className="grid">
         <div className="col-8 stack-16">
           {state.decision ? (

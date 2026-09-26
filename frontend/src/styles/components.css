@@ -66,6 +66,7 @@
 .notice.warn::before { background: var(--warn); }
 .notice.error::before { background: var(--neg); }
 .notices { display: grid; gap: 10px; margin-bottom: 16px; }
+.on-file { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; margin-top: 10px; font-size: 12.5px; color: var(--text-3); }
 
 /* ── Committee floor ─────────────────────────────────── */
 .floor { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }

@@ -1,25 +1,55 @@
 import type { CommitteeState } from "../../state/committee";
 import { when } from "../../lib/format";
 
-/** Tells the visitor exactly what they are looking at when it isn't a fresh, complete live run. */
-export function RunNotices({ state }: { state: CommitteeState }) {
+/** One-click alternatives: tickers the committee has already decided, which replay at no cost. */
+function OnFile({ tickers, current, onConvene }: { tickers: string[]; current: string; onConvene: (t: string) => void }) {
+  const others = tickers.filter((t) => t !== current);
+  if (!others.length) return null;
+  return (
+    <div className="on-file">
+      <span>Decisions on file:</span>
+      {others.map((t) => <button key={t} type="button" className="ticker-link" onClick={() => onConvene(t)}>{t}</button>)}
+    </div>
+  );
+}
+
+interface Props {
+  state: CommitteeState;
+  onFile: string[];
+  onConvene: (ticker: string) => void;
+}
+
+/** Tells the visitor exactly what they are looking at when it isn't a fresh, complete live run, and what to try next. */
+export function RunNotices({ state, onFile, onConvene }: Props) {
   const out = [];
   const r = state.result;
+  const alternatives = <OnFile tickers={onFile} current={state.ticker} onConvene={onConvene} />;
 
   if (state.status === "error") {
-    const dataNote = state.snapshot ? " The market data and indicators below were still computed live." : "";
+    const dataNote = state.snapshot ? " The market data and indicators below are live." : "";
     if (state.errorStatus === 503) {
+      // The server's message is meant for whoever runs the demo (e.g. which variable to set), not for visitors.
       out.push(
-        <div className="notice warn" key="halt">
+        <div className="notice warn" key="halt" title={state.error ?? undefined}>
           <div>
-            <b>The AI committee is switched off right now.</b> Its model budget is used up or not configured, so no Nemotron calls
-            were made.{dataNote}
-            <div className="xs dim" style={{ marginTop: 2 }}>{state.error}</div>
+            <b>The committee isn't taking new cases right now.</b> Its AI budget for this demo is used up or switched off, so no
+            Nemotron models were called.{dataNote}
+            {alternatives}
           </div>
         </div>,
       );
     } else if (state.errorStatus === 429) {
-      out.push(<div className="notice warn" key="halt"><div><b>The committee is busy.</b> {state.error}{dataNote}</div></div>);
+      out.push(<div className="notice warn" key="halt"><div><b>The committee is busy.</b> {state.error}{dataNote}{alternatives}</div></div>);
+    } else if (!state.snapshot) {
+      out.push(
+        <div className="notice error" key="halt">
+          <div>
+            <b>No market data for {state.ticker}.</b> {/^unknown ticker/i.test(state.error ?? "") ? "" : `${state.error} `}Zenith covers US-listed stocks by their ticker symbol
+            (for example MSFT, or BRK-B for Berkshire Hathaway class B).
+            {alternatives}
+          </div>
+        </div>,
+      );
     } else {
       out.push(<div className="notice error" key="halt"><div><b>The committee couldn't finish.</b> {state.error}{dataNote}</div></div>);
     }

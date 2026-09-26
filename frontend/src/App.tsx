@@ -33,7 +33,7 @@ export default function App() {
   return (
     <>
       <TopBar showSearch={!idle} busy={state.status === "running"} health={health} onSearch={convenePreservingOptions} onHome={home} />
-      {idle ? <Landing config={config} onConvene={convene} /> : <Workspace state={state} agents={agents} />}
+      {idle ? <Landing config={config} onConvene={convene} /> : <Workspace state={state} agents={agents} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} />}
       <Footer />
     </>
   );

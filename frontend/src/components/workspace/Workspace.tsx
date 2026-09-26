@@ -15,7 +15,15 @@ import { SecurityHeader } from "./SecurityHeader";
 type TabId = "overview" | "analysts" | "debate" | "memo" | "models";
 
 /** The results view for one ticker: sticky security header, tabs, and the active tab's content. */
-export function Workspace({ state, agents }: { state: CommitteeState; agents: AgentModel[] }) {
+interface Props {
+  state: CommitteeState;
+  agents: AgentModel[];
+  /** Tickers with saved decisions: offered when this one can't be analysed. */
+  onFile: string[];
+  onConvene: (ticker: string) => void;
+}
+
+export function Workspace({ state, agents, onFile, onConvene }: Props) {
   const [tab, setTab] = useState<TabId>("overview");
   const running = state.status === "running";
   const now = useNow(running);
@@ -36,7 +44,7 @@ export function Workspace({ state, agents }: { state: CommitteeState; agents: Ag
     <main>
       <SecurityHeader state={state} tabs={<Tabs tabs={tabs} active={tab} onChange={setTab} label="Committee results" />} />
       <div className="container ws-body">
-        <RunNotices state={state} />
+        <RunNotices state={state} onFile={onFile} onConvene={onConvene} />
         <TabPanel id={tab}>
           {tab === "overview" && <OverviewTab state={state} agents={agents} now={now} openTab={setTab} />}
           {tab === "analysts" && <AnalystsTab state={state} agents={agents} />}
