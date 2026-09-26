@@ -16,6 +16,8 @@ export interface FloorProps {
   decision: ChairDecision | null;
   chairError: string | null;
   costs: CostSummary | null;
+  /** A saved decision served again: this browser's clock timed the replay, not the meeting, so it's hidden. */
+  replayed?: boolean;
 }
 
 type SeatState = "ready" | "waiting" | "thinking" | "done" | "failed" | "skipped";
@@ -124,7 +126,7 @@ export function CommitteeFloor(p: FloorProps) {
   };
 
   const run = p.timing.run;
-  const total = run?.start !== undefined ? Math.max(0, (run.end ?? p.now) - run.start) : 0;
+  const total = run?.start !== undefined && !p.replayed ? Math.max(0, (run.end ?? p.now) - run.start) : 0;
   let caption: string;
   if (p.mode === "preview") caption = "Five agents, three Nemotron sizes, one decision";
   else if (p.mode === "running") caption = p.stage ? STAGE_TEXT[p.stage] : "Convening the committee";

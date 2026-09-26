@@ -68,6 +68,7 @@ export function OverviewTab({ state, agents, now, openTab }: Props) {
         decision={state.decision}
         chairError={state.result?.chairError ?? null}
         costs={state.result?.costs ?? null}
+        replayed={state.result?.replayed ?? false}
       />
       <div className="grid">
         <div className="col-8 stack-16">
