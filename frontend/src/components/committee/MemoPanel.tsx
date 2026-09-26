@@ -17,6 +17,11 @@ export function downloadMemo(result: CommitteeResult) {
 export function MemoPanel({ result }: { result: CommitteeResult }) {
   const [source, setSource] = useState(false);
   const traced = result.integrity.length === 0;
+  // Print the document view: switch out of the source view first, then let React paint it.
+  const printMemo = () => {
+    setSource(false);
+    setTimeout(() => window.print(), 50);
+  };
 
   return (
     <div className="stack-16">
@@ -43,7 +48,8 @@ export function MemoPanel({ result }: { result: CommitteeResult }) {
             <button className="btn btn-sm btn-ghost" aria-pressed={source} onClick={() => setSource((s) => !s)}>
               {source ? "Document" : "Markdown source"}
             </button>
-            <button className="btn btn-sm btn-primary" onClick={() => downloadMemo(result)}>Download .md</button>
+            <button className="btn btn-sm" onClick={() => downloadMemo(result)}>Download .md</button>
+            <button className="btn btn-sm btn-primary" onClick={printMemo}>Print or save as PDF</button>
           </>
         }
         flush={source}

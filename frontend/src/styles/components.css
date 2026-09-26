@@ -275,6 +275,9 @@ details.facts dd { margin: 0; font-weight: 600; text-align: right; }
 .memo-doc { max-width: 820px; margin: 0 auto; background: var(--memo-bg); color: #1d1f20; border: 1px solid var(--memo-edge); padding: 40px 48px; border-radius: 8px; box-shadow: var(--shadow); }
 @media (max-width: 640px) { .memo-doc { padding: 24px 20px; } }
 .markdown { font-size: 14px; line-height: 1.65; }
+.memo-doc .markdown { font-family: var(--serif); font-size: 16px; font-variation-settings: "opsz" 16; line-height: 1.6; }
+.memo-doc .markdown h1, .memo-doc .markdown h2, .memo-doc .markdown h3 { font-weight: 600; letter-spacing: -0.005em; }
+.memo-doc .markdown table { font-family: var(--font); }
 .markdown h1 { font-size: 22px; font-weight: 650; margin: 0 0 6px; line-height: 1.25; }
 .markdown h2 { font-size: 16px; font-weight: 650; margin: 26px 0 8px; padding-top: 18px; border-top: 1px solid #e3e3dd; }
 .markdown h3 { font-size: 14px; font-weight: 650; margin: 16px 0 4px; }
@@ -298,3 +301,17 @@ details.facts dd { margin: 0; font-weight: 600; text-align: right; }
 .rules li { padding: 14px 0; border-bottom: 1px solid var(--line); color: var(--text-2); font-size: 14px; }
 .rules li > * , .rules li { text-wrap: pretty; }
 .rules b { color: var(--text); font-weight: 600; }
+
+
+/* ── Print: the memo as a clean document, whichever theme is on screen ── */
+@media print {
+  :root, :root[data-theme] { --bg: #fff; --panel: #fff; --memo-bg: #fff; --text: #111; --text-2: #333; --text-3: #555; --line: #ddd; color-scheme: light; }
+  body { background: #fff; font-size: 11pt; }
+  .topbar, .sec-header, .footer, .notices, .notice, .card-head, .floor, .tabs { display: none !important; }
+  .container, .ws-body { max-width: none; padding: 0; }
+  .card { border: 0; background: none; }
+  .memo-doc { max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+  .markdown table, .markdown blockquote, .markdown h2 { break-inside: avoid; }
+  .markdown h2 { break-after: avoid; }
+  a { color: inherit; }
+}
