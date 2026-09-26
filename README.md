@@ -66,7 +66,7 @@ The principle is to **spend reasoning where it matters**. Most calls go to Nano 
 - **One OpenAI-compatible API for three model sizes.** Switching an agent from Nano to Super to Ultra is a one-word change (the model ID). That made it quick to test which tier each role actually needs.
 - **No infrastructure to run.** No GPUs to provision and no model servers to operate. The backend makes a plain HTTPS `POST /v1/chat/completions` using Java's built-in `HttpClient`, with no vendor SDK.
 - **Structured output built in.** `response_format: json_schema` constrains the models to our schemas, so most validation work happens before a reply even reaches our code.
-- **Per-token pricing** makes the per-decision cost readout straightforward: tokens × list price, per call.
+- **Per-token pricing** makes the per-decision cost readout straightforward: tokens × list price, per call. The same numbers drive a hard spending cap.
 
 ## Other Nebius services
 
@@ -98,6 +98,8 @@ cp .env.example .env    # then fill in the keys below
 | `FINNHUB_API_KEY` | [Finnhub](https://finnhub.io) (free) | optional: news headlines |
 
 The Token Factory base URL and Nemotron model IDs are already filled in `.env.example`.
+
+**Spending cap.** `MAX_SPEND_USD` (default `0.50`) is a hard cap on total Token Factory spend. The running total is kept in `cache/_spend.json`, so it survives restarts, and model calls are refused once the cap is reached. Set it to `0` to switch AI calls off completely. This protects both a small credit balance and a public demo URL.
 
 ## Running
 

@@ -123,7 +123,8 @@ class CommitteeServiceTest {
     @BeforeAll
     void runCommittee(@TempDir Path cacheDir) {
         ZenithProperties props = TestProps.create(cacheDir, false, 12);
-        var llm = new TokenFactoryClient(this::fakeNemotron, props, Validation.buildDefaultValidatorFactory().getValidator());
+        var llm = new TokenFactoryClient(this::fakeNemotron, props, Validation.buildDefaultValidatorFactory().getValidator(),
+                new com.zenith.llm.SpendGuard(props));
         var market = new MarketDataService(null, null, null, props) {
             @Override
             public MarketData get(String ticker) {

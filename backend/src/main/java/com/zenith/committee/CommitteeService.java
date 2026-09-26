@@ -88,6 +88,7 @@ public class CommitteeService {
         if (!llm.configured()) {
             throw new NotConfiguredException("AI analysis unavailable: Token Factory is not configured (set TOKEN_FACTORY_API_KEY in .env)");
         }
+        llm.spendGuard().checkAvailable();
 
         // News digest (Nano). Optional: a failure just means the analysts see "no news".
         emit.accept(new CommitteeEvent.Stage("news", "News desk is summarising headlines"));

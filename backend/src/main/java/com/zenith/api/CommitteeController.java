@@ -35,10 +35,12 @@ public class CommitteeController {
 
     private final CommitteeService committee;
     private final ZenithProperties props;
+    private final com.zenith.llm.SpendGuard spendGuard;
 
-    public CommitteeController(CommitteeService committee, ZenithProperties props) {
+    public CommitteeController(CommitteeService committee, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard) {
         this.committee = committee;
         this.props = props;
+        this.spendGuard = spendGuard;
     }
 
     public record CommitteeRequest(String ticker, Boolean rebuttals) {}
@@ -50,6 +52,8 @@ public class CommitteeController {
 
     static int statusFor(Throwable e) {
         if (e instanceof CommitteeService.NotConfiguredException) return 503;
+        if (e instanceof com.zenith.llm.SpendGuard.BudgetExceededException) return 503;
+        if (e instanceof LlmException && e.getCause() instanceof com.zenith.llm.SpendGuard.BudgetExceededException) return 503;
         if (e instanceof DataException de) return de.status();
         if (e instanceof LlmException le && le.getCause() instanceof IllegalStateException ise
                 && ise.getMessage() != null && ise.getMessage().contains("not configured")) return 503;
@@ -66,6 +70,7 @@ public class CommitteeController {
         return json(200, Map.of(
                 "status", "ok",
                 "demoMode", props.demoMode(),
+                "budget", Map.of("maxUsd", spendGuard.maxUsd(), "spentUsd", spendGuard.spentUsd()),
                 "keys", Map.of(
                         "tokenFactory", props.tokenFactory().configured(),
                         "fmp", !ZenithProperties.isBlank(props.marketData().fmpApiKey()),

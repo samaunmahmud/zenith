@@ -14,6 +14,7 @@ public record ZenithProperties(
         TokenFactory tokenFactory,
         MarketData marketData,
         Cache cache,
+        Budget budget,
         boolean demoMode,
         String demoTickers) {
 
@@ -33,6 +34,9 @@ public record ZenithProperties(
     public record MarketData(String fmpApiKey, String finnhubApiKey) {}
 
     public record Cache(String dir, double ttlHours) {}
+
+    /** Hard cap on total Token Factory spend (USD), tracked across restarts. 0 = no model calls at all. */
+    public record Budget(double maxUsd) {}
 
     public List<String> demoTickerList() {
         return Arrays.stream(demoTickers.split(",")).map(String::trim).map(String::toUpperCase).filter(s -> !s.isEmpty()).toList();

@@ -11,6 +11,10 @@ public final class TestProps {
     private TestProps() {}
 
     public static ZenithProperties create(Path cacheDir, boolean demoMode, double ttlHours) {
+        return create(cacheDir, demoMode, ttlHours, 100.0);
+    }
+
+    public static ZenithProperties create(Path cacheDir, boolean demoMode, double ttlHours, double budgetUsd) {
         return new ZenithProperties(
                 new ZenithProperties.TokenFactory("test-key", "http://fake/v1/",
                         Map.of(ModelTier.NANO, "fake-nano", ModelTier.SUPER, "fake-super", ModelTier.ULTRA, "fake-ultra"),
@@ -19,6 +23,7 @@ public final class TestProps {
                                 ModelTier.ULTRA, new ZenithProperties.Price(1.00, 3.00))),
                 new ZenithProperties.MarketData("", ""),
                 new ZenithProperties.Cache(cacheDir.toString(), ttlHours),
+                new ZenithProperties.Budget(budgetUsd),
                 demoMode,
                 "AAPL,NVDA");
     }

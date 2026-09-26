@@ -43,6 +43,8 @@ zenith:
   market-data:
     fmp-api-key: ${FMP_API_KEY:}
     finnhub-api-key: ${FINNHUB_API_KEY:}
+  budget:
+    max-usd: ${MAX_SPEND_USD:0.50} # hard cap on total Token Factory spend; 0 switches AI calls off
   cache:
     dir: ${CACHE_DIR:}
     ttl-hours: ${CACHE_TTL_HOURS:12}

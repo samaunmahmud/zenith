@@ -33,18 +33,24 @@ public class TokenFactoryClient {
     private final ChatTransport transport;
     private final ZenithProperties props;
     private final Validator validator;
+    private final SpendGuard spendGuard;
 
     // Models whose endpoint rejected json_schema: we fall back to plain json_object for them.
     private final Set<String> noSchemaSupport = ConcurrentHashMap.newKeySet();
 
-    public TokenFactoryClient(ChatTransport transport, ZenithProperties props, Validator validator) {
+    public TokenFactoryClient(ChatTransport transport, ZenithProperties props, Validator validator, SpendGuard spendGuard) {
         this.transport = transport;
         this.props = props;
         this.validator = validator;
+        this.spendGuard = spendGuard;
     }
 
     public boolean configured() {
         return props.tokenFactory().configured();
+    }
+
+    public SpendGuard spendGuard() {
+        return spendGuard;
     }
 
     public String modelFor(ModelTier tier) {
@@ -85,6 +91,8 @@ public class TokenFactoryClient {
                     : Map.of("type", "json_object");
         }
 
+        spendGuard.checkAvailable(); // hard spending cap: refuse before any tokens are spent
+
         long started = System.currentTimeMillis();
         ChatTransport.Response res;
         try {
@@ -102,6 +110,7 @@ public class TokenFactoryClient {
 
         long latency = System.currentTimeMillis() - started;
         double cost = CostTracker.estimateCostUsd(res.promptTokens(), res.completionTokens(), price.input(), price.output());
+        spendGuard.record(cost);
         CallCost call = new CallCost(agent, model, tier, res.promptTokens(), res.completionTokens(), latency, cost, attempt, true);
         int index = tracker == null ? -1 : tracker.record(call);
         return new ChatResult(res.content(), index);
