@@ -227,11 +227,15 @@ public class CommitteeService implements CommitteeRunner {
                     .flatMap(s -> s).toList();
             check(flags, r.analyst().id(), List.of(AgentInputs.analystInput(r.analyst(), snapshot, news)), texts);
         }
-        // Rebuttals and the chair may quote any analyst's figures.
-        List<String> everything = new ArrayList<>();
-        Roster.ORDER.forEach(a -> everything.add(AgentInputs.analystInput(a, snapshot, news)));
+        // Rebuttals may quote any analyst's input or report. Not the rebuttals themselves: a rebuttal checked
+        // against a list that contains its own text could never be flagged.
+        List<String> forRebuttals = new ArrayList<>();
+        Roster.ORDER.forEach(a -> forRebuttals.add(AgentInputs.analystInput(a, snapshot, news)));
+        forRebuttals.add(AgentInputs.chairInput(snapshot, reports, List.of()));
+        for (Rebuttal r : rebuttals) check(flags, r.analyst().id() + "-rebuttal", forRebuttals, List.of(r.response()));
+        // The chair saw everything, rebuttals included.
+        List<String> everything = new ArrayList<>(forRebuttals);
         everything.add(AgentInputs.chairInput(snapshot, reports, rebuttals));
-        for (Rebuttal r : rebuttals) check(flags, r.analyst().id() + "-rebuttal", everything, List.of(r.response()));
         if (decision != null) {
             List<String> texts = new ArrayList<>(List.of(decision.summary()));
             texts.addAll(decision.rationale());

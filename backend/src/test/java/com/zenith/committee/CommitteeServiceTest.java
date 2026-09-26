@@ -100,7 +100,9 @@ class CommitteeServiceTest {
             Matcher m = REBUTTAL_ID.matcher(system);
             m.find();
             String me = m.group(1);
-            body = Map.of("analyst", me, "respondingTo", me.equals("risk") ? "technicals" : "risk", "response", "I disagree.", "stanceChanged", false);
+            body = Map.of("analyst", me, "respondingTo", me.equals("risk") ? "technicals" : "risk", "response",
+                    // The risk analyst's rebuttal invents a figure: the integrity check must flag it.
+                    me.equals("risk") ? "Margins could compress by 93.17%." : "I disagree.", "stanceChanged", false);
         } else {
             Matcher m = ANALYST_ID.matcher(system);
             m.find();
@@ -188,8 +190,9 @@ class CommitteeServiceTest {
     }
 
     @Test
-    void findsNoUntraceableFiguresWhenAgentsOnlyQuoteTheirInput() {
-        assertThat(result.integrity()).isEmpty();
+    void flagsOnlyTheRebuttalThatInventedAFigure() {
+        // Analysts and the chair quote only their input; one rebuttal invents 93.17%.
+        assertThat(result.integrity()).containsExactly(new CommitteeResult.IntegrityFlag("risk-rebuttal", List.of("93.17")));
     }
 
     @Test
