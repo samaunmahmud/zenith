@@ -15,16 +15,21 @@ public final class NumberCheck {
     // Things that look like numbers but are really names or dates: stripped before checking.
     private static final List<Pattern> NOISE = List.of(
             Pattern.compile("\\b\\d{4}-\\d{2}-\\d{2}\\b"), // ISO dates
-            Pattern.compile("(?i)\\b(?:SMA|EMA)\\s?\\d+\\b"), // SMA200, EMA 50
+            Pattern.compile("(?i)\\b(?:SMA|EMA)\\s?\\d+(?:/\\d+)*\\b"), // SMA200, EMA 50, SMA20/50
             Pattern.compile("(?i)\\bRSI\\s?\\(\\d+\\)|\\bRSI\\d+\\b"), // RSI (14), RSI14 (not "RSI 85": that's a reading)
             Pattern.compile("(?i)\\bMACD\\s?\\(\\s*\\d+\\s*,\\s*\\d+\\s*,\\s*\\d+\\s*\\)"), // MACD(12,26,9)
+            Pattern.compile("(?i)\\b\\d+-(?=\\s+(?:and|or|to)\\s+\\d+[-\\s](?:day|week|month|year|quarter|session)s?\\b)"), // the 20- of "20- and 50-day"
             Pattern.compile("(?i)\\b\\d+[-\\s](?:day|week|month|year|quarter|session)s?\\b"), // 52-week, 3 months
             Pattern.compile("(?i)(?<![\\d.,])\\b\\d+\\s?[dwmy]\\b"), // 20d, 1y (not the 23M of 45.23M)
             Pattern.compile("(?i)\\bS&P\\s?500\\b"),
             Pattern.compile("\\bQ[1-4]\\b"), // Q3
             Pattern.compile("(?<![$\\d.,])\\b(?:19|20)\\d{2}\\b(?![.,]\\d)")); // years (not a $1950.25 price)
 
-    private static final Pattern NUMBER = Pattern.compile("-?\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|-?\\d+(?:\\.\\d+)?");
+    // Models often write typographic hyphens ("52‑week") and no-break spaces ("S&P 500"): fold them to ASCII so NOISE matches.
+    private static final Pattern DASHES = Pattern.compile("[\\u2010-\\u2015\\u2212]");
+    private static final Pattern SPACES = Pattern.compile("[\\u00A0\\u2007\\u2009\\u202F]");
+
+    private static final Pattern NUMBER =Pattern.compile("-?\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|-?\\d+(?:\\.\\d+)?");
 
     public record ParsedNumber(double value, int decimals, String raw) {}
 
@@ -32,6 +37,7 @@ public final class NumberCheck {
 
     public static List<ParsedNumber> extractNumbers(String text) {
         String cleaned = text == null ? "" : text;
+        cleaned = SPACES.matcher(DASHES.matcher(cleaned).replaceAll("-")).replaceAll(" ");
         for (Pattern p : NOISE) cleaned = p.matcher(cleaned).replaceAll(" ");
         List<ParsedNumber> out = new ArrayList<>();
         Matcher m = NUMBER.matcher(cleaned);

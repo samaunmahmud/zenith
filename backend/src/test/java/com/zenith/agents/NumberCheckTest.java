@@ -33,6 +33,18 @@ class NumberCheckTest {
     }
 
     @Test
+    void ignoresIndicatorNamesWrittenWithTypographicHyphensAndSpaces() {
+        assertThat(NumberCheck.unsupportedNumbers("near its 52‑week high, above the 50‑day average; beats the S&P 500", allowed)).isEmpty();
+        assertThat(NumberCheck.unsupportedNumbers("down −12.3% on the year", allowed)).isEmpty();
+    }
+
+    @Test
+    void ignoresShorthandForSeveralMovingAverages() {
+        assertThat(NumberCheck.unsupportedNumbers("support at SMA20/50; above the 20‑ and 50‑day SMAs", allowed)).isEmpty();
+        assertThat(NumberCheck.unsupportedNumbers("a move of 20 and 50-day lows", allowed)).containsExactly("20");
+    }
+
+    @Test
     void keepsCompactFiguresLikeMillionsIntact() {
         List<Double> input = NumberCheck.allowedNumbers(List.of("Average daily volume (20d): 45.23M shares"));
         assertThat(NumberCheck.unsupportedNumbers("volume of 45.2 million", input)).isEmpty();
