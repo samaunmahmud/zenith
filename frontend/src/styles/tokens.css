@@ -16,26 +16,26 @@
   /* Text */
   --text: #1a1c1b;
   --text-2: #464945;
-  --text-3: #6b6d68;
-  --text-4: #95958d;
+  --text-3: #64665f;
+  --text-4: #6e6f68;
 
   /* Accent: a leaf green, dark enough to read as text on paper */
-  --accent: #3d7a14;
-  --accent-hi: #2f6310;
+  --accent: #33680f;
+  --accent-hi: #28540b;
   --accent-ink: #ffffff; /* text on an accent fill */
   --accent-soft: color-mix(in srgb, var(--accent) 9%, transparent);
   --accent-line: color-mix(in srgb, var(--accent) 35%, transparent);
 
   /* Semantics: kept apart from the accent so "up" and "brand" never read as the same signal */
-  --pos: #1e8047;
-  --neg: #b83227;
-  --warn: #9a6400;
+  --pos: #176b3a;
+  --neg: #b0301f;
+  --warn: #7f5300;
   --pos-soft: color-mix(in srgb, var(--pos) 11%, transparent);
   --neg-soft: color-mix(in srgb, var(--neg) 9%, transparent);
   --warn-soft: color-mix(in srgb, var(--warn) 11%, transparent);
 
   /* Nemotron tiers */
-  --nano: #6f8f2e;
+  --nano: #52691d;
   --super: var(--accent);
   --ultra: var(--accent);
 
@@ -75,8 +75,8 @@
     --line-2: #383c3e;
     --text: #ebeae4;
     --text-2: #b8b7b0;
-    --text-3: #8b8a84;
-    --text-4: #64645f;
+    --text-3: #9a9992;
+    --text-4: #85847d;
     --accent: #8dc641;
     --accent-hi: #a3d65f;
     --accent-ink: #0e1206;
@@ -104,8 +104,8 @@
   --line-2: #383c3e;
   --text: #ebeae4;
   --text-2: #b8b7b0;
-  --text-3: #8b8a84;
-  --text-4: #64645f;
+  --text-3: #9a9992;
+  --text-4: #85847d;
   --accent: #8dc641;
   --accent-hi: #a3d65f;
   --accent-ink: #0e1206;

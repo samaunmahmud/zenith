@@ -33,9 +33,9 @@ export function Workspace({ state, agents }: { state: CommitteeState; agents: Ag
   ];
 
   return (
-    <>
+    <main>
       <SecurityHeader state={state} tabs={<Tabs tabs={tabs} active={tab} onChange={setTab} label="Committee results" />} />
-      <main className="container ws-body">
+      <div className="container ws-body">
         <RunNotices state={state} />
         <TabPanel id={tab}>
           {tab === "overview" && <OverviewTab state={state} agents={agents} now={now} openTab={setTab} />}
@@ -54,7 +54,7 @@ export function Workspace({ state, agents }: { state: CommitteeState; agents: Ag
             ))}
           {tab === "models" && <ModelsTab state={state} agents={agents} />}
         </TabPanel>
-      </main>
-    </>
+      </div>
+    </main>
   );
 }

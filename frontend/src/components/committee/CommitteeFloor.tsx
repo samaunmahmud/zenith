@@ -137,7 +137,7 @@ export function CommitteeFloor(p: FloorProps) {
   return (
     <div className={`floor floor-${p.mode}`}>
       <div className="floor-head">
-        <h3>{p.mode === "preview" ? "The committee" : "Committee session"}</h3>
+        <h2>{p.mode === "preview" ? "The committee" : "Committee session"}</h2>
         <span className="floor-caption" aria-live="polite">
           {p.mode === "running" && <i className="live" aria-hidden="true" />}
           {caption}

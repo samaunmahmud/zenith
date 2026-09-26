@@ -22,14 +22,14 @@ function AnalystSummary({ state, openTab }: Pick<Props, "state" | "openTab">) {
   const running = state.status === "running";
   return (
     <Card title="Analyst calls" actions={<button className="linkish" onClick={() => openTab("analysts")}>Full reports →</button>} flush>
-      <dl className="kv">
+      <ul className="kv plain">
         {ANALYSTS.map((a) => {
           const r = state.reports[a];
           return (
-            <div key={a} style={{ display: "block" }}>
+            <li key={a} style={{ display: "block" }}>
               <div className="row spread">
-                <dt style={{ color: "var(--text)", fontWeight: 600 }}>{ANALYST_TITLE[a]}</dt>
-                <dd className="row" style={{ gap: 8 }}>
+                <b style={{ fontWeight: 600 }}>{ANALYST_TITLE[a]}</b>
+                <span className="row" style={{ gap: 8 }}>
                   {r ? (
                     <>
                       <span className="xs dim num">{Math.round(r.confidence * 100)}%</span>
@@ -40,13 +40,13 @@ function AnalystSummary({ state, openTab }: Pick<Props, "state" | "openTab">) {
                   ) : (
                     <span className="xs dim">{running ? "Analysing…" : "Not run"}</span>
                   )}
-                </dd>
+                </span>
               </div>
               {r && <p className="small muted" style={{ marginTop: 4 }}>{r.headline}</p>}
-            </div>
+            </li>
           );
         })}
-      </dl>
+      </ul>
     </Card>
   );
 }

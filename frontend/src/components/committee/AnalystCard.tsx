@@ -33,7 +33,7 @@ function FactSheet({ facts }: { facts: Record<string, string> | undefined }) {
 export function AnalystCard({ analyst, agent, report, error, pending, halted, facts }: Props) {
   const head = (
     <header className="card-head">
-      <h3>{ANALYST_TITLE[analyst]} analyst</h3>
+      <h2>{ANALYST_TITLE[analyst]} analyst</h2>
       {agent && <TierBadge tier={agent.tier} />}
     </header>
   );

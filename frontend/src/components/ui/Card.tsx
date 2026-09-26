@@ -14,7 +14,7 @@ export function Card({ title, sub, actions, children, className = "", flush = fa
       {(title || actions) && (
         <header className="card-head">
           <div className="row" style={{ gap: 10 }}>
-            {title && <h3>{title}</h3>}
+            {title && <h2>{title}</h2>}
             {sub && <span className="sub">{sub}</span>}
           </div>
           {actions && <div className="row">{actions}</div>}

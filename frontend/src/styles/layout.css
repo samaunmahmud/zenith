@@ -80,7 +80,7 @@
 .sec-header { position: sticky; top: var(--topbar-h); z-index: 20; background: var(--topbar-bg); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
 .sec-row { display: flex; align-items: center; gap: 16px 28px; flex-wrap: wrap; padding: 16px 0 12px; }
 .sec-id { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-width: 0; }
-.sec-id .sym { font-size: 22px; font-weight: 700; letter-spacing: 0.01em; }
+.sec-id .sym { font-size: 22px; font-weight: 700; letter-spacing: 0.01em; line-height: 1.2; }
 .sec-id .name { color: var(--text-2); font-size: 15px; }
 .sec-id .meta { color: var(--text-3); font-size: 12.5px; }
 .sec-price { display: flex; align-items: baseline; gap: 10px; }
@@ -113,6 +113,7 @@
 .footer .container { display: flex; justify-content: space-between; gap: 16px 32px; flex-wrap: wrap; }
 .footer p { max-width: 62em; }
 .footer b { color: var(--text-2); font-weight: 600; }
+.footer a { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 
 /* Small screens: the search needs the room, so the wordmark gives way to the logo alone. */
 @media (max-width: 560px) {

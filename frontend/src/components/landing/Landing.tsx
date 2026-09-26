@@ -35,7 +35,7 @@ export function Landing({ config, onConvene }: Props) {
   };
 
   return (
-    <>
+    <main>
       <section className="hero">
         <div className="container">
           <div className="masthead">
@@ -131,6 +131,6 @@ export function Landing({ config, onConvene }: Props) {
           <Roster agents={agents} />
         </section>
       </div>
-    </>
+    </main>
   );
 }

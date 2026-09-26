@@ -25,7 +25,7 @@
 /* ── Cards ───────────────────────────────────────────── */
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); min-width: 0; }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-bottom: 1px solid var(--line); }
-.card-head h3 { font-size: 13.5px; font-weight: 600; }
+.card-head h2 { font-size: 13.5px; font-weight: 600; }
 .card-head .sub { color: var(--text-3); font-size: 12.5px; }
 .card-body { padding: 16px; }
 .card-body.flush { padding: 0; }
@@ -50,7 +50,7 @@
 .verdict-chip.BUY { background: var(--pos-soft); color: var(--pos); }
 .verdict-chip.HOLD { background: var(--warn-soft); color: var(--warn); }
 .verdict-chip.SELL { background: var(--neg-soft); color: var(--neg); }
-.verdict-chip span { font-weight: 500; opacity: 0.85; }
+.verdict-chip span { font-weight: 500; }
 .session-chip { display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; color: var(--text-2); background: var(--panel-2); border: 1px solid var(--line-2); }
 .spinner { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--line-2); border-top-color: var(--accent); animation: spin 0.8s linear infinite; }
 
@@ -70,7 +70,7 @@
 /* ── Committee floor ─────────────────────────────────── */
 .floor { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
 .floor-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-.floor-head h3 { font-size: 13.5px; font-weight: 600; }
+.floor-head h2 { font-size: 13.5px; font-weight: 600; }
 .floor-caption { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-3); flex: 1 1 auto; }
 .floor-clock { font: 12.5px var(--mono); color: var(--text-2); }
 .live { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: ping 1.4s ease-out infinite; }
@@ -92,7 +92,7 @@
 .seat-status > span:first-of-type { display: inline-block; }
 .seat-status > span:first-of-type::first-letter { text-transform: uppercase; }
 .seat-status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-4); flex: none; }
-.seat-meta { margin-left: auto; font: 11.5px var(--mono); color: var(--text-4); white-space: nowrap; }
+.seat-meta { margin-left: auto; font: 11.5px var(--mono); color: var(--text-3); white-space: nowrap; }
 .seat-waiting, .seat-skipped { opacity: 0.6; }
 .seat-ready .dot { background: var(--accent); }
 .seat-thinking { border-color: var(--accent-line); }
@@ -191,8 +191,9 @@ details.facts dd { margin: 0; font-weight: 600; text-align: right; }
 
 /* ── Market ──────────────────────────────────────────── */
 .kv { display: grid; margin: 0; }
-.kv > div { display: flex; justify-content: space-between; gap: 12px; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 13px; }
-.kv > div:first-child { border-top: 0; }
+.kv.plain { list-style: none; padding: 0; }
+.kv > div, .kv > li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 13px; }
+.kv > div:first-child, .kv > li:first-child { border-top: 0; }
 .kv dt { color: var(--text-3); }
 .kv dd { margin: 0; font-weight: 600; text-align: right; }
 

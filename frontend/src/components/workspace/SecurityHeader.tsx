@@ -50,7 +50,7 @@ export function SecurityHeader({ state, tabs }: { state: CommitteeState; tabs: R
       <div className="container">
         <div className="sec-row">
           <div className="sec-id">
-            <span className="sym">{s?.ticker ?? state.ticker}</span>
+            <h1 className="sym">{s?.ticker ?? state.ticker}</h1>
             {s && <span className="name">{s.companyName}</span>}
             {s && (s.sector || s.industry) && <span className="meta">{[s.sector, s.industry].filter(Boolean).join(" · ")}</span>}
           </div>
