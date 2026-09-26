@@ -18,6 +18,7 @@ cache/*
 # Dependencies & builds
 node_modules/
 dist/
+target/
 build/
 coverage/
 

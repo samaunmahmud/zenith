@@ -1,0 +1,40 @@
+# Secrets live in the repo-root .env (KEY=value lines are valid .properties), imported here so
+# the same file works for local dev and Docker. Environment variables override it.
+spring:
+  application:
+    name: zenith
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
+  threads:
+    virtual:
+      enabled: true # Java 21 virtual threads: cheap blocking I/O for parallel agent calls
+  mvc:
+    async:
+      request-timeout: 600000 # SSE committee runs can take a few minutes
+
+server:
+  port: ${PORT:3001}
+
+zenith:
+  token-factory:
+    api-key: ${TOKEN_FACTORY_API_KEY:}
+    base-url: ${TOKEN_FACTORY_BASE_URL:https://api.tokenfactory.nebius.com/v1/}
+    models:
+      nano: ${NEMOTRON_NANO_MODEL:nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B}
+      super: ${NEMOTRON_SUPER_MODEL:nvidia/nemotron-3-super-120b-a12b}
+      ultra: ${NEMOTRON_ULTRA_MODEL:nvidia/Nemotron-3-Ultra-550b-a55b}
+    # USD per 1M tokens: Token Factory list prices (Sept 2026)
+    pricing:
+      nano: { input: ${PRICE_NANO_INPUT:0.06}, output: ${PRICE_NANO_OUTPUT:0.24} }
+      super: { input: ${PRICE_SUPER_INPUT:0.30}, output: ${PRICE_SUPER_OUTPUT:0.90} }
+      ultra: { input: ${PRICE_ULTRA_INPUT:1.00}, output: ${PRICE_ULTRA_OUTPUT:3.00} }
+  market-data:
+    fmp-api-key: ${FMP_API_KEY:}
+    finnhub-api-key: ${FINNHUB_API_KEY:}
+  cache:
+    dir: ${CACHE_DIR:}
+    ttl-hours: ${CACHE_TTL_HOURS:12}
+  demo-mode: ${DEMO_MODE:false}
+  demo-tickers: ${DEMO_TICKERS:AAPL,NVDA,JPM,TSLA}
