@@ -3,6 +3,7 @@ import type { ChatCompletionMessageParam } from "openai/resources/chat/completio
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { config, type ModelTier } from "../config.js";
+import type { CallCost } from "../schemas/committee.js";
 import { CostTracker, estimateCostUsd } from "./costs.js";
 
 let client: OpenAI | null = null;
@@ -59,8 +60,8 @@ interface RawCall {
   attempt?: number;
 }
 
-/** One chat completion with latency, token and cost tracking. Returns the text content. */
-export async function chat(call: RawCall): Promise<string> {
+/** One chat completion with latency, token and cost tracking. Returns the text and its cost record. */
+export async function chat(call: RawCall): Promise<{ text: string; cost: CallCost }> {
   const model = modelFor(call.tier);
   const price = config.pricing()[call.tier];
   const useSchema = call.jsonSchema && !noSchemaSupport.has(model);
@@ -83,7 +84,7 @@ export async function chat(call: RawCall): Promise<string> {
     const latencyMs = Date.now() - started;
     const promptTokens = res.usage?.prompt_tokens ?? 0;
     const completionTokens = res.usage?.completion_tokens ?? 0;
-    call.tracker?.record({
+    const cost: CallCost = {
       agent: call.agent,
       model,
       tier: call.tier,
@@ -93,8 +94,9 @@ export async function chat(call: RawCall): Promise<string> {
       estimatedCostUsd: estimateCostUsd(promptTokens, completionTokens, price),
       attempt: call.attempt ?? 1,
       ok: true,
-    });
-    return res.choices[0]?.message?.content ?? "";
+    };
+    call.tracker?.record(cost);
+    return { text: res.choices[0]?.message?.content ?? "", cost };
   } catch (err) {
     // If the endpoint doesn't accept json_schema for this model, retry the same call with json_object.
     if (useSchema && err instanceof OpenAI.APIError && err.status === 400 && /response_format|json_schema|schema/i.test(err.message)) {
@@ -134,7 +136,7 @@ export async function callStructured<S extends z.ZodTypeAny>(call: StructuredCal
 
   let issues: string[] = [];
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const text = await chat({
+    const { text, cost } = await chat({
       agent: call.agent,
       tier: call.tier,
       messages,
@@ -147,10 +149,7 @@ export async function callStructured<S extends z.ZodTypeAny>(call: StructuredCal
     issues = validate(text, call.schema, call.check);
     if (issues.length === 0) return call.schema.parse(extractJson(text));
 
-    if (call.tracker) {
-      const last = call.tracker.calls[call.tracker.calls.length - 1];
-      if (last) last.ok = false;
-    }
+    cost.ok = false; // this exact call (not "the last one": analysts run in parallel)
     messages.push(
       { role: "assistant", content: text },
       {

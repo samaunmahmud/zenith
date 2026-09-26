@@ -11,14 +11,13 @@ for (const tier of tiers) {
   const model = config.tokenFactory().models[tier];
   process.stdout.write(`${tier.padEnd(5)} ${model} ... `);
   try {
-    const reply = await chat({
+    const { text: reply, cost: c } = await chat({
       agent: `smoke-${tier}`,
       tier,
       tracker,
       maxTokens: 1024,
       messages: [{ role: "user", content: "In one sentence: what does an investment committee do?" }],
     });
-    const c = tracker.calls[tracker.calls.length - 1];
     console.log(`ok (${c.latencyMs} ms, ${c.promptTokens}+${c.completionTokens} tokens, $${c.estimatedCostUsd.toFixed(6)})`);
     console.log(`      → ${reply.replace(/\s+/g, " ").slice(0, 200)}`);
   } catch (err) {
