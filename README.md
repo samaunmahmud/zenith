@@ -187,7 +187,19 @@ backend/src/main/java/com/zenith/
 ├── memo/         Markdown memo builder
 └── cli/          --smoke and --precache tasks
 backend/src/main/resources/prompts/   one Markdown system prompt per agent
-frontend/src/                         React committee room UI
+
+frontend/src/
+├── state/        committee reducer (pure, unit-tested)
+├── hooks/        SSE session + URL sync, live clock, AI status
+├── lib/          formatting helpers
+├── components/
+│   ├── workspace/  security header + tabs: Overview, Analysts, Debate, Memo, Models & cost
+│   ├── committee/  committee floor, verdict + vote track, analyst cards, cost, memo
+│   ├── market/     price chart, key metrics, news desk
+│   ├── landing/    landing page and model roster
+│   ├── layout/     top bar (search, AI status), footer
+│   └── ui/         badges, cards, tabs, icons
+└── styles/       tokens, base, layout, components
 ```
 
 ## Limitations
