@@ -6,6 +6,27 @@ const SIGN = { bullish: 1, neutral: 0, bearish: -1, BUY: 1, HOLD: 0, SELL: -1 } 
 
 /** −1 (strongly bearish) … +1 (strongly bullish), mapped to 0–100% along the track. */
 const position = (sign: number, confidence: number) => 50 + sign * confidence * 50;
+const MIN_GAP = 16; // % of the track: closer than this and two labels would overlap
+const ROW_H = 26;
+const LABEL_H = 18;
+
+/**
+ * Row for each marker (x in %, any order): the first row whose last marker is at least MIN_GAP away.
+ * Three identical positions (three neutral analysts) get three rows instead of drawing on top of each other.
+ */
+export function pinRows(xs: number[]): number[] {
+  const order = xs.map((x, i) => ({ x, i })).sort((a, b) => a.x - b.x);
+  const lastOnRow: number[] = [];
+  const rows = new Array<number>(xs.length);
+  for (const { x, i } of order) {
+    let row = lastOnRow.findIndex((last) => x - last >= MIN_GAP);
+    if (row === -1) row = lastOnRow.length;
+    lastOnRow[row] = x;
+    rows[i] = row;
+  }
+  return rows;
+}
+
 /** Near either end, hang the label inwards so it never runs off a narrow screen; the stem still marks the exact point. */
 const edge = (x: number) => (x > 78 ? "edge-right" : x < 22 ? "edge-left" : "");
 
@@ -16,11 +37,11 @@ const edge = (x: number) => (x > 78 ? "edge-right" : x < 22 ? "edge-left" : "");
 function Consensus({ reports, decision }: { reports: AnalystReport[]; decision: ChairDecision }) {
   const counts = { bullish: 0, neutral: 0, bearish: 0 };
   reports.forEach((r) => counts[r.stance]++);
-  // Nudge markers that would overlap onto a second row so every label stays readable.
-  const placed = reports
-    .map((r) => ({ r, x: position(SIGN[r.stance], r.confidence) }))
-    .sort((a, b) => a.x - b.x)
-    .map((m, i, all) => ({ ...m, row: i > 0 && m.x - all[i - 1].x < 16 ? 1 : 0 }));
+  const xs = reports.map((r) => position(SIGN[r.stance], r.confidence));
+  const rows = pinRows(xs);
+  const placed = reports.map((r, i) => ({ r, x: xs[i], row: rows[i] }));
+  const rowCount = Math.max(1, ...rows.map((r) => r + 1));
+  const trackTop = Math.max(54, (rowCount - 1) * ROW_H + LABEL_H + 10);
   const chairX = position(SIGN[decision.recommendation], decision.confidence);
 
   return (
@@ -35,20 +56,20 @@ function Consensus({ reports, decision }: { reports: AnalystReport[]; decision: 
           <span className="stance-bearish">{counts.bearish} bearish</span>
         </span>
       </div>
-      <div className="track-wrap">
+      <div className="track-wrap" style={{ height: trackTop + 46 }}>
         {placed.map(({ r, x, row }) => (
           <div
             key={r.analyst}
             className={`pin stance-${r.stance} ${edge(x)} ${decision.dissent?.analyst === r.analyst ? "dissenter" : ""}`}
-            style={{ left: `${x}%`, top: row ? 26 : 0, ["--stem" as string]: `${row ? 10 : 36}px` }}
+            style={{ left: `${x}%`, top: row * ROW_H, ["--stem" as string]: `${trackTop - row * ROW_H - LABEL_H}px` }}
             title={`${ANALYST_TITLE[r.analyst]}: ${r.stance}, ${Math.round(r.confidence * 100)}% confidence`}
           >
             <span>{ANALYST_TITLE[r.analyst]}</span>
             <i />
           </div>
         ))}
-        <div className="track" />
-        <div className={`chair-pin call-${decision.recommendation} ${edge(chairX)}`} style={{ left: `${chairX}%` }}>
+        <div className="track" style={{ top: trackTop }} />
+        <div className={`chair-pin call-${decision.recommendation} ${edge(chairX)}`} style={{ left: `${chairX}%`, top: trackTop - 5 }}>
           <i />
           <span>Chair · {decision.recommendation}</span>
         </div>
