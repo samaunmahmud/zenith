@@ -14,6 +14,17 @@ const LABEL_H = 18;
  * Row for each marker (x in %, any order): the first row whose last marker is at least MIN_GAP away.
  * Three identical positions (three neutral analysts) get three rows instead of drawing on top of each other.
  */
+/** The chair tags points with their source ("[Fundamentals + Risk] ..."): show the tag as a label, not bracketed text. */
+export function splitSource(text: string): { source: string | null; body: string } {
+  const m = /^\[([^\]]{1,40})\]\s*(.*)$/s.exec(text);
+  return m ? { source: m[1], body: m[2] } : { source: null, body: text };
+}
+
+function Attributed({ text }: { text: string }) {
+  const { source, body } = splitSource(text);
+  return source ? <><span className="src-tag">{source}</span>{body}</> : <>{text}</>;
+}
+
 export function pinRows(xs: number[]): number[] {
   const order = xs.map((x, i) => ({ x, i })).sort((a, b) => a.x - b.x);
   const lastOnRow: number[] = [];
@@ -108,7 +119,7 @@ export function Verdict({ decision, reports }: { decision: ChairDecision; report
       <div className="verdict-grid">
         <div>
           <div className="label">Rationale</div>
-          <ul>{d.rationale.map((r, i) => <li key={i}>{r}</li>)}</ul>
+          <ul>{d.rationale.map((r, i) => <li key={i}><Attributed text={r} /></li>)}</ul>
         </div>
         <div>
           <div className="label">Key risks</div>

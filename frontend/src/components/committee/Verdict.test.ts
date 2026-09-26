@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pinRows } from "./Verdict";
+import { pinRows, splitSource } from "./Verdict";
 
 describe("pinRows (vote track label layout)", () => {
   it("keeps well-separated markers on one row", () => {
@@ -17,5 +17,15 @@ describe("pinRows (vote track label layout)", () => {
 
   it("returns rows in the input order, whatever order the positions are in", () => {
     expect(pinRows([90, 10, 85])).toEqual([1, 0, 0]); // 90 clashes with 85
+  });
+});
+
+describe("splitSource (chair's source tags)", () => {
+  it("lifts a leading [tag] off the text", () => {
+    expect(splitSource("[Fundamentals + Risk] Both flag valuation.")).toEqual({ source: "Fundamentals + Risk", body: "Both flag valuation." });
+  });
+
+  it("leaves untagged text and later brackets alone", () => {
+    expect(splitSource("Margins [TTM] are high.")).toEqual({ source: null, body: "Margins [TTM] are high." });
   });
 });

@@ -6,7 +6,7 @@ export function Roster({ agents }: { agents: AgentModel[] }) {
   return (
     <div className="card">
       <div className="table-wrap">
-        <table className="table">
+        <table className="table roster">
           <thead>
             <tr><th>Seat</th><th>Model</th><th>Why this size</th></tr>
           </thead>
