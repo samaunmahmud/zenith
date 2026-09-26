@@ -77,7 +77,7 @@ export interface Snapshot {
   asOf: string;
   lastClose: number;
   marketCap: number | null;
-  technicals: { return1y: number | null; return1m: number | null; rsi14: number | null };
+  technicals: { return1y: number | null; return1m: number | null; rsi14: number | null; range52w?: { high: number; low: number } | null };
   risk: { volatility1y: number | null; betaVsSpy: number | null };
   facts: Record<AnalystName, Record<string, string>>;
   priceHistory: { date: string; close: number; sma50: number | null; sma200: number | null }[];

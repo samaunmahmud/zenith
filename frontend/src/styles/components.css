@@ -195,6 +195,18 @@ details.facts dd { margin: 0; font-weight: 600; text-align: right; }
 .kv > div, .kv > li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 13px; }
 .kv > div:first-child, .kv > li:first-child { border-top: 0; }
 .kv dt { color: var(--text-3); }
+
+/* Glossary terms: a dotted underline says "there's a definition here". */
+.term { position: relative; text-decoration: underline dotted; text-decoration-color: var(--text-4); text-underline-offset: 3px; cursor: help; outline-offset: 1px; }
+.term-tip { position: absolute; z-index: 40; left: -8px; top: calc(100% + 8px); width: max-content; max-width: 280px; padding: 9px 11px; border-radius: var(--r); background: var(--text); color: var(--bg); font: 400 12.5px/1.5 var(--font); letter-spacing: 0; text-transform: none; text-align: left; white-space: normal; box-shadow: var(--shadow); opacity: 0; visibility: hidden; transform: translateY(-2px); transition: opacity 0.12s, transform 0.12s, visibility 0.12s; pointer-events: none; }
+.term:hover .term-tip, .term:focus .term-tip { opacity: 1; visibility: visible; transform: none; transition-delay: 0.15s; }
+.kv dd .term-tip, td:last-child .term-tip { left: auto; right: -8px; }
+
+.range52 { padding: 12px 16px 14px; border-top: 1px solid var(--line); font-size: 13px; }
+.range52-head { display: flex; justify-content: space-between; gap: 12px; color: var(--text-3); }
+.range52-track { position: relative; height: 4px; margin: 12px 0 8px; border-radius: 999px; background: var(--panel-3); }
+.range52-track i { position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%; background: var(--text); border: 2px solid var(--panel); transform: translate(-50%, -50%); }
+.range52-ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-3); }
 .kv dd { margin: 0; font-weight: 600; text-align: right; }
 
 .news-list { list-style: none; margin: 0; padding: 0; }

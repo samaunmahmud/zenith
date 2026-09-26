@@ -1,6 +1,7 @@
 import type { AgentModel, AnalystName, AnalystReport } from "../../types";
 import { ANALYST_TITLE } from "../../lib/format";
 import { ConfidenceBar, TierBadge } from "../ui/Badges";
+import { Term } from "../ui/Term";
 
 interface Props {
   analyst: AnalystName;
@@ -21,7 +22,7 @@ function FactSheet({ facts }: { facts: Record<string, string> | undefined }) {
       <dl className="num">
         {Object.entries(facts).map(([k, v]) => (
           <div key={k} style={{ display: "contents" }}>
-            <dt>{k}</dt>
+            <dt><Term label={k} /></dt>
             <dd>{v}</dd>
           </div>
         ))}
@@ -99,7 +100,7 @@ export function AnalystCard({ analyst, agent, report, error, pending, halted, fa
             <tbody>
               {report.evidence.map((e, i) => (
                 <tr key={i}>
-                  <td>{e.metric}</td>
+                  <td><Term label={e.metric} /></td>
                   <td>{e.value}</td>
                   <td>{e.interpretation}</td>
                 </tr>
