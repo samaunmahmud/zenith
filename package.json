@@ -10,7 +10,7 @@
     "dev:frontend": "npm run dev --workspace frontend",
     "build": "npm run build --workspace frontend && cd backend && mvn -q -B package -DskipTests",
     "start": "java -jar backend/target/zenith.jar",
-    "test": "cd backend && mvn -q -B test",
+    "test": "npm run test --workspace frontend && cd backend && mvn -q -B test",
     "smoke": "cd backend && mvn -q spring-boot:run -Dspring-boot.run.arguments=--smoke",
     "precache": "cd backend && mvn -q spring-boot:run -Dspring-boot.run.arguments=--precache"
   },
