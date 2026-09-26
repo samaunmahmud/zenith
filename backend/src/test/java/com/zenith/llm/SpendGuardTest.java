@@ -56,4 +56,34 @@ class SpendGuardTest {
         SpendGuard reloaded = new SpendGuard(TestProps.create(dir, false, 12, 1.0));
         assertThat(reloaded.spentUsd()).isCloseTo(0.0016, within(1e-9));
     }
+
+    @Test
+    void anUnreadableLedgerRefusesCallsInsteadOfRestartingFromZero() throws Exception {
+        java.nio.file.Files.writeString(dir.resolve("_spend.json"), "{\"totalUsd\": 0.19, \"cal"); // truncated by a crash
+        TokenFactoryClient c = client(1.0);
+        assertThatThrownBy(() -> call(c)).isInstanceOf(SpendGuard.BudgetExceededException.class).hasMessageContaining("can't be read");
+        assertThat(sent.get()).isZero();
+        assertThat(java.nio.file.Files.readString(dir.resolve("_spend.json"))).endsWith("\"cal"); // left for inspection
+    }
+
+    @Test
+    void twoProcessesSharingTheLedgerBothCount() {
+        // e.g. the web server and a `--precache --committee` CLI run at the same time
+        TokenFactoryClient server = client(1.0);
+        TokenFactoryClient cli = client(1.0);
+        call(server);
+        call(cli);
+        call(server);
+        SpendGuard reloaded = new SpendGuard(TestProps.create(dir, false, 12, 1.0));
+        assertThat(reloaded.spentUsd()).isCloseTo(3 * 0.0016, within(1e-9));
+    }
+
+    @Test
+    void anotherProcessSpendingTheBudgetIsSeenBeforeTheNextCall() {
+        TokenFactoryClient server = client(0.003);
+        TokenFactoryClient cli = client(0.003);
+        call(cli);
+        call(cli); // the CLI uses up the budget
+        assertThatThrownBy(() -> call(server)).isInstanceOf(SpendGuard.BudgetExceededException.class);
+    }
 }
