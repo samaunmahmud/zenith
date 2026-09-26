@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import org.slf4j.Logger;
@@ -83,6 +84,8 @@ public class CommitteeGate {
             }
             try {
                 return committee.run(ticker, rebuttals, emit);
+            } catch (CancellationException e) {
+                throw e; // the visitor left: nothing to replay to
             } catch (RuntimeException e) {
                 // These fail before any model call, so they cost nothing and shouldn't use up the hour's quota;
                 // otherwise a string of unknown tickers could lock real visitors out for free.

@@ -187,4 +187,12 @@ class CommitteeGateTest {
         committee.failWith = null;
         assertThat(gate.run("AAPL", false, e -> {}).replayed()).isFalse();
     }
+
+    @Test
+    void aCancelledRunIsNotReplacedByASavedOne() {
+        committee.saved.put("AAPL", result("AAPL", NOW.minus(Duration.ofDays(2)), false));
+        committee.failWith = new java.util.concurrent.CancellationException("Client disconnected");
+        assertThatThrownBy(() -> gate(0, 0, 1).run("AAPL", false, e -> {}))
+                .isInstanceOf(java.util.concurrent.CancellationException.class);
+    }
 }

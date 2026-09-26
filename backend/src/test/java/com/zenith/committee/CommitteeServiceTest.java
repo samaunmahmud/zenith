@@ -143,6 +143,19 @@ class CommitteeServiceTest {
     }
 
     @Test
+    void stopsBeforeTheChairWhenTheVisitorLeavesDuringTheAnalystRound(@TempDir Path dir) {
+        CommitteeService svc = serviceWith(TestProps.create(dir, false, 12));
+        int before = calls.size();
+        // The stream's emit throws once the visitor has gone; here they leave as the first report arrives.
+        assertThatThrownBy(() -> svc.run("TEST", true, e -> {
+            if (e.type().equals("report")) throw new java.util.concurrent.CancellationException("Client disconnected");
+        })).isInstanceOf(java.util.concurrent.CancellationException.class);
+        List<String[]> made = List.copyOf(calls.subList(before, calls.size()));
+        assertThat(made).noneMatch(c -> c[0].equals("fake-ultra")); // no chair call: the most expensive one
+        assertThat(made).noneMatch(c -> c[1].contains("rebuttal"));
+    }
+
+    @Test
     void aBudgetThatRunsOutMidRunSurfacesAsABudgetError(@TempDir Path dir) {
         // $0.0001 passes the up-front check; the news call (~$0.000108 on Nano) then uses it up, so every analyst
         // is refused. The error must say "budget" (503, quota refunded), not look like a model failure (502).

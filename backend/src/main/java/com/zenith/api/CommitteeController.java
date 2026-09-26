@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -107,13 +109,19 @@ public class CommitteeController {
     public SseEmitter stream(@RequestParam(required = false) String ticker, @RequestParam(defaultValue = "false") boolean rebuttals) {
         SseEmitter emitter = new SseEmitter(600_000L);
         Object lock = new Object();
+        // Once the visitor has gone, the next event aborts the run, so no further (paid) stage starts for nobody.
+        AtomicBoolean gone = new AtomicBoolean();
+        emitter.onError(e -> gone.set(true));
+        emitter.onTimeout(() -> gone.set(true));
         // SseEmitter isn't thread-safe and analysts finish on different threads, so sends are serialised.
         Consumer<CommitteeEvent> send = event -> {
             synchronized (lock) {
+                if (gone.get()) throw new CancellationException("Client disconnected");
                 try {
                     emitter.send(SseEmitter.event().name(event.type()).data(Json.MAPPER.writeValueAsString(event), MediaType.APPLICATION_JSON));
                 } catch (IOException | IllegalStateException e) {
-                    log.debug("Client went away: {}", e.getMessage());
+                    gone.set(true);
+                    throw new CancellationException("Client disconnected: " + e.getMessage());
                 }
             }
         };
@@ -126,9 +134,15 @@ public class CommitteeController {
                     return;
                 }
                 send.accept(new CommitteeEvent.Done(gate.run(parsed.get(), rebuttals, send)));
+            } catch (CancellationException e) {
+                log.info("Committee run for {} stopped: the visitor left ({})", ticker, e.getMessage());
             } catch (RuntimeException e) {
                 log.error("Committee stream failed for {}", ticker, e);
-                send.accept(new CommitteeEvent.Error(String.valueOf(e.getMessage()), statusFor(e)));
+                try {
+                    send.accept(new CommitteeEvent.Error(String.valueOf(e.getMessage()), statusFor(e)));
+                } catch (CancellationException ignored) {
+                    // nobody left to tell
+                }
             } finally {
                 emitter.complete();
             }

@@ -30,6 +30,8 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -113,6 +115,8 @@ public class CommitteeService implements CommitteeRunner {
                 AnalystReport report = analystAgent.run(analyst, snapshot, news, tracker);
                 reports.add(report);
                 emit.accept(new CommitteeEvent.Report(report));
+            } catch (CancellationException e) {
+                throw e; // the visitor left; not this analyst's failure
             } catch (RuntimeException e) {
                 errors.add(new CommitteeResult.AnalystError(analyst, message(e)));
                 failures.add(e);
@@ -137,6 +141,8 @@ public class CommitteeService implements CommitteeRunner {
                     Rebuttal r = rebuttalAgent.run(analyst, ticker, sortedReports, tracker);
                     rebuttals.add(r);
                     emit.accept(new CommitteeEvent.RebuttalReady(r));
+                } catch (CancellationException e) {
+                    throw e;
                 } catch (RuntimeException e) {
                     log.warn("{} rebuttal failed: {}", analyst.id(), message(e));
                 }
@@ -198,13 +204,19 @@ public class CommitteeService implements CommitteeRunner {
     private static <T> void runInParallel(List<T> items, Consumer<T> task) {
         try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
             List<Future<?>> futures = items.stream().<Future<?>>map(item -> pool.submit(() -> task.accept(item))).toList();
+            CancellationException cancelled = null;
             for (Future<?> f : futures) {
                 try {
                     f.get();
-                } catch (Exception e) {
-                    log.error("Parallel task failed unexpectedly", e);
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof CancellationException c) cancelled = c;
+                    else log.error("Parallel task failed unexpectedly", e.getCause());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new CancellationException("Interrupted");
                 }
             }
+            if (cancelled != null) throw cancelled; // the visitor left mid-stage: don't start the next one
         }
     }
 
