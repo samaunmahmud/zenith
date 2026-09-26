@@ -1,5 +1,5 @@
 import type { Snapshot } from "../../types";
-import { compactMoney, pct } from "../../lib/format";
+import { compactMoney, pct, toneOf } from "../../lib/format";
 import { Card } from "../ui/Card";
 
 /** The headline numbers, as computed by the backend (the same strings the analysts were given). */
@@ -8,8 +8,8 @@ export function KeyStats({ snapshot }: { snapshot: Snapshot }) {
   const f = snapshot.facts.fundamentals;
   const rows: [string, string, string?][] = [
     ["Last close", t["Last close"] ?? "n/a"],
-    ["1-year return", pct(snapshot.technicals.return1y, true), tone(snapshot.technicals.return1y)],
-    ["1-month return", pct(snapshot.technicals.return1m, true), tone(snapshot.technicals.return1m)],
+    ["1-year return", pct(snapshot.technicals.return1y, true), toneOf(snapshot.technicals.return1y)],
+    ["1-month return", pct(snapshot.technicals.return1m, true), toneOf(snapshot.technicals.return1m)],
     ["Price vs SMA200", t["Price vs SMA200"] ?? "n/a"],
     ["RSI (14)", t["RSI (14)"] ?? "n/a"],
     ["Volatility (1Y)", pct(snapshot.risk.volatility1y)],
@@ -30,5 +30,3 @@ export function KeyStats({ snapshot }: { snapshot: Snapshot }) {
     </Card>
   );
 }
-
-const tone = (x: number | null) => (x === null ? undefined : x >= 0 ? "pos" : "neg");

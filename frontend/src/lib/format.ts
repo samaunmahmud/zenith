@@ -4,22 +4,36 @@ export const ANALYSTS: AnalystName[] = ["fundamentals", "technicals", "risk"];
 export const ANALYST_TITLE: Record<AnalystName, string> = { fundamentals: "Fundamentals", technicals: "Technicals", risk: "Risk" };
 export const TIER_LABEL: Record<Tier, string> = { nano: "Nemotron Nano", super: "Nemotron Super", ultra: "Nemotron Ultra" };
 
-export const pct = (x: number | null | undefined, signed = false) =>
-  x === null || x === undefined || !Number.isFinite(x) ? "n/a" : `${signed && x > 0 ? "+" : ""}${(x * 100).toFixed(1)}%`;
+const finite = (x: number | null | undefined): x is number => x !== null && x !== undefined && Number.isFinite(x);
 
-export const usd = (x: number) => (x < 0.01 ? `$${x.toFixed(4)}` : `$${x.toFixed(3)}`);
+/** Rounds to the displayed precision first, so the sign (and colour) always matches what is shown: never "+0.0%". */
+export const roundPct = (x: number) => Math.round(x * 1000) / 1000;
+
+export const pct = (x: number | null | undefined, signed = false) => {
+  if (!finite(x)) return "n/a";
+  const r = roundPct(x) || 0; // "|| 0" turns -0 into 0
+  return `${signed && r > 0 ? "+" : ""}${(r * 100).toFixed(1)}%`;
+};
+
+/** Green for a displayed gain, red for a displayed loss, nothing for zero or missing. */
+export const toneOf = (x: number | null | undefined) => (!finite(x) || roundPct(x) === 0 ? undefined : x > 0 ? "pos" : "neg");
+
+export const usd = (x: number) => (!finite(x) ? "n/a" : x < 0.01 ? `$${x.toFixed(4)}` : `$${x.toFixed(3)}`);
 
 export function money(x: number | null | undefined, currency: string | null) {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "n/a";
-  return currency && currency !== "USD" ? `${x.toFixed(2)} ${currency}` : `$${x.toFixed(2)}`;
+  if (!finite(x)) return "n/a";
+  if (currency && currency !== "USD") return `${x.toFixed(2)} ${currency}`;
+  return `${x < 0 ? "-" : ""}$${Math.abs(x).toFixed(2)}`;
 }
 
-/** $412.0B, $8.9M: for market caps and volumes. */
+/** $412.0B, $8.9M: for market caps and volumes. The unit is chosen after rounding, so 999.96M reads $1.0B. */
 export function compactMoney(x: number | null | undefined) {
-  if (x === null || x === undefined || !Number.isFinite(x)) return "n/a";
+  if (!finite(x)) return "n/a";
+  const sign = x < 0 ? "-" : "";
+  const abs = Math.abs(x);
   const units: [number, string][] = [[1e12, "T"], [1e9, "B"], [1e6, "M"], [1e3, "K"]];
-  for (const [size, unit] of units) if (Math.abs(x) >= size) return `$${(x / size).toFixed(1)}${unit}`;
-  return `$${x.toFixed(0)}`;
+  for (const [size, unit] of units) if (Number((abs / size).toFixed(1)) >= 1) return `${sign}$${(abs / size).toFixed(1)}${unit}`;
+  return `${sign}$${abs.toFixed(0)}`;
 }
 
 export const secs = (ms: number) => `${(ms / 1000).toFixed(1)}s`;

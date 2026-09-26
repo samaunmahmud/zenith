@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import type { CommitteeState } from "../../state/committee";
 import type { Stage } from "../../types";
-import { pct } from "../../lib/format";
+import { pct, toneOf } from "../../lib/format";
 import { VerdictChip } from "../ui/Badges";
 import { DownloadIcon, LinkIcon } from "../ui/Icons";
 import { downloadMemo } from "../committee/MemoPanel";
@@ -57,7 +57,7 @@ export function SecurityHeader({ state, tabs }: { state: CommitteeState; tabs: R
           {s && (
             <div className="sec-price num">
               <span className="px">{s.facts.technicals["Last close"] ?? "n/a"}</span>
-              <span className={`small ${r1y === null ? "dim" : r1y >= 0 ? "pos" : "neg"}`} style={{ fontWeight: 600 }}>{pct(r1y, true)} 1Y</span>
+              <span className={`small ${toneOf(r1y) ?? "dim"}`} style={{ fontWeight: 600 }}>{pct(r1y, true)} 1Y</span>
               <span className="asof">Close {s.asOf}</span>
             </div>
           )}

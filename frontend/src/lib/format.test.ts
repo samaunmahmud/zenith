@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ago, compactMoney, pct, safeUrl } from "./format";
+import { ago, compactMoney, money, pct, safeUrl, toneOf, usd } from "./format";
 
 describe("format", () => {
   it("only lets http(s) links from third-party data through", () => {
@@ -25,5 +25,22 @@ describe("format", () => {
     expect(ago("2026-10-27T11:15:00Z", now)).toBe("45m ago");
     expect(ago("2026-10-27T02:00:00Z", now)).toBe("10h ago");
     expect(ago("2026-10-20T12:00:00Z", now)).toBe("7d ago");
+  });
+
+  it("picks the compact unit after rounding and puts the sign before the $", () => {
+    expect(compactMoney(999_960_000)).toBe("$1.0B");
+    expect(compactMoney(999_960)).toBe("$1.0M");
+    expect(compactMoney(-5e6)).toBe("-$5.0M");
+    expect(money(-3, null)).toBe("-$3.00");
+    expect(usd(Number.NaN)).toBe("n/a");
+  });
+
+  it("never shows a signed zero, and colours what is displayed", () => {
+    expect(pct(0.0004, true)).toBe("0.0%");
+    expect(pct(-0.0004, true)).toBe("0.0%");
+    expect(toneOf(0.0004)).toBeUndefined();
+    expect(toneOf(0.0006)).toBe("pos");
+    expect(toneOf(-0.02)).toBe("neg");
+    expect(toneOf(null)).toBeUndefined();
   });
 });
