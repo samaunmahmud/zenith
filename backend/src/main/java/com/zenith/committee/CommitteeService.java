@@ -106,6 +106,7 @@ public class CommitteeService implements CommitteeRunner {
         emit.accept(new CommitteeEvent.Stage("analysts", "Analysts are preparing their reports"));
         List<AnalystReport> reports = Collections.synchronizedList(new ArrayList<>());
         List<CommitteeResult.AnalystError> errors = Collections.synchronizedList(new ArrayList<>());
+        List<RuntimeException> failures = Collections.synchronizedList(new ArrayList<>());
         final NewsDigest news = digest;
         runInParallel(Roster.ORDER, analyst -> {
             try {
@@ -114,13 +115,17 @@ public class CommitteeService implements CommitteeRunner {
                 emit.accept(new CommitteeEvent.Report(report));
             } catch (RuntimeException e) {
                 errors.add(new CommitteeResult.AnalystError(analyst, message(e)));
+                failures.add(e);
                 emit.accept(new CommitteeEvent.AnalystFailed(analyst, message(e)));
             }
         });
         List<AnalystReport> sortedReports = sortByAnalyst(reports, AnalystReport::analyst);
         if (sortedReports.isEmpty()) {
-            throw new LlmException("All analysts failed. First error: " + (errors.isEmpty() ? "unknown" : errors.get(0).message()),
-                    "committee", List.of());
+            // Keep the first failure as the cause, so a spent budget still maps to "budget" (503), not a model error.
+            String first = errors.isEmpty() ? "unknown" : errors.get(0).message();
+            throw failures.isEmpty()
+                    ? new LlmException("All analysts failed. First error: " + first, "committee", List.of())
+                    : new LlmException("All analysts failed. First error: " + first, "committee", failures.get(0));
         }
 
         // 4. Optional rebuttal round: exactly one round, in parallel, needs at least two reports

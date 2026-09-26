@@ -1,6 +1,7 @@
 package com.zenith.committee;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.within;
 
 import com.zenith.agents.AnalystAgent;
@@ -122,9 +123,7 @@ class CommitteeServiceTest {
         return new ChatTransport.Response(Json.MAPPER.writeValueAsString(body), 1000, 200);
     }
 
-    @BeforeAll
-    void runCommittee(@TempDir Path cacheDir) {
-        ZenithProperties props = TestProps.create(cacheDir, false, 12);
+    private CommitteeService serviceWith(ZenithProperties props) {
         var llm = new TokenFactoryClient(this::fakeNemotron, props, Validation.buildDefaultValidatorFactory().getValidator(),
                 new com.zenith.llm.SpendGuard(props));
         var market = new MarketDataService(null, null, null, props) {
@@ -133,9 +132,25 @@ class CommitteeServiceTest {
                 return MARKET;
             }
         };
-        service = new CommitteeService(market, new NewsAgent(llm), new AnalystAgent(llm), new RebuttalAgent(llm),
+        return new CommitteeService(market, new NewsAgent(llm), new AnalystAgent(llm), new RebuttalAgent(llm),
                 new ChairAgent(llm), llm, new DiskCache(props));
+    }
+
+    @BeforeAll
+    void runCommittee(@TempDir Path cacheDir) {
+        service = serviceWith(TestProps.create(cacheDir, false, 12));
         result = service.run("TEST", true, e -> events.add(e.type()));
+    }
+
+    @Test
+    void aBudgetThatRunsOutMidRunSurfacesAsABudgetError(@TempDir Path dir) {
+        // $0.0001 passes the up-front check; the news call (~$0.000108 on Nano) then uses it up, so every analyst
+        // is refused. The error must say "budget" (503, quota refunded), not look like a model failure (502).
+        CommitteeService broke = serviceWith(TestProps.create(dir, false, 12, 0.0001));
+        assertThatThrownBy(() -> broke.run("TEST", false, e -> {}))
+                .hasMessageContaining("All analysts failed")
+                .hasCauseInstanceOf(com.zenith.llm.SpendGuard.BudgetExceededException.class)
+                .satisfies(e -> assertThat(CommitteeGate.costNothing(e)).isTrue());
     }
 
     @Test
