@@ -1,6 +1,7 @@
 package com.zenith.data;
 
 import com.zenith.config.ZenithProperties;
+import com.zenith.io.AtomicFiles;
 import com.zenith.json.Json;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,8 +60,8 @@ public class DiskCache {
         Entry<T> entry = new Entry<>(Instant.now().toString(), data);
         Path file = fileFor(ticker, name);
         try {
-            Files.createDirectories(file.getParent());
-            Files.writeString(file, Json.MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(entry));
+            // Atomic: concurrent runs share files like SPY/prices.json, and a reader must never see half a file.
+            AtomicFiles.writeString(file, Json.MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(entry));
         } catch (IOException e) {
             log.warn("Could not write cache file {}: {}", file, e.getMessage());
         }
