@@ -103,6 +103,16 @@ The Token Factory base URL and Nemotron model IDs are already filled in `.env.ex
 
 **Spending cap.** `MAX_SPEND_USD` is a hard cap on total Token Factory spend. The running total is kept in `cache/_spend.json`, so it survives restarts, and model calls are refused once the cap is reached. It defaults to `0`, which switches AI calls off, so a missing variable can never spend money: set it explicitly (for example `0.20`) wherever live committee runs should be allowed. This protects both a small credit balance and a public demo URL.
 
+**Budget protection for a public URL.** The cap limits the total; a small gate in front of the committee spreads it out, so one burst of visitors can't spend it all in minutes:
+
+| Variable | Default | Effect |
+|---|---|---|
+| `REUSE_HOURS` | `6` | A ticker decided within this window is served again, labelled with its time, at no cost. `0` = always run live. |
+| `LIVE_RUNS_PER_HOUR` | `20` | Paid committee runs per rolling hour. `0` = no hourly limit. |
+| `MAX_CONCURRENT_RUNS` | `2` | Paid runs allowed at the same time. |
+
+When a live run isn't allowed or fails, the last saved decision for that ticker is shown instead, and the UI says why.
+
 ## Running
 
 ```bash
@@ -148,6 +158,7 @@ nebius ai endpoint create \
   --env-secret "FMP_API_KEY=<secret>" \
   --env-secret "FINNHUB_API_KEY=<secret>" \
   --env-secret "MAX_SPEND_USD=0.20" \
+  --env-secret "LIVE_RUNS_PER_HOUR=10" \
   --subnet-id <subnet_ID>
 ```
 
