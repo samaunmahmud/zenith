@@ -43,5 +43,6 @@ public record Snapshot(
 
     public record Facts(Map<String, String> fundamentals, Map<String, String> technicals, Map<String, String> risk) {}
 
-    public record PricePoint(String date, double close) {}
+    /** One day on the price chart, with moving averages computed in Java (null before enough history). */
+    public record PricePoint(String date, double close, Double sma50, Double sma200) {}
 }

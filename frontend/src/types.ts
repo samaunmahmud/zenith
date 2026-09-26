@@ -77,7 +77,7 @@ export interface Snapshot {
   technicals: { return1y: number | null; return1m: number | null; rsi14: number | null };
   risk: { volatility1y: number | null; betaVsSpy: number | null };
   facts: Record<AnalystName, Record<string, string>>;
-  priceHistory: { date: string; close: number }[];
+  priceHistory: { date: string; close: number; sma50: number | null; sma200: number | null }[];
 }
 
 export interface SourceInfo {

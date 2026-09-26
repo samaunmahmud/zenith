@@ -31,6 +31,15 @@ class TechnicalsTest {
     }
 
     @Test
+    void smaSeriesMatchesSmaAtEveryIndex() {
+        double[] v = {1, 2, 3, 4, 5, 6};
+        Double[] series = Technicals.smaSeries(v, 3);
+        assertThat(series).containsExactly(null, null, 2.0, 3.0, 4.0, 5.0);
+        // The last point must agree with the single-value sma() used in the fact sheets.
+        assertThat(series[series.length - 1]).isEqualTo(Technicals.sma(v, 3));
+    }
+
+    @Test
     void emaSeedsWithTheSmaThenAppliesK() {
         // period 3 → k = 0.5; seed = mean(1,2,3) = 2; then 0.5*4 + 0.5*2 = 3; then 0.5*5 + 0.5*3 = 4
         assertThat(Technicals.emaSeries(new double[] {1, 2, 3, 4, 5}, 3)).containsExactly(null, null, 2.0, 3.0, 4.0);

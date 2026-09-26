@@ -119,7 +119,18 @@ public final class SnapshotBuilder {
                 r,
                 f,
                 new Snapshot.Facts(fundamentals, technicals, risk),
-                yearBars.stream().map(b -> new Snapshot.PricePoint(b.date(), b.close())).toList());
+                priceHistory(bars, closes, yearBars.size()));
+    }
+
+    /** The last {@code days} points, each with its SMA50 and SMA200 (computed over the full history). */
+    private static List<Snapshot.PricePoint> priceHistory(List<PriceBar> bars, double[] closes, int days) {
+        Double[] sma50 = Technicals.smaSeries(closes, 50);
+        Double[] sma200 = Technicals.smaSeries(closes, 200);
+        List<Snapshot.PricePoint> out = new java.util.ArrayList<>();
+        for (int i = bars.size() - days; i < bars.size(); i++) {
+            out.add(new Snapshot.PricePoint(bars.get(i).date(), closes[i], sma50[i], sma200[i]));
+        }
+        return out;
     }
 
     private static String vsSma(double close, Double sma) {

@@ -32,6 +32,19 @@ public final class Technicals {
         return sum / period;
     }
 
+    /** Rolling SMA for every index (null until there are {@code period} values). Used for the price chart. */
+    public static Double[] smaSeries(double[] values, int period) {
+        Double[] out = new Double[values.length];
+        if (period <= 0) return out;
+        double sum = 0;
+        for (int i = 0; i < values.length; i++) {
+            sum += values[i];
+            if (i >= period) sum -= values[i - period];
+            if (i >= period - 1) out[i] = sum / period;
+        }
+        return out;
+    }
+
     /**
      * EMA series seeded with the SMA of the first {@code period} values. Entries before the seed are
      * null, so the output lines up index-for-index with the input.
