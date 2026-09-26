@@ -164,6 +164,8 @@ nebius ai endpoint create \
 
 Omitting `--auth` leaves the endpoint open, which is what a public demo URL needs. Get the HTTPS URL with `nebius ai endpoint get <endpoint_ID> --format json`. See the [Serverless AI endpoints docs](https://docs.nebius.com/serverless/endpoints/manage) for secret and platform options.
 
+**Keep `MAX_SPEND_USD` well below your credit balance.** The image copies `cache/` as it is, including `cache/_spend.json`, so the endpoint starts with your local spend already counted. The ledger is only as durable as the container's disk, though: if the endpoint restarts on fresh storage, it goes back to the value baked into the image, so the cap limits spend per container lifetime, not in total.
+
 ## API
 
 | Method | Path | Description |
