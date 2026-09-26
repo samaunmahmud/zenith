@@ -2,6 +2,8 @@ package com.zenith.committee;
 
 import com.zenith.config.ZenithProperties;
 import com.zenith.data.DataException;
+import com.zenith.llm.LlmException;
+import com.zenith.llm.SpendGuard;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -84,7 +86,7 @@ public class CommitteeGate {
             } catch (RuntimeException e) {
                 // These fail before any model call, so they cost nothing and shouldn't use up the hour's quota;
                 // otherwise a string of unknown tickers could lock real visitors out for free.
-                if (e instanceof DataException || e instanceof CommitteeService.NotConfiguredException) releaseHourlySlot(slot);
+                if (costNothing(e)) releaseHourlySlot(slot);
                 if (saved.isPresent()) {
                     log.warn("Live run failed for {}, replaying last saved run: {}", ticker, e.getMessage());
                     return saved.get().asReplay(FALLBACK);
@@ -94,6 +96,17 @@ public class CommitteeGate {
         } finally {
             running.release();
         }
+    }
+
+    /**
+     * Failures that happen before any model call: unknown ticker or data outage, AI not configured, or the budget
+     * already spent (the spend guard refuses before sending; once it trips mid-run no later run can spend either).
+     */
+    static boolean costNothing(Throwable e) {
+        Throwable cause = e instanceof LlmException && e.getCause() != null ? e.getCause() : e;
+        return cause instanceof DataException
+                || cause instanceof CommitteeService.NotConfiguredException
+                || cause instanceof SpendGuard.BudgetExceededException;
     }
 
     private CommitteeResult busy(String ticker, Optional<CommitteeResult> saved, String message) {
