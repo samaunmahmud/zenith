@@ -125,19 +125,34 @@ export default function App() {
   const [withRebuttals, setWithRebuttals] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
 
-  useEffect(() => {
-    fetchConfig().then(setConfig);
-    return () => stopRef.current?.();
-  }, []);
-
-  const convene = (raw: string) => {
+  const convene = (raw: string, rebuttals = withRebuttals) => {
     const ticker = raw.trim().toUpperCase();
     if (!ticker || state.status === "running") return;
     setInput(ticker);
     stopRef.current?.();
     dispatch({ type: "start", ticker });
-    stopRef.current = streamCommittee(ticker, withRebuttals, (event) => dispatch({ type: "event", event }));
+    // Keep the URL shareable: /?ticker=NVDA&rebuttals=true reopens this run.
+    const qs = new URLSearchParams({ ticker, ...(rebuttals ? { rebuttals: "true" } : {}) });
+    window.history.replaceState(null, "", `?${qs}`);
+    stopRef.current = streamCommittee(ticker, rebuttals, (event) => dispatch({ type: "event", event }));
   };
+
+  // Run once on load. The ref guard matters: React StrictMode runs effects twice in development,
+  // which would otherwise start (and pay for) two committee runs. The browser closes the stream on unload.
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    fetchConfig().then(setConfig);
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get("ticker");
+    if (fromUrl) {
+      const rebuttals = params.get("rebuttals") === "true";
+      setWithRebuttals(rebuttals);
+      convene(fromUrl, rebuttals);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
