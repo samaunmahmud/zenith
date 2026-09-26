@@ -1,5 +1,7 @@
 # Zenith: AI Investment Committee
 
+[![CI](https://github.com/samaunmahmud/zenith/actions/workflows/ci.yml/badge.svg)](https://github.com/samaunmahmud/zenith/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Type a stock ticker. Three AI analysts (**Fundamentals**, **Technicals** and **Risk**) each study the stock and argue a position. A **chair** running **NVIDIA Nemotron Ultra** weighs their arguments, makes a **BUY / HOLD / SELL** call with a confidence level, records the strongest **dissenting view**, and writes an investment memo. Every decision comes with a **cost readout**: tokens, latency and dollars, broken down by model.
 
 Built for the **Nebius x NVIDIA Global AI Hackathon** (Best Apps and Agents track), running on **Nebius Token Factory** with the **NVIDIA Nemotron** family (Nano, Super and Ultra).
@@ -158,7 +160,7 @@ Omitting `--auth` leaves the endpoint open, which is what a public demo URL need
 | `GET` | `/api/health` | Status and which keys are configured |
 | `GET` | `/api/config` | Demo tickers and the agent → model roster |
 | `POST` | `/api/committee` | `{ "ticker": "AAPL", "rebuttals": false }` → full result as JSON |
-| `GET` | `/api/committee/stream?ticker=AAPL&rebuttals=true` | The same run as Server-Sent Events (`stage`, `snapshot`, `report`, `rebuttal`, `decision`, `done`, `error`) |
+| `GET` | `/api/committee/stream?ticker=AAPL&rebuttals=true` | The same run as Server-Sent Events (`stage`, `snapshot`, `news`, `report`, `analystError`, `rebuttal`, `decision`, `done`, `error`) |
 
 ## Project structure
 
