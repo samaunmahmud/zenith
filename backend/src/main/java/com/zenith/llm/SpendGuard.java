@@ -71,8 +71,8 @@ public class SpendGuard {
     public synchronized void checkAvailable() {
         if (!available()) {
             throw new BudgetExceededException(maxUsd == 0
-                    ? "AI analysis is switched off: MAX_SPEND_USD is 0 in .env"
-                    : "Spending cap reached (" + status() + "). Raise MAX_SPEND_USD in .env to continue.");
+                    ? "AI analysis is switched off: MAX_SPEND_USD is 0 (the default). Set it in .env or the environment"
+                    : "Spending cap reached (" + status() + "). Raise MAX_SPEND_USD in .env or the environment to continue.");
         }
     }
 

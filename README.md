@@ -99,7 +99,7 @@ cp .env.example .env    # then fill in the keys below
 
 The Token Factory base URL and Nemotron model IDs are already filled in `.env.example`.
 
-**Spending cap.** `MAX_SPEND_USD` (default `0.50`) is a hard cap on total Token Factory spend. The running total is kept in `cache/_spend.json`, so it survives restarts, and model calls are refused once the cap is reached. Set it to `0` to switch AI calls off completely. This protects both a small credit balance and a public demo URL.
+**Spending cap.** `MAX_SPEND_USD` is a hard cap on total Token Factory spend. The running total is kept in `cache/_spend.json`, so it survives restarts, and model calls are refused once the cap is reached. It defaults to `0`, which switches AI calls off, so a missing variable can never spend money: set it explicitly (for example `0.20`) wherever live committee runs should be allowed. This protects both a small credit balance and a public demo URL.
 
 ## Running
 
@@ -145,6 +145,7 @@ nebius ai endpoint create \
   --env-secret "TOKEN_FACTORY_API_KEY=<secret>" \
   --env-secret "FMP_API_KEY=<secret>" \
   --env-secret "FINNHUB_API_KEY=<secret>" \
+  --env-secret "MAX_SPEND_USD=0.20" \
   --subnet-id <subnet_ID>
 ```
 
