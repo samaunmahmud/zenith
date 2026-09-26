@@ -1,4 +1,4 @@
-// Mirrors the backend response types (backend/src/orchestrator/types.ts). Kept as a small copy so the
+// Mirrors the backend response records (backend/src/main/java/com/zenith). Kept as a small copy so the
 // frontend build doesn't depend on backend source.
 
 export type AnalystName = "fundamentals" | "technicals" | "risk";
@@ -55,6 +55,8 @@ export interface CostSummary {
   totalPromptTokens: number;
   totalCompletionTokens: number;
   byTier: Record<Tier, { calls: number; usd: number; tokens: number }>;
+  /** Same calls priced at Ultra's list price. Missing in runs saved before this was added. */
+  allUltraUsd?: number | null;
 }
 
 export interface AgentModel {

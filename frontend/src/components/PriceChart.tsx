@@ -5,17 +5,32 @@ type Point = Snapshot["priceHistory"][number];
 
 const W = 600;
 const H = 260;
-const PAD = 8;
+const PAD = 10;
+const RANGES = [
+  { id: "1M", bars: 21 },
+  { id: "3M", bars: 63 },
+  { id: "6M", bars: 126 },
+  { id: "1Y", bars: Infinity },
+] as const;
+type RangeId = (typeof RANGES)[number]["id"];
 
 function money(x: number | null, currency: string | null) {
   if (x === null) return "n/a";
   return currency && currency !== "USD" ? `${x.toFixed(2)} ${currency}` : `$${x.toFixed(2)}`;
 }
 
-/** 1-year price chart with SMA50/SMA200 (all values computed by the backend) and a hover readout. */
-export function PriceChart({ points, currency }: { points: Point[]; currency: string | null }) {
+const shortDate = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+
+/** Price chart with SMA50/SMA200 (all values computed by the backend), a range picker and a hover readout. */
+export function PriceChart({ points: all, currency }: { points: Point[]; currency: string | null }) {
+  const [range, setRange] = useState<RangeId>("1Y");
   const [hover, setHover] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
+
+  const points = useMemo(() => {
+    const bars = RANGES.find((r) => r.id === range)!.bars;
+    return Number.isFinite(bars) ? all.slice(-bars) : all;
+  }, [all, range]);
 
   const geo = useMemo(() => {
     const values = points.flatMap((p) => [p.close, p.sma50, p.sma200]).filter((v): v is number => v !== null);
@@ -32,11 +47,16 @@ export function PriceChart({ points, currency }: { points: Point[]; currency: st
       });
       return d;
     };
-    return { x, y, close: path("close"), sma50: path("sma50"), sma200: path("sma200") };
+    const ticks = [0.2, 0.5, 0.8].map((f) => ({ top: (y(min + (max - min) * f) / H) * 100, value: min + (max - min) * f }));
+    const dates = [0, 0.33, 0.66, 1].map((f) => Math.round(f * (points.length - 1)));
+    return { x, y, ticks, dates, close: path("close"), sma50: path("sma50"), sma200: path("sma200") };
   }, [points]);
 
-  if (points.length < 2) return null;
-  const up = points[points.length - 1].close >= points[0].close;
+  if (all.length < 2) return null;
+  const first = points[0].close;
+  const lastClose = points[points.length - 1].close;
+  const change = lastClose / first - 1;
+  const up = change >= 0;
   const colour = up ? "var(--bull)" : "var(--bear)";
 
   const onMove = (e: MouseEvent<HTMLDivElement>) => {
@@ -46,24 +66,43 @@ export function PriceChart({ points, currency }: { points: Point[]; currency: st
   };
 
   const hp = hover !== null ? points[hover] : null;
+  const tipLeft = hover !== null ? Math.min(Math.max((hover / (points.length - 1)) * 100, 12), 88) : 0;
 
   return (
     <div className="chart">
-      <div className="legend">
-        <span><i style={{ background: colour }} />Close</span>
-        <span><i style={{ background: "#ffffff" }} />SMA50</span>
-        <span><i style={{ background: "var(--dim)" }} />SMA200</span>
+      <div className="chart-top">
+        <div className="legend">
+          <span><i style={{ background: colour }} />Close</span>
+          <span><i className="dashed" />SMA50</span>
+          <span><i style={{ background: "var(--dim)" }} />SMA200</span>
+        </div>
+        <div className="ranges" role="tablist" aria-label="Chart range">
+          {RANGES.map((r) => (
+            <button
+              key={r.id}
+              role="tab"
+              aria-selected={range === r.id}
+              className={range === r.id ? "on" : ""}
+              onClick={() => { setRange(r.id); setHover(null); }}
+            >
+              {r.id}
+            </button>
+          ))}
+        </div>
       </div>
-      <div ref={ref} onMouseMove={onMove} onMouseLeave={() => setHover(null)} style={{ position: "relative" }}>
-        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`1-year price chart, ${up ? "up" : "down"} over the period`}>
+      <div className={`chart-change num ${up ? "stance-bullish" : "stance-bearish"}`}>
+        {up ? "+" : ""}{(change * 100).toFixed(1)}% <span className="dim">over {range === "1Y" ? "the year" : range}</span>
+      </div>
+      <div className="plot" ref={ref} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${range} price chart, ${up ? "up" : "down"} ${(Math.abs(change) * 100).toFixed(1)}%`}>
           <defs>
             <linearGradient id="fill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor={up ? "#76b900" : "#ff5c5c"} stopOpacity="0.28" />
               <stop offset="100%" stopColor={up ? "#76b900" : "#ff5c5c"} stopOpacity="0" />
             </linearGradient>
           </defs>
-          {[0.25, 0.5, 0.75].map((f) => (
-            <line key={f} x1="0" x2={W} y1={H * f} y2={H * f} stroke="#2a2a2a" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          {geo.ticks.map((t) => (
+            <line key={t.top} x1="0" x2={W} y1={(t.top / 100) * H} y2={(t.top / 100) * H} stroke="#262626" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           ))}
           <path d={`${geo.close} L${W},${H} L0,${H} Z`} fill="url(#fill)" />
           <path d={geo.sma200} fill="none" stroke="#6b6b6b" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
@@ -73,8 +112,11 @@ export function PriceChart({ points, currency }: { points: Point[]; currency: st
             <line x1={geo.x(hover)} x2={geo.x(hover)} y1="0" y2={H} stroke="#a3a3a3" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           )}
         </svg>
+        {geo.ticks.map((t) => (
+          <span key={t.top} className="ytick num" style={{ top: `${t.top}%` }}>{money(t.value, currency)}</span>
+        ))}
         {hp && (
-          <div className="tip num" style={{ left: `${(hover! / (points.length - 1)) * 100}%`, top: 8 }}>
+          <div className="tip num" style={{ left: `${tipLeft}%` }}>
             <div className="dim">{hp.date}</div>
             <div><b>{money(hp.close, currency)}</b></div>
             <div className="muted">SMA50 {money(hp.sma50, currency)}</div>
@@ -83,8 +125,9 @@ export function PriceChart({ points, currency }: { points: Point[]; currency: st
         )}
       </div>
       <div className="axis num">
-        <span>{points[0].date}</span>
-        <span>{points[points.length - 1].date}</span>
+        {geo.dates.map((i) => (
+          <span key={i}>{shortDate(points[i].date)}</span>
+        ))}
       </div>
     </div>
   );

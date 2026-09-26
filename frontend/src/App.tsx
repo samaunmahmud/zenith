@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState, type FormEvent } from "react";
 import { fetchConfig, streamCommittee } from "./api";
 import { AnalystCard } from "./components/AnalystCard";
+import { CommitteeFloor, type Timing } from "./components/CommitteeFloor";
 import { CostPanel } from "./components/CostPanel";
 import { MemoPanel } from "./components/MemoPanel";
 import { SnapshotBar } from "./components/SnapshotBar";
@@ -23,20 +24,12 @@ import type {
 } from "./types";
 
 const ANALYSTS: AnalystName[] = ["fundamentals", "technicals", "risk"];
-const STAGES: { id: Stage; label: string }[] = [
-  { id: "data", label: "Market data" },
-  { id: "news", label: "News desk" },
-  { id: "analysts", label: "Analysts" },
-  { id: "rebuttals", label: "Rebuttals" },
-  { id: "chair", label: "Chair" },
-  { id: "memo", label: "Memo" },
-];
+const TITLES: Record<AnalystName, string> = { fundamentals: "Fundamentals", technicals: "Technicals", risk: "Risk" };
 
 interface State {
   status: "idle" | "running" | "done" | "error";
   ticker: string;
   stage: Stage | null;
-  stagesSeen: Stage[];
   snapshot: Snapshot | null;
   sources: SourceInfo[];
   agents: AgentModel[];
@@ -47,13 +40,14 @@ interface State {
   decision: ChairDecision | null;
   result: CommitteeResult | null;
   error: string | null;
+  /** When each agent started and finished, as seen by this browser (the floor's live clocks). */
+  timing: Timing;
 }
 
 const initial: State = {
   status: "idle",
   ticker: "",
   stage: null,
-  stagesSeen: [],
   snapshot: null,
   sources: [],
   agents: [],
@@ -64,29 +58,41 @@ const initial: State = {
   decision: null,
   result: null,
   error: null,
+  timing: {},
 };
 
-type Action = { type: "start"; ticker: string } | { type: "reset" } | { type: "event"; event: CommitteeEvent };
+type Action =
+  | { type: "start"; ticker: string; at: number }
+  | { type: "reset" }
+  | { type: "event"; event: CommitteeEvent; at: number };
+
+const STAGE_AGENTS: Partial<Record<Stage, string[]>> = { news: ["news"], analysts: ANALYSTS, chair: ["chair"] };
+
+function mark(timing: Timing, ids: string[], key: "start" | "end", at: number): Timing {
+  const next = { ...timing };
+  for (const id of ids) if (next[id]?.[key] === undefined) next[id] = { ...next[id], [key]: at };
+  return next;
+}
 
 function reducer(state: State, action: Action): State {
-  if (action.type === "start") return { ...initial, status: "running", ticker: action.ticker };
+  if (action.type === "start") return { ...initial, status: "running", ticker: action.ticker, timing: { run: { start: action.at } } };
   if (action.type === "reset") return initial;
-  const e = action.event;
+  const { event: e, at } = action;
   switch (e.type) {
     case "stage":
-      return { ...state, stage: e.stage, stagesSeen: [...state.stagesSeen, e.stage] };
+      return { ...state, stage: e.stage, timing: mark(state.timing, STAGE_AGENTS[e.stage] ?? [], "start", at) };
     case "snapshot":
       return { ...state, snapshot: e.snapshot, sources: e.sources, agents: e.agents };
     case "news":
-      return { ...state, digest: e.digest };
+      return { ...state, digest: e.digest, timing: mark(state.timing, ["news"], "end", at) };
     case "report":
-      return { ...state, reports: { ...state.reports, [e.report.analyst]: e.report } };
+      return { ...state, reports: { ...state.reports, [e.report.analyst]: e.report }, timing: mark(state.timing, [e.report.analyst], "end", at) };
     case "analystError":
-      return { ...state, errors: { ...state.errors, [e.analyst]: e.message } };
+      return { ...state, errors: { ...state.errors, [e.analyst]: e.message }, timing: mark(state.timing, [e.analyst], "end", at) };
     case "rebuttal":
       return { ...state, rebuttals: [...state.rebuttals, e.rebuttal] };
     case "decision":
-      return { ...state, decision: e.decision };
+      return { ...state, decision: e.decision, timing: mark(state.timing, ["chair"], "end", at) };
     case "done": {
       // The final result is the source of truth (it also covers replays, which send no progress events).
       const r = e.result;
@@ -103,11 +109,23 @@ function reducer(state: State, action: Action): State {
         rebuttals: r.rebuttals,
         decision: r.decision,
         result: r,
+        timing: mark(state.timing, ["run"], "end", at),
       };
     }
     case "error":
-      return { ...state, status: "error", stage: null, error: e.message };
+      return { ...state, status: "error", stage: null, error: e.message, timing: mark(state.timing, ["run"], "end", at) };
   }
+}
+
+/** Re-renders on an interval while `active`, so the floor's clocks tick. */
+function useNow(active: boolean) {
+  const [now, setNow] = useState(() => performance.now());
+  useEffect(() => {
+    if (!active) return;
+    const id = window.setInterval(() => setNow(performance.now()), 100);
+    return () => window.clearInterval(id);
+  }, [active]);
+  return now;
 }
 
 export default function App() {
@@ -116,17 +134,19 @@ export default function App() {
   const [input, setInput] = useState("");
   const [withRebuttals, setWithRebuttals] = useState(false);
   const stopRef = useRef<(() => void) | null>(null);
+  const running = state.status === "running";
+  const now = useNow(running);
 
   const convene = (raw: string, rebuttals = withRebuttals) => {
     const ticker = raw.trim().toUpperCase();
     if (!ticker || state.status === "running") return;
     setInput(ticker);
     stopRef.current?.();
-    dispatch({ type: "start", ticker });
+    dispatch({ type: "start", ticker, at: performance.now() });
     // Keep the URL shareable: /?ticker=NVDA&rebuttals=true reopens this run.
     const qs = new URLSearchParams({ ticker, ...(rebuttals ? { rebuttals: "true" } : {}) });
     window.history.replaceState(null, "", `?${qs}`);
-    stopRef.current = streamCommittee(ticker, rebuttals, (event) => dispatch({ type: "event", event }));
+    stopRef.current = streamCommittee(ticker, rebuttals, (event) => dispatch({ type: "event", event, at: performance.now() }));
   };
 
   // Run once on load. The ref guard matters: React StrictMode runs effects twice in development,
@@ -158,15 +178,12 @@ export default function App() {
     setInput("");
   };
 
-  const running = state.status === "running";
+  const idle = state.status === "idle";
   const halted = state.status === "error";
-  const agentFor = (id: string) => state.agents.find((a) => a.id === id) ?? config?.agents.find((a) => a.id === id);
-  const stages = STAGES.filter((s) => s.id !== "rebuttals" || withRebuttals || state.rebuttals.length > 0);
-  const showRoom = state.status !== "idle" && (state.snapshot || running);
-  // A stage is complete once a later stage has started (or, for market data, once the snapshot arrived).
-  const completed = new Set<Stage>(state.stagesSeen.slice(0, -1));
-  if (state.snapshot) completed.add("data");
-  const failedStage = halted ? stages.find((s) => !completed.has(s.id))?.id : undefined;
+  const agents = state.agents.length ? state.agents : config?.agents ?? [];
+  const agentFor = (id: string) => agents.find((a) => a.id === id);
+  const reportList = ANALYSTS.map((a) => state.reports[a]).filter((r): r is AnalystReport => Boolean(r));
+  const stanceOf = (a: AnalystName) => state.reports[a]?.stance;
 
   return (
     <>
@@ -177,68 +194,82 @@ export default function App() {
             ZENITH
           </a>
           <nav className="nav">
-            <a className="hide-sm" href="#how" onClick={() => state.status !== "idle" && goHome()}>How it works</a>
-            <a className="hide-sm" href="#committee" onClick={() => state.status !== "idle" && goHome()}>Committee</a>
+            <a className="hide-sm" href="#how" onClick={() => !idle && goHome()}>How it works</a>
+            <a className="hide-sm" href="#committee" onClick={() => !idle && goHome()}>Committee</a>
             <a href="https://github.com/samaunmahmud/zenith" target="_blank" rel="noreferrer">GitHub</a>
           </nav>
         </div>
       </header>
 
-      <section className={`hero ${state.status === "idle" ? "" : "compact"}`}>
-        <div className="container">
-          <div className="eyebrow">Powered by NVIDIA Nemotron on Nebius Token Factory</div>
-          <h1>
-            Three AI analysts argue. <span className="accent">One chair decides.</span>
-          </h1>
-          <p className="lede">
-            Enter a stock ticker to convene an AI investment committee. Every figure is computed in code, every argument
-            is on the record, and every decision comes with its dissent and its cost.
-          </p>
-          <form className="form" onSubmit={onSubmit}>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Enter a ticker, e.g. AAPL"
-              aria-label="Stock ticker"
-              maxLength={10}
-              autoFocus
-            />
-            <button className="btn" type="submit" disabled={running}>
-              {running ? "In session…" : "Convene the committee"}
-            </button>
-          </form>
-          <div className="form-meta">
-            <span className="label">Try</span>
-            {config?.demoTickers.map((t) => (
-              <button key={t} type="button" className="chip" disabled={running} onClick={() => convene(t)}>
-                {t}
+      <section className={`hero ${idle ? "" : "compact"}`}>
+        <div className="container hero-grid">
+          <div>
+            <div className="eyebrow">Powered by NVIDIA Nemotron on Nebius Token Factory</div>
+            <h1>
+              Three AI analysts argue. <span className="accent">One chair decides.</span>
+            </h1>
+            <p className="lede">
+              Enter a stock ticker to convene an AI investment committee. Every figure is computed in code, every argument
+              is on the record, and every decision comes with its dissent and its cost.
+            </p>
+            <form className="form" onSubmit={onSubmit}>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Enter a ticker, e.g. AAPL"
+                aria-label="Stock ticker"
+                maxLength={10}
+                autoFocus
+              />
+              <button className="btn" type="submit" disabled={running}>
+                {running ? "In session…" : "Convene the committee"}
               </button>
-            ))}
-            {config?.demoMode && <span className="small dim">Demo mode: cached tickers only</span>}
-            <label className="toggle">
-              <input type="checkbox" checked={withRebuttals} onChange={(e) => setWithRebuttals(e.target.checked)} disabled={running} />
-              Rebuttal round
-            </label>
+            </form>
+            <div className="form-meta">
+              <span className="label">Try</span>
+              {config?.demoTickers.map((t) => (
+                <button key={t} type="button" className="chip" disabled={running} onClick={() => convene(t)}>
+                  {t}
+                </button>
+              ))}
+              {config?.demoMode && <span className="small dim">Demo mode: cached tickers only</span>}
+              <label className="toggle">
+                <input type="checkbox" checked={withRebuttals} onChange={(e) => setWithRebuttals(e.target.checked)} disabled={running} />
+                Rebuttal round
+              </label>
+            </div>
           </div>
+          {idle && agents.length > 0 && (
+            <div className="hero-floor">
+              <CommitteeFloor
+                agents={agents} mode="preview" stage={null} timing={{}} now={0}
+                digest={undefined} reports={{}} errors={{}} decision={null} chairError={null} costs={null}
+              />
+            </div>
+          )}
         </div>
       </section>
 
       <main className="container">
-        {state.status === "idle" && config && <Landing agents={config.agents} />}
+        {idle && config && <Landing agents={config.agents} />}
 
-        {state.status !== "idle" && (
-          <div className="progress" aria-live="polite">
-            {stages.map((s) => {
-              const active = state.stage === s.id;
-              const cls = failedStage === s.id ? "halted" : active ? "active" : state.status === "done" || completed.has(s.id) ? "done" : "";
-              return (
-                <div key={s.id} className={`pstep ${cls}`}>
-                  {s.label}
-                </div>
-              );
-            })}
-          </div>
+        {!idle && agents.length > 0 && (
+          <section className="section tight">
+            <CommitteeFloor
+              agents={agents}
+              mode={running ? "running" : halted ? "error" : "done"}
+              stage={state.stage}
+              timing={state.timing}
+              now={now}
+              digest={state.digest}
+              reports={state.reports}
+              errors={state.errors}
+              decision={state.decision}
+              chairError={state.result?.chairError ?? null}
+              costs={state.result?.costs ?? null}
+            />
+          </section>
         )}
 
         {halted && (
@@ -254,76 +285,77 @@ export default function App() {
           </div>
         )}
 
-        {showRoom && (
-          <>
-            {state.snapshot && (
-              <section className="section">
-                <div className="section-head"><h2>The stock</h2></div>
-                <SnapshotBar snapshot={state.snapshot} sources={state.sources} digest={state.digest} />
-              </section>
+        {(state.decision || state.result?.chairError) && (
+          <section className="section" id="decision">
+            <div className="section-head"><h2>Decision</h2></div>
+            {state.decision ? (
+              <Verdict decision={state.decision} reports={reportList} />
+            ) : (
+              <div className="notice error">The chair couldn't reach a valid decision: {state.result?.chairError}</div>
             )}
+          </section>
+        )}
 
-            <section className="section">
-              <div className="section-head">
-                <h2>Analyst reports</h2>
-                <p>Each analyst works independently from its own fact sheet. Open "What this analyst sees" to check every number it was given.</p>
-              </div>
-              <div className="cards">
-                {ANALYSTS.map((a) => (
-                  <AnalystCard
-                    key={a}
-                    analyst={a}
-                    agent={agentFor(a)}
-                    report={state.reports[a]}
-                    error={state.errors[a]}
-                    pending={running && (state.stage === "analysts" || state.stage === "news")}
-                    halted={halted}
-                    facts={state.snapshot?.facts[a]}
-                  />
-                ))}
-              </div>
-            </section>
+        {!idle && state.snapshot && (
+          <section className="section">
+            <div className="section-head"><h2>The stock</h2></div>
+            <SnapshotBar snapshot={state.snapshot} sources={state.sources} digest={state.digest} />
+          </section>
+        )}
 
-            {state.rebuttals.length > 0 && (
-              <section className="section">
-                <div className="section-head"><h2>Rebuttal round</h2></div>
-                <div className="rebuttals">
-                  {state.rebuttals.map((r) => (
-                    <div key={r.analyst} className="rebuttal">
-                      <div className="who">
-                        <b>{r.analyst}</b> <span className="dim">→ {r.respondingTo}</span>
-                        {r.stanceChanged && <span className="badge stance-neutral" style={{ marginLeft: 8 }}>stance changed</span>}
-                      </div>
-                      <div>{r.response}</div>
-                    </div>
-                  ))}
+        {!idle && (state.snapshot || running) && (
+          <section className="section">
+            <div className="section-head">
+              <h2>Analyst reports</h2>
+              <p>Each analyst works independently from its own fact sheet. Open "What this analyst sees" to check every number it was given.</p>
+            </div>
+            <div className="cards">
+              {ANALYSTS.map((a) => (
+                <AnalystCard
+                  key={a}
+                  analyst={a}
+                  agent={agentFor(a)}
+                  report={state.reports[a]}
+                  error={state.errors[a]}
+                  pending={running && (state.stage === "analysts" || state.stage === "news")}
+                  halted={halted}
+                  facts={state.snapshot?.facts[a]}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {state.rebuttals.length > 0 && (
+          <section className="section">
+            <div className="section-head">
+              <h2>Rebuttal round</h2>
+              <p>One reply each, to the colleague it disagrees with most. No open-ended debate loops.</p>
+            </div>
+            <div className="rebuttals">
+              {state.rebuttals.map((r) => (
+                <div key={r.analyst} className={`rebuttal stance-edge-${stanceOf(r.analyst) ?? "neutral"}`}>
+                  <div className="who">
+                    <b className={`stance-${stanceOf(r.analyst) ?? "neutral"}`}>{TITLES[r.analyst]}</b>
+                    <span className="dim"> replies to </span>
+                    <b className={`stance-${stanceOf(r.respondingTo) ?? "neutral"}`}>{TITLES[r.respondingTo]}</b>
+                    {r.stanceChanged && <span className="badge stance-neutral" style={{ marginLeft: 8 }}>stance changed</span>}
+                  </div>
+                  <p>{r.response}</p>
                 </div>
-              </section>
-            )}
+              ))}
+            </div>
+          </section>
+        )}
 
-            {!halted && (
-              <section className="section">
-                <div className="section-head"><h2>Decision</h2></div>
-                {state.decision ? (
-                  <Verdict decision={state.decision} />
-                ) : state.result?.chairError ? (
-                  <div className="notice error">The chair couldn't reach a valid decision: {state.result.chairError}</div>
-                ) : (
-                  <div className="panel muted">{state.stage === "chair" ? "The chair is deliberating…" : "Waiting for the analysts…"}</div>
-                )}
-              </section>
-            )}
-
-            {state.result && (
-              <section className="section">
-                <div className="section-head"><h2>Cost &amp; memo</h2></div>
-                <div className="two-col">
-                  <CostPanel costs={state.result.costs} />
-                  <MemoPanel result={state.result} />
-                </div>
-              </section>
-            )}
-          </>
+        {state.result && (
+          <section className="section">
+            <div className="section-head"><h2>Cost &amp; memo</h2></div>
+            <div className="two-col">
+              <CostPanel costs={state.result.costs} />
+              <MemoPanel result={state.result} />
+            </div>
+          </section>
         )}
       </main>
 
