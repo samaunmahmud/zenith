@@ -2,18 +2,17 @@
   "name": "zenith",
   "private": true,
   "workspaces": [
-    "backend",
     "frontend"
   ],
   "scripts": {
     "dev": "concurrently -k -n backend,frontend -c blue,magenta \"npm:dev:backend\" \"npm:dev:frontend\"",
-    "dev:backend": "npm run dev --workspace backend",
+    "dev:backend": "cd backend && mvn -q spring-boot:run",
     "dev:frontend": "npm run dev --workspace frontend",
-    "build": "npm run build --workspace frontend && npm run build --workspace backend",
-    "start": "npm run start --workspace backend",
-    "test": "npm run test --workspace backend",
-    "smoke": "npm run smoke --workspace backend",
-    "precache": "npm run precache --workspace backend"
+    "build": "npm run build --workspace frontend && cd backend && mvn -q -B package -DskipTests",
+    "start": "java -jar backend/target/zenith.jar",
+    "test": "cd backend && mvn -q -B test",
+    "smoke": "cd backend && mvn -q spring-boot:run -Dspring-boot.run.arguments=--smoke",
+    "precache": "cd backend && mvn -q spring-boot:run -Dspring-boot.run.arguments=--precache"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"
