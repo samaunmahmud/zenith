@@ -1,0 +1,19 @@
+# Never bake secrets or private files into the image
+.env
+.env.*
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+docs/feedback-notes.md
+
+# Build output and dependencies (rebuilt inside the image)
+node_modules/
+**/node_modules/
+backend/target/
+frontend/dist/
+
+# Editor / VCS
+.git/
+.idea/
+.vscode/
+.DS_Store
