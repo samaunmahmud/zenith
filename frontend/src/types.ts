@@ -112,6 +112,8 @@ export interface CommitteeResult {
   integrity: { agent: string; figures: string[] }[];
   agents: AgentModel[];
   replayed?: boolean;
+  /** Why a saved decision was served: reused while recent, committee busy, or the live run failed. */
+  replayReason?: "recent" | "busy" | "fallback" | null;
 }
 
 export type Stage = "data" | "news" | "analysts" | "rebuttals" | "chair" | "memo";

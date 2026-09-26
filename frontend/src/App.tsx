@@ -120,6 +120,34 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+const when = (iso: string) =>
+  new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "UTC" }) + " UTC";
+
+/** Says exactly why a saved decision is on screen instead of a live one. */
+function ReplayNotice({ result }: { result: CommitteeResult }) {
+  const at = when(result.generatedAt);
+  if (result.replayReason === "recent") {
+    return (
+      <div className="notice ok">
+        <b>Decided recently, so it wasn't re-run.</b> The committee met on {result.ticker} at {at}. Serving that decision
+        again cost nothing; the cost readout below is what it cost at the time.
+      </div>
+    );
+  }
+  if (result.replayReason === "busy") {
+    return (
+      <div className="notice warn">
+        <b>The committee is at its limit right now</b>, so this is its last saved decision on {result.ticker}, from {at}.
+      </div>
+    );
+  }
+  return (
+    <div className="notice warn">
+      <b>Live analysis wasn't available</b>, so this is the committee's last saved decision on {result.ticker}, from {at}.
+    </div>
+  );
+}
+
 /** Re-renders on an interval while `active`, so the floor's clocks tick. */
 function useNow(active: boolean) {
   const [now, setNow] = useState(() => performance.now());
@@ -276,8 +304,13 @@ export default function App() {
         )}
 
         {halted && (
-          <div className={`notice ${state.errorStatus === 503 ? "warn" : "error"}`}>
-            {state.errorStatus === 503 ? (
+          <div className={`notice ${state.errorStatus === 503 || state.errorStatus === 429 ? "warn" : "error"}`}>
+            {state.errorStatus === 429 ? (
+              <>
+                <b>The committee is busy.</b> {state.error}
+                {state.snapshot && " The market data below was still computed."}
+              </>
+            ) : state.errorStatus === 503 ? (
               <>
                 <b>The AI committee is switched off right now.</b> Its model budget is used up or not configured, so no Nemotron
                 calls were made.{state.snapshot && " The market data and indicators below were still computed live."}
@@ -291,12 +324,7 @@ export default function App() {
             )}
           </div>
         )}
-        {state.result?.replayed && (
-          <div className="notice warn">
-            Live analysis wasn't available, so this is the committee's last saved decision for {state.result.ticker} (
-            {state.result.generatedAt.slice(0, 10)}).
-          </div>
-        )}
+        {state.result?.replayed && <ReplayNotice result={state.result} />}
 
         {(state.decision || state.result?.chairError) && (
           <section className="section" id="decision">
