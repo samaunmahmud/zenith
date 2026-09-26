@@ -294,7 +294,9 @@ details.facts dd { margin: 0; font-weight: 600; text-align: right; }
 /* ── Landing blocks ──────────────────────────────────── */
 .agenda { list-style: none; margin: 0; padding: 0; counter-reset: item; border-top: 1px solid var(--line-2); }
 .agenda li { counter-increment: item; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 2px 8px; padding: 16px 0; border-bottom: 1px solid var(--line); }
-.agenda li::before { content: counter(item); grid-row: span 2; font: 500 26px/1 var(--serif); color: var(--text-4); font-variant-numeric: oldstyle-nums; }
+.agenda li::before { content: counter(item); grid-row: span 2; font: 500 30px/1 var(--serif); color: var(--accent); font-variant-numeric: oldstyle-nums; }
+.member { white-space: nowrap; }
+.member .id-mark { margin-right: 5px; }
 .agenda h3 { font-size: 15px; font-weight: 600; }
 .agenda p { color: var(--text-2); font-size: 14px; max-width: 44em; }
 .rules { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line-2); }
@@ -315,3 +317,24 @@ details.facts dd { margin: 0; font-weight: 600; text-align: right; }
   .markdown h2 { break-after: avoid; }
   a { color: inherit; }
 }
+
+
+/* ── Committee identities: one colour per member, on marks beside its name ── */
+.id-fundamentals { --id: var(--id-fundamentals); }
+.id-technicals { --id: var(--id-technicals); }
+.id-risk { --id: var(--id-risk); }
+.id-news { --id: var(--id-news); }
+.id-chair { --id: var(--id-chair); }
+.id-mark { display: inline-block; width: 8px; height: 8px; margin-right: 7px; border-radius: 2px; background: var(--id, var(--text-4)); vertical-align: 1px; }
+
+.seat[class*="id-"]::before { width: 3px; background: var(--id); }
+.seat[class*="id-"] { background: color-mix(in srgb, var(--id) 6%, var(--panel-2)); }
+.seat[class*="id-"].seat-thinking { border-color: color-mix(in srgb, var(--id) 55%, transparent); }
+
+.acard[class*="id-"] { border-top: 3px solid var(--id); }
+.acard[class*="id-"] > .card-head { background: color-mix(in srgb, var(--id) 7%, transparent); }
+
+.minutes li[class*="id-"] { border-left: 3px solid var(--id); padding-left: 16px; }
+.minutes .speaker .who { display: inline-flex; align-items: center; }
+
+.src-tag[class*="id-"] { border-color: color-mix(in srgb, var(--id) 55%, transparent); background: color-mix(in srgb, var(--id) 9%, transparent); color: var(--text-2); }

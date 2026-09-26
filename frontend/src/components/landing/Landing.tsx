@@ -1,11 +1,24 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import type { AppConfig } from "../../types";
 import { CommitteeFloor } from "../committee/CommitteeFloor";
 import { Roster } from "./Roster";
 
-const AGENDA = [
+/** A committee member's name with its identity colour mark, as used across the results. */
+function Member({ id, children }: { id: string; children: ReactNode }) {
+  return <span className={`member id-${id}`}><i className="id-mark" aria-hidden="true" />{children}</span>;
+}
+
+const AGENDA: { title: string; text: ReactNode }[] = [
   { title: "Figures first", text: "Prices, fundamentals and headlines are fetched, then every indicator (RSI, MACD, moving averages, volatility, beta, P/E) is calculated in Java before any model is called." },
-  { title: "Opening positions", text: "Fundamentals and risk on Nemotron Super, technicals on Nemotron Nano. Each analyst takes a side and may only cite the figures it was given." },
+  {
+    title: "Opening positions",
+    text: (
+      <>
+        <Member id="fundamentals">Fundamentals</Member> and <Member id="risk">risk</Member> on Nemotron Super,{" "}
+        <Member id="technicals">technicals</Member> on Nemotron Nano. Each analyst takes a side and may only cite the figures it was given.
+      </>
+    ),
+  },
   { title: "One rebuttal, if asked for", text: "Each analyst answers the colleague it disagrees with most. One round, then the floor closes." },
   { title: "The chair's call", text: "Nemotron Ultra weighs the arguments, calls BUY, HOLD or SELL with a confidence, and puts the strongest dissent on the record." },
 ];

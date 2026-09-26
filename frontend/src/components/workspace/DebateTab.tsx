@@ -21,9 +21,10 @@ export function DebateTab({ state }: { state: CommitteeState }) {
       <p className="muted">One reply each, to the colleague it disagrees with most. No open-ended debate loops.</p>
       <ol className="minutes">
         {state.debate.map((r) => (
-          <li key={r.analyst}>
+          <li key={r.analyst} className={`id-${r.analyst}`}>
             <div className="speaker">
-              <b className={`stance-${stance(r.analyst)}`}>{ANALYST_TITLE[r.analyst]}</b>
+              <b className="who"><i className="id-mark" aria-hidden="true" />{ANALYST_TITLE[r.analyst]}</b>
+              <span className={`stance-${stance(r.analyst)}`} style={{ textTransform: "capitalize" }}>{stance(r.analyst)}</span>
               <span>to {ANALYST_TITLE[r.respondingTo]}</span>
               {r.stanceChanged && <span className="badge neutral">changed stance</span>}
             </div>

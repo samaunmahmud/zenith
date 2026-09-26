@@ -26,9 +26,9 @@ function AnalystSummary({ state, openTab }: Pick<Props, "state" | "openTab">) {
         {ANALYSTS.map((a) => {
           const r = state.reports[a];
           return (
-            <li key={a} style={{ display: "block" }}>
+            <li key={a} className={`id-${a}`} style={{ display: "block" }}>
               <div className="row spread">
-                <b style={{ fontWeight: 600 }}>{ANALYST_TITLE[a]}</b>
+                <b style={{ fontWeight: 600 }}><i className="id-mark" aria-hidden="true" />{ANALYST_TITLE[a]}</b>
                 <span className="row" style={{ gap: 8 }}>
                   {r ? (
                     <>

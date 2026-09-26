@@ -41,7 +41,7 @@ export function AnalystCard({ analyst, agent, report, error, pending, halted, fa
 
   if (error) {
     return (
-      <article className="card acard">
+      <article className={`card acard id-${analyst}`}>
         {head}
         <div className="card-body">
           <p className="neg" style={{ fontWeight: 600 }}>No valid report</p>
@@ -59,7 +59,7 @@ export function AnalystCard({ analyst, agent, report, error, pending, halted, fa
 
   if (!report) {
     return (
-      <article className="card acard" aria-busy={pending}>
+      <article className={`card acard id-${analyst}`} aria-busy={pending}>
         {head}
         <div className="card-body">
           {pending ? (
@@ -80,7 +80,7 @@ export function AnalystCard({ analyst, agent, report, error, pending, halted, fa
   }
 
   return (
-    <article className="card acard">
+    <article className={`card acard id-${analyst}`}>
       {head}
       <div className="card-body">
         <div>

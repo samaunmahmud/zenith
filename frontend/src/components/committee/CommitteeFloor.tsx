@@ -90,7 +90,7 @@ function seatFor(id: string, p: FloorProps): SeatView {
 
 function Seat({ agent, view }: { agent: AgentModel; view: SeatView }) {
   return (
-    <div className={`seat seat-${view.state} seat-tier-${agent.tier}`} aria-label={`${agent.label}: ${view.status}`}>
+    <div className={`seat seat-${view.state} seat-tier-${agent.tier} id-${agent.id}`} aria-label={`${agent.label}: ${view.status}`}>
       <div className="seat-top">
         <b>{agent.label}</b>
         <TierBadge tier={agent.tier} />

@@ -12,8 +12,8 @@ export function Roster({ agents }: { agents: AgentModel[] }) {
           </thead>
           <tbody>
             {agents.map((a) => (
-              <tr key={a.id}>
-                <td><b style={{ fontWeight: 600 }}>{a.label}</b></td>
+              <tr key={a.id} className={`id-${a.id}`}>
+                <td><b style={{ fontWeight: 600 }}><i className="id-mark" aria-hidden="true" />{a.label}</b></td>
                 <td>
                   <div className="stack" style={{ gap: 4 }}>
                     <TierBadge tier={a.tier} />

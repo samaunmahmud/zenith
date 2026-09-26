@@ -22,7 +22,8 @@ export function splitSource(text: string): { source: string | null; body: string
 
 function Attributed({ text }: { text: string }) {
   const { source, body } = splitSource(text);
-  return source ? <><span className="src-tag">{source}</span>{body}</> : <>{text}</>;
+  const first = source?.match(/fundamentals|technicals|risk/i)?.[0].toLowerCase();
+  return source ? <><span className={`src-tag ${first ? `id-${first}` : ""}`}>{source}</span>{body}</> : <>{text}</>;
 }
 
 export function pinRows(xs: number[]): number[] {
