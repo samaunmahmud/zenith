@@ -54,7 +54,7 @@ The UI streams each step live over Server-Sent Events, so analyst cards appear a
 | Risk analyst | **Nemotron Super** | Combining volatility, drawdown, beta, leverage and news risk into one view. |
 | Chair | **Nemotron Ultra** (`nvidia/Nemotron-3-Ultra-550b-a55b`) | The final judgement weighs conflicting arguments and records the dissent, so it gets the strongest reasoning model. |
 
-The principle is to **spend reasoning where it matters**. Most calls go to Nano and Super, and there is exactly one Ultra call per decision. The in-app cost readout shows this split for every run. Model IDs are set in `.env`, so you can swap tiers without changing code.
+The principle is to **spend reasoning where it matters**. Most calls go to Nano and Super, and there is exactly one Ultra call per decision. The in-app cost readout shows this split for every run, and compares it with what the same calls (same tokens) would have cost on Ultra alone. The live **committee floor** shows each agent's tier, status and measured latency while the committee works. Model IDs are set in `.env`, so you can swap tiers without changing code.
 
 ### Guardrails around the models
 
@@ -107,7 +107,7 @@ The Token Factory base URL and Nemotron model IDs are already filled in `.env.ex
 
 ```bash
 npm run dev          # Spring Boot on :3001 + Vite on :5173 → open http://localhost:5173
-npm test             # backend unit + end-to-end tests (JUnit)
+npm test             # frontend tests (Vitest) + backend unit and end-to-end tests (JUnit)
 npm run smoke        # call Nano, Super and Ultra once each and print tokens, latency, cost
 npm run precache     # cache market data for the demo tickers (AAPL, NVDA, JPM, TSLA)
 ```
