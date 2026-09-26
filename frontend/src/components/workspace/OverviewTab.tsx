@@ -77,7 +77,7 @@ export function OverviewTab({ state, agents, now, openTab }: Props) {
             <VerdictPlaceholder stage={state.stage} />
           ) : null}
           {s && (
-            <Card title="Price" sub="1 year, daily closes with SMA50 and SMA200">
+            <Card title="Price" sub="Daily closes with SMA50 and SMA200">
               <PriceChart points={s.priceHistory} currency={s.currency} />
             </Card>
           )}

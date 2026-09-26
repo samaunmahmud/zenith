@@ -27,14 +27,19 @@ export function Tabs<T extends string>({ tabs, active, onChange, label }: { tabs
           role="tab"
           id={`tab-${t.id}`}
           aria-selected={active === t.id}
-          aria-controls={`panel-${t.id}`}
+          aria-controls={active === t.id ? `panel-${t.id}` : undefined}
           tabIndex={active === t.id ? 0 : -1}
           className="tab"
           onClick={() => onChange(t.id)}
           onKeyDown={(e) => onKey(e, i)}
         >
           {t.label}
-          {t.live && <i className="live-dot" aria-label="in progress" />}
+          {t.live && (
+            <>
+              <i className="live-dot" aria-hidden="true" />
+              <span className="sr-only">(in progress)</span>
+            </>
+          )}
           {t.count !== undefined && t.count > 0 && <span className="count">{t.count}</span>}
         </button>
       ))}

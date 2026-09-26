@@ -42,8 +42,9 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
       });
       return d;
     };
-    const ticks = [0.2, 0.5, 0.8].map((f) => ({ top: (y(min + (max - min) * f) / H) * 100, value: min + (max - min) * f }));
-    const dates = [0, 0.33, 0.66, 1].map((f) => Math.round(f * (points.length - 1)));
+    // A flat series (max === min) has one price to label, not three stacked copies of it.
+    const ticks = (max > min ? [0.2, 0.5, 0.8] : [0.5]).map((f) => ({ top: (y(min + (max - min) * f) / H) * 100, value: min + (max - min) * f }));
+    const dates = [...new Set([0, 0.33, 0.66, 1].map((f) => Math.round(f * (points.length - 1))))];
     return { x, y, ticks, dates, close: path("close"), sma50: path("sma50"), sma200: path("sma200") };
   }, [points]);
 
@@ -71,12 +72,11 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
           <span><i className="dashed" />SMA50</span>
           <span><i style={{ background: "#5d666c" }} />SMA200</span>
         </div>
-        <div className="ranges" role="tablist" aria-label="Chart range">
+        <div className="ranges" role="group" aria-label="Chart range">
           {RANGES.map((r) => (
             <button
               key={r.id}
-              role="tab"
-              aria-selected={range === r.id}
+              aria-pressed={range === r.id}
               onClick={() => { setRange(r.id); setHover(null); }}
             >
               {r.id}
@@ -95,8 +95,8 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
               <stop offset="100%" stopColor={up ? "#3fbf72" : "#f0585d"} stopOpacity="0" />
             </linearGradient>
           </defs>
-          {geo.ticks.map((t) => (
-            <line key={t.top} x1="0" x2={W} y1={(t.top / 100) * H} y2={(t.top / 100) * H} stroke="#1f2629" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+          {geo.ticks.map((t, i) => (
+            <line key={`g${i}`} x1="0" x2={W} y1={(t.top / 100) * H} y2={(t.top / 100) * H} stroke="#1f2629" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           ))}
           <path d={`${geo.close} L${W},${H} L0,${H} Z`} fill={`url(#${gradientId})`} />
           <path d={geo.sma200} fill="none" stroke="#5d666c" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
@@ -106,8 +106,8 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
             <line x1={geo.x(hover)} x2={geo.x(hover)} y1="0" y2={H} stroke="#818a90" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           )}
         </svg>
-        {geo.ticks.map((t) => (
-          <span key={t.top} className="ytick num" style={{ top: `${t.top}%` }}>{money(t.value, currency)}</span>
+        {geo.ticks.map((t, i) => (
+          <span key={`y${i}`} className="ytick num" style={{ top: `${t.top}%` }}>{money(t.value, currency)}</span>
         ))}
         {hp && (
           <div className="tip num" style={{ left: `${tipLeft}%` }}>
