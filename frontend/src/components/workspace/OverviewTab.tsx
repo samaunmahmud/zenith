@@ -86,7 +86,7 @@ export function OverviewTab({ state, agents, now, openTab }: Props) {
         <div className="col-4 stack-16">
           {s && <KeyStats snapshot={s} />}
           {(s || running) && <AnalystSummary state={state} openTab={openTab} />}
-          {s && <NewsPanel digest={state.digest} news={state.news} />}
+          {s && <NewsPanel ticker={state.ticker} digest={state.digest} news={state.news} />}
         </div>
       </div>
     </div>

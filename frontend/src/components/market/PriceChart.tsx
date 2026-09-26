@@ -70,7 +70,7 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
         <div className="legend">
           <span><i style={{ background: colour }} />Close</span>
           <span><i className="dashed" />SMA50</span>
-          <span><i style={{ background: "#5d666c" }} />SMA200</span>
+          <span><i style={{ background: "var(--chart-sma200)" }} />SMA200</span>
         </div>
         <div className="ranges" role="group" aria-label="Chart range">
           {RANGES.map((r) => (
@@ -91,19 +91,19 @@ export function PriceChart({ points: all, currency }: { points: Point[]; currenc
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-label={`${range} price chart, ${up ? "up" : "down"} ${(Math.abs(change) * 100).toFixed(1)}%`}>
           <defs>
             <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor={up ? "#3fbf72" : "#f0585d"} stopOpacity="0.22" />
-              <stop offset="100%" stopColor={up ? "#3fbf72" : "#f0585d"} stopOpacity="0" />
+              <stop offset="0%" stopColor={up ? "var(--pos)" : "var(--neg)"} stopOpacity="0.18" />
+              <stop offset="100%" stopColor={up ? "var(--pos)" : "var(--neg)"} stopOpacity="0" />
             </linearGradient>
           </defs>
           {geo.ticks.map((t, i) => (
-            <line key={`g${i}`} x1="0" x2={W} y1={(t.top / 100) * H} y2={(t.top / 100) * H} stroke="#1f2629" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <line key={`g${i}`} x1="0" x2={W} y1={(t.top / 100) * H} y2={(t.top / 100) * H} stroke="var(--chart-grid)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           ))}
           <path d={`${geo.close} L${W},${H} L0,${H} Z`} fill={`url(#${gradientId})`} />
-          <path d={geo.sma200} fill="none" stroke="#5d666c" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
-          <path d={geo.sma50} fill="none" stroke="#d9dee1" strokeWidth="1.1" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
+          <path d={geo.sma200} fill="none" stroke="var(--chart-sma200)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+          <path d={geo.sma50} fill="none" stroke="var(--chart-sma50)" strokeWidth="1.1" strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />
           <path d={geo.close} fill="none" stroke={colour} strokeWidth="2" vectorEffect="non-scaling-stroke" />
           {hover !== null && (
-            <line x1={geo.x(hover)} x2={geo.x(hover)} y1="0" y2={H} stroke="#818a90" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <line x1={geo.x(hover)} x2={geo.x(hover)} y1="0" y2={H} stroke="var(--chart-cross)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
           )}
         </svg>
         {geo.ticks.map((t, i) => (

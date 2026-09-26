@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Health } from "../../types";
 import { aiLive } from "../../hooks/useHealth";
-import { GitHubIcon, SearchIcon } from "../ui/Icons";
+import { useTheme } from "../../hooks/useTheme";
+import { GitHubIcon, MoonIcon, SearchIcon, SunIcon } from "../ui/Icons";
 import { BrandMark } from "./Brand";
 
 interface Props {
@@ -24,6 +25,16 @@ function StatusPill({ health }: { health: Health | null }) {
       <i aria-hidden="true" />
       <span>{live ? "Nemotron live" : "Saved decisions only"}</span>
     </span>
+  );
+}
+
+function ThemeToggle() {
+  const [theme, toggle] = useTheme();
+  const next = theme === "dark" ? "light" : "dark";
+  return (
+    <button type="button" className="icon-btn" onClick={toggle} aria-label={`Switch to ${next} theme`} title={`Switch to ${next} theme`}>
+      {theme === "dark" ? <SunIcon /> : <MoonIcon />}
+    </button>
   );
 }
 
@@ -58,7 +69,7 @@ export function TopBar({ showSearch, busy, health, onSearch, onHome }: Props) {
       <div className="container">
         <a className="brand" href="/" onClick={(e) => { e.preventDefault(); onHome(); }}>
           <BrandMark />
-          <span className="brand-name">ZENITH</span> <span className="brand-sub">AI investment committee</span>
+          <span className="brand-name">Zenith</span> <span className="brand-sub">Investment committee</span>
         </a>
         {showSearch && (
           <form className="top-search" onSubmit={submit} role="search">
@@ -80,6 +91,7 @@ export function TopBar({ showSearch, busy, health, onSearch, onHome }: Props) {
             How it works
           </a>
           <StatusPill health={health} />
+          <ThemeToggle />
           <a className="icon-link" href="https://github.com/samaunmahmud/zenith" target="_blank" rel="noreferrer" aria-label="Source on GitHub">
             <GitHubIcon />
           </a>

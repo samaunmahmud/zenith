@@ -1,47 +1,124 @@
-/* Design tokens: every colour, radius, shadow and font in one place. */
+/*
+ * Design tokens: every colour, radius, shadow and font in one place.
+ * Light ("paper") is the default; dark ("ink") applies when the visitor picks it, or when
+ * they haven't picked and their system is dark. index.html sets data-theme before first paint.
+ */
 :root {
-  /* Surfaces, darkest to lightest */
-  --bg: #08090a;
-  --bg-2: #0c0e10;
-  --panel: #111416;
-  --panel-2: #161a1d;
-  --panel-3: #1c2124;
-  --line: #232a2e;
-  --line-2: #2f373c;
+  /* Surfaces */
+  --bg: #f5f3ee;
+  --bg-2: #eeebe4;
+  --panel: #fcfbf8;
+  --panel-2: #f5f3ee;
+  --panel-3: #ebe8e0;
+  --line: #e0dcd2;
+  --line-2: #cbc6ba;
 
   /* Text */
-  --text: #eef1f2;
-  --text-2: #b4bcc1;
-  --text-3: #818a90;
-  --text-4: #5d666c;
+  --text: #1a1c1b;
+  --text-2: #464945;
+  --text-3: #6b6d68;
+  --text-4: #95958d;
 
-  /* Brand accent (NVIDIA green): actions, focus, model tiers */
-  --accent: #76b900;
-  --accent-hi: #8fd414;
-  --accent-soft: rgba(118, 185, 0, 0.1);
-  --accent-line: rgba(118, 185, 0, 0.32);
+  /* Accent: a leaf green, dark enough to read as text on paper */
+  --accent: #3d7a14;
+  --accent-hi: #2f6310;
+  --accent-ink: #ffffff; /* text on an accent fill */
+  --accent-soft: color-mix(in srgb, var(--accent) 9%, transparent);
+  --accent-line: color-mix(in srgb, var(--accent) 35%, transparent);
 
-  /* Semantics: kept distinct from the brand accent so "up" and "brand" never read as the same signal */
-  --pos: #3fbf72;
-  --pos-soft: rgba(63, 191, 114, 0.12);
-  --neg: #f0585d;
-  --neg-soft: rgba(240, 88, 93, 0.12);
-  --warn: #e7b43f;
-  --warn-soft: rgba(231, 180, 63, 0.12);
+  /* Semantics: kept apart from the accent so "up" and "brand" never read as the same signal */
+  --pos: #1e8047;
+  --neg: #b83227;
+  --warn: #9a6400;
+  --pos-soft: color-mix(in srgb, var(--pos) 11%, transparent);
+  --neg-soft: color-mix(in srgb, var(--neg) 9%, transparent);
+  --warn-soft: color-mix(in srgb, var(--warn) 11%, transparent);
 
   /* Nemotron tiers */
-  --nano: #b9e27a;
-  --super: #76b900;
-  --ultra: #76b900;
+  --nano: #6f8f2e;
+  --super: var(--accent);
+  --ultra: var(--accent);
 
-  --r-sm: 6px;
-  --r: 10px;
-  --r-lg: 14px;
-  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+  /* Chart */
+  --chart-grid: #e6e2d9;
+  --chart-sma50: #3b3e3a;
+  --chart-sma200: #a3a39a;
+  --chart-cross: #8d8d85;
+
+  /* Chrome */
+  --topbar-bg: color-mix(in srgb, var(--bg) 88%, transparent);
+  --memo-bg: #fffefb;
+  --memo-edge: var(--line);
+
+  --r-sm: 4px;
+  --r: 6px;
+  --r-lg: 8px;
+  --shadow: 0 1px 2px rgba(40, 36, 28, 0.06), 0 6px 20px rgba(40, 36, 28, 0.06);
 
   --font: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif: "Newsreader Variable", Newsreader, Georgia, "Times New Roman", serif;
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
 
   --topbar-h: 56px;
+  color-scheme: light;
+}
+
+/* Dark ("ink"): warm charcoal rather than pure black, with a softer green. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111213;
+    --bg-2: #151718;
+    --panel: #181a1b;
+    --panel-2: #1d2021;
+    --panel-3: #25282a;
+    --line: #2a2d2f;
+    --line-2: #383c3e;
+    --text: #ebeae4;
+    --text-2: #b8b7b0;
+    --text-3: #8b8a84;
+    --text-4: #64645f;
+    --accent: #8dc641;
+    --accent-hi: #a3d65f;
+    --accent-ink: #0e1206;
+    --pos: #52c486;
+    --neg: #ef6a5f;
+    --warn: #dcae48;
+    --nano: #bcd98c;
+    --chart-grid: #232729;
+    --chart-sma50: #d9d8d2;
+    --chart-sma200: #6c6d68;
+    --chart-cross: #86867f;
+    --memo-bg: #f7f5ef;
+    --memo-edge: transparent;
+    --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111213;
+  --bg-2: #151718;
+  --panel: #181a1b;
+  --panel-2: #1d2021;
+  --panel-3: #25282a;
+  --line: #2a2d2f;
+  --line-2: #383c3e;
+  --text: #ebeae4;
+  --text-2: #b8b7b0;
+  --text-3: #8b8a84;
+  --text-4: #64645f;
+  --accent: #8dc641;
+  --accent-hi: #a3d65f;
+  --accent-ink: #0e1206;
+  --pos: #52c486;
+  --neg: #ef6a5f;
+  --warn: #dcae48;
+  --nano: #bcd98c;
+  --chart-grid: #232729;
+  --chart-sma50: #d9d8d2;
+  --chart-sma200: #6c6d68;
+  --chart-cross: #86867f;
+  --memo-bg: #f7f5ef;
+  --memo-edge: transparent;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
 }

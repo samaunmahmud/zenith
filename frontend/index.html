@@ -3,7 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#f5f3ee" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111213" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Apply a saved theme before first paint, so a returning visitor never sees the other one flash.
+      try {
+        var t = localStorage.getItem("zenith-theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Zenith · AI Investment Committee</title>
     <meta name="description" content="Three NVIDIA Nemotron analysts argue a stock; an Ultra chair makes the call. Research tool, not financial advice." />

@@ -1,22 +1,23 @@
 import { useState, type FormEvent } from "react";
 import type { AppConfig } from "../../types";
 import { CommitteeFloor } from "../committee/CommitteeFloor";
-import { CalcIcon, CheckIcon, CpuIcon, SearchIcon, ShieldIcon } from "../ui/Icons";
 import { Roster } from "./Roster";
 
-const STEPS = [
-  { n: "01", title: "Compute", text: "Prices, fundamentals and news are fetched, then every indicator (RSI, MACD, moving averages, volatility, beta, P/E) is calculated in Java." },
-  { n: "02", title: "Argue", text: "Three analysts on Nemotron Nano and Super each take a position, citing only the computed figures. Every number is traced back to the input." },
-  { n: "03", title: "Rebut", text: "Optionally, each analyst gets one short reply to the colleague it disagrees with most. One round, no endless loops." },
-  { n: "04", title: "Decide", text: "The chair on Nemotron Ultra weighs the arguments, makes a BUY / HOLD / SELL call and records the strongest dissent." },
+const AGENDA = [
+  { title: "Figures first", text: "Prices, fundamentals and headlines are fetched, then every indicator (RSI, MACD, moving averages, volatility, beta, P/E) is calculated in Java before any model is called." },
+  { title: "Opening positions", text: "Fundamentals and risk on Nemotron Super, technicals on Nemotron Nano. Each analyst takes a side and may only cite the figures it was given." },
+  { title: "One rebuttal, if asked for", text: "Each analyst answers the colleague it disagrees with most. One round, then the floor closes." },
+  { title: "The chair's call", text: "Nemotron Ultra weighs the arguments, calls BUY, HOLD or SELL with a confidence, and puts the strongest dissent on the record." },
 ];
 
-const GUARDRAILS = [
-  { title: "Code calculates", text: "Models never do arithmetic. They receive a fact sheet of figures computed in Java and are told to quote only those." },
-  { title: "Schema-constrained", text: "Every reply must match a JSON schema generated from the Java records, then pass validation. One retry with the errors fed back, never more." },
-  { title: "Numbers are traced", text: "Each figure an analyst cites is matched against its input (allowing for rounding). Untraceable evidence is rejected; untraceable prose is flagged." },
-  { title: "Hard spending cap", text: "The running spend is checked before every call and persisted across restarts. Once the cap is reached, model calls are refused, so a public demo can't run up a bill." },
+const RULES = [
+  { title: "Models don't do arithmetic.", text: "They get a fact sheet computed in code and are told to quote from it, nothing else." },
+  { title: "Every reply has a shape.", text: "Answers must match a JSON schema generated from the Java records. A malformed reply gets one retry with the errors attached, never two." },
+  { title: "Every figure is traced.", text: "Numbers an analyst cites are matched against its input, allowing for rounding. Untraceable evidence is thrown out; untraceable prose is flagged on the page." },
+  { title: "The budget is hard.", text: "Spend is checked before each call and kept across restarts. When the cap is reached, the committee stops meeting and saved decisions are served instead." },
 ];
+
+const today = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
 
 interface Props {
   config: AppConfig | null;
@@ -36,110 +37,97 @@ export function Landing({ config, onConvene }: Props) {
   return (
     <>
       <section className="hero">
-        <div className="container hero-grid">
-          <div>
-            <span className="eyebrow"><i className="live" aria-hidden="true" /> Built on NVIDIA Nemotron · Nebius Token Factory</span>
-            <h1>
-              Three AI analysts argue. <em>One chair decides.</em>
-            </h1>
-            <p className="lede">
-              Convene an AI investment committee on any US stock. Every figure is computed in code, every argument is on the
-              record, and every decision comes with its dissent and its cost.
-            </p>
-            <form className="search" onSubmit={submit} role="search">
-              <SearchIcon />
-              <input
-                value={ticker}
-                onChange={(e) => setTicker(e.target.value)}
-                placeholder="Enter a ticker, e.g. AAPL"
-                aria-label="Stock ticker"
-                maxLength={10}
-                autoFocus
-              />
-              <button className="btn btn-primary" type="submit" disabled={!ticker.trim()}>Convene the committee</button>
-            </form>
-            <div className="search-meta">
-              <span className="xs dim">Try</span>
-              {config?.demoTickers.map((t) => (
-                <button key={t} type="button" className="chip" onClick={() => onConvene(t, rebuttals)}>{t}</button>
-              ))}
-              <label className="switch">
-                <input type="checkbox" checked={rebuttals} onChange={(e) => setRebuttals(e.target.checked)} />
-                <span className="track" aria-hidden="true" />
-                Rebuttal round
-              </label>
-            </div>
-            {config?.demoMode && <p className="xs dim" style={{ marginTop: 10 }}>Demo mode: market data is served from the cache, so only cached tickers work.</p>}
-            <div className="trust">
-              <span><CpuIcon /> Nano, Super and Ultra, each where it fits</span>
-              <span><CalcIcon /> 100% of indicators computed in code</span>
-              <span><ShieldIcon /> Hard spending cap</span>
-            </div>
+        <div className="container">
+          <div className="masthead">
+            <span>Research desk</span>
+            <span className="num">{today}</span>
           </div>
-          {agents.length > 0 && (
-            <div className="hero-preview" aria-hidden="true">
-              <div className="window">
-                <div className="window-bar"><i /><i /><i /><span>Committee session</span></div>
+          <div className="hero-grid">
+            <div>
+              <h1>Put a stock in front of a&nbsp;committee.</h1>
+              <p className="lede">
+                Three analysts read the same figures and argue a position. A chair on NVIDIA Nemotron Ultra hears them out,
+                makes the call and writes down who disagreed. You get the minutes, a memo and the bill.
+              </p>
+              <form className="convene" onSubmit={submit} role="search">
+                <label htmlFor="ticker" className="convene-label">Ticker</label>
+                <div className="convene-row">
+                  <input
+                    id="ticker"
+                    value={ticker}
+                    onChange={(e) => setTicker(e.target.value)}
+                    placeholder="AAPL"
+                    maxLength={10}
+                    autoComplete="off"
+                    spellCheck={false}
+                    autoFocus
+                  />
+                  <button className="btn btn-primary" type="submit" disabled={!ticker.trim()}>Convene</button>
+                </div>
+              </form>
+              <div className="convene-meta">
+                {config && config.demoTickers.length > 0 && (
+                  <div className="recent">
+                    <span>On file</span>
+                    {config.demoTickers.map((t) => (
+                      <button key={t} type="button" className="ticker-link" onClick={() => onConvene(t, rebuttals)}>{t}</button>
+                    ))}
+                  </div>
+                )}
+                <label className="switch">
+                  <input type="checkbox" checked={rebuttals} onChange={(e) => setRebuttals(e.target.checked)} />
+                  <span className="track" aria-hidden="true" />
+                  Allow a rebuttal round
+                </label>
+              </div>
+              {config?.demoMode && <p className="xs dim" style={{ marginTop: 12 }}>Demo mode: market data comes from the cache, so only the tickers on file work.</p>}
+            </div>
+            {agents.length > 0 && (
+              <figure className="hero-figure" aria-hidden="true">
                 <CommitteeFloor agents={agents} mode="preview" stage={null} timing={{}} now={0} digest={undefined}
                   reports={{}} errors={{}} decision={null} chairError={null} costs={null} />
-              </div>
-            </div>
-          )}
+                <figcaption>
+                  <b>Seating plan.</b> The news desk briefs three analysts in parallel; only the chair sees everyone's work.
+                </figcaption>
+              </figure>
+            )}
+          </div>
         </div>
       </section>
 
       <div className="container">
-        <section className="section">
-          <div className="card stats-band num">
-            <div><b>5</b><span>AI agents on the committee</span></div>
-            <div><b>3</b><span>Nemotron model sizes</span></div>
-            <div><b>100%</b><span>of indicators calculated in code</span></div>
-            <div><b>1</b><span>auditable memo per decision, with its cost</span></div>
-          </div>
-        </section>
-
-        <section className="section" id="how">
-          <div className="section-head">
-            <span className="label">How it works</span>
-            <h2>LLMs interpret. Code calculates.</h2>
-            <p>The models don't calculate anything: they argue about figures computed deterministically from market data, and every figure they cite is checked.</p>
-          </div>
-          <div className="steps">
-            {STEPS.map((s) => (
-              <div className="card step" key={s.n}>
-                <div className="n">{s.n}</div>
-                <h3>{s.title}</h3>
-                <p>{s.text}</p>
-              </div>
+        <section className="doc-section" id="how">
+          <header>
+            <h2>Order of business</h2>
+            <p>What happens between pressing Convene and reading the memo, usually about a minute.</p>
+          </header>
+          <ol className="agenda">
+            {AGENDA.map((a) => (
+              <li key={a.title}>
+                <h3>{a.title}</h3>
+                <p>{a.text}</p>
+              </li>
             ))}
-          </div>
+          </ol>
         </section>
 
-        <section className="section" id="guardrails">
-          <div className="section-head">
-            <span className="label">Guardrails</span>
-            <h2>Built to be checked, not trusted</h2>
-            <p>An AI committee is only useful if you can audit it. These rules are enforced in code, on every run.</p>
-          </div>
-          <div className="guardrails">
-            {GUARDRAILS.map((g) => (
-              <div className="card guardrail" key={g.title}>
-                <span className="check" aria-hidden="true"><CheckIcon /></span>
-                <div>
-                  <h3>{g.title}</h3>
-                  <p>{g.text}</p>
-                </div>
-              </div>
+        <section className="doc-section" id="rules">
+          <header>
+            <h2>Standing rules</h2>
+            <p>An AI committee is only worth reading if you can check its working. These are enforced in code on every run.</p>
+          </header>
+          <ul className="rules">
+            {RULES.map((r) => (
+              <li key={r.title}><b>{r.title}</b> {r.text}</li>
             ))}
-          </div>
+          </ul>
         </section>
 
-        <section className="section" id="committee">
-          <div className="section-head">
-            <span className="label">The committee</span>
-            <h2>The right model for each seat</h2>
-            <p>Reasoning is spent where it matters: fast Nano for narrow tasks, Super for weighing evidence, and a single Ultra call for the final judgement.</p>
-          </div>
+        <section className="doc-section" id="committee">
+          <header>
+            <h2>The seats</h2>
+            <p>Reasoning is spent where it pays: Nano for narrow reads, Super for weighing evidence, one Ultra call for the judgement.</p>
+          </header>
           <Roster agents={agents} />
         </section>
       </div>
