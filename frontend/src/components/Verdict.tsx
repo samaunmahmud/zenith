@@ -4,25 +4,26 @@ import { ConfidenceBar, TierBadge } from "./common";
 export function Verdict({ decision }: { decision: ChairDecision }) {
   const d = decision;
   return (
-    <div className="panel verdict">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h2>The Chair's decision</h2>
+    <div className="verdict">
+      <div className="row spread" style={{ marginBottom: 18 }}>
+        <span className="label">The chair's decision</span>
         <TierBadge tier="ultra" />
       </div>
       <div className="verdict-top">
         <div className={`call call-${d.recommendation}`}>{d.recommendation}</div>
-        <div style={{ flex: "1 1 260px" }}>
-          <div className="small muted num">
-            Confidence {Math.round(d.confidence * 100)}% · horizon {d.timeHorizon}
+        <div>
+          <div className="row spread small num" style={{ marginBottom: 6 }}>
+            <span className="muted">Confidence <b style={{ color: "var(--text)" }}>{Math.round(d.confidence * 100)}%</b></span>
+            <span className="muted">Horizon <b style={{ color: "var(--text)" }}>{d.timeHorizon}</b></span>
           </div>
           <ConfidenceBar value={d.confidence} className={`call-${d.recommendation}`} />
-          <p style={{ marginBottom: 0 }}>{d.summary}</p>
+          <p style={{ margin: "14px 0 0", fontSize: "1.05rem" }}>{d.summary}</p>
         </div>
       </div>
 
       <div className="verdict-grid">
         <div>
-          <h3 className="small muted">RATIONALE</h3>
+          <div className="label">Rationale</div>
           <ul>
             {d.rationale.map((r, i) => (
               <li key={i}>{r}</li>
@@ -30,7 +31,7 @@ export function Verdict({ decision }: { decision: ChairDecision }) {
           </ul>
         </div>
         <div>
-          <h3 className="small muted">KEY RISKS</h3>
+          <div className="label">Key risks</div>
           <ul>
             {d.keyRisks.map((r, i) => (
               <li key={i}>{r}</li>
@@ -42,10 +43,10 @@ export function Verdict({ decision }: { decision: ChairDecision }) {
       {d.dissent ? (
         <div className="dissent">
           <div className="label">Dissent · {d.dissent.analyst} analyst</div>
-          <div>{d.dissent.argument}</div>
+          <div style={{ marginTop: 4 }}>{d.dissent.argument}</div>
         </div>
       ) : (
-        <p className="small muted">No dissent recorded: the committee was unanimous.</p>
+        <p className="small muted" style={{ marginTop: 20 }}>No dissent recorded: the committee was unanimous.</p>
       )}
     </div>
   );

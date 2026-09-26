@@ -6,33 +6,33 @@ const TIERS: Tier[] = ["nano", "super", "ultra"];
 /** The "committee cost" readout: what this decision cost, split by Nemotron model. */
 export function CostPanel({ costs }: { costs: CostSummary }) {
   const maxUsd = Math.max(...TIERS.map((t) => costs.byTier[t].usd), 1e-9);
-  const totalLatency = Math.max(...costs.calls.map((c) => c.latencyMs), 0);
+  const slowest = Math.max(...costs.calls.map((c) => c.latencyMs), 0);
   return (
     <div className="panel">
-      <h2>Committee cost</h2>
-      <div className="cost-top num">
+      <div className="label">Committee cost</div>
+      <div className="cost-grid num">
         <div>
-          <div className="cost-total">{usd(costs.totalUsd)}</div>
-          <div className="small muted">for this decision</div>
+          <b>{usd(costs.totalUsd)}</b>
+          <span className="small muted">for this decision</span>
         </div>
         <div>
           <b>{(costs.totalPromptTokens + costs.totalCompletionTokens).toLocaleString()}</b>
-          <div className="small muted">tokens across {costs.calls.length} model calls</div>
+          <span className="small muted">tokens · {costs.calls.length} calls</span>
         </div>
         <div>
-          <b>{(totalLatency / 1000).toFixed(1)}s</b>
-          <div className="small muted">slowest single call</div>
+          <b>{(slowest / 1000).toFixed(1)}s</b>
+          <span className="small muted">slowest call</span>
         </div>
       </div>
 
       <div className="tier-bars num">
         {TIERS.map((t) => (
           <div key={t} className={`tier-bar tier-${t}`}>
-            <span>{TIER_LABEL[t].replace("Nemotron ", "")}</span>
+            <span>{TIER_LABEL[t].replace("Nemotron ", "").toUpperCase()}</span>
             <div className="track">
               <div className="fill" style={{ width: `${(costs.byTier[t].usd / maxUsd) * 100}%` }} />
             </div>
-            <span style={{ color: "var(--text)" }}>
+            <span className="val">
               {usd(costs.byTier[t].usd)} · {costs.byTier[t].calls} call{costs.byTier[t].calls === 1 ? "" : "s"}
             </span>
           </div>
@@ -40,14 +40,14 @@ export function CostPanel({ costs }: { costs: CostSummary }) {
       </div>
 
       <details>
-        <summary className="small muted">Every model call</summary>
+        <summary className="label" style={{ color: "var(--green)" }}>Every model call</summary>
         <div className="table-wrap">
           <table className="calls num">
             <thead>
               <tr>
                 <th>Agent</th>
                 <th>Model</th>
-                <th>Tokens in/out</th>
+                <th>Tokens in / out</th>
                 <th>Latency</th>
                 <th>Cost</th>
               </tr>
@@ -61,9 +61,7 @@ export function CostPanel({ costs }: { costs: CostSummary }) {
                     {!c.ok && <span style={{ color: "var(--bear)" }}> ✗ rejected</span>}
                   </td>
                   <td className={`tier-${c.tier}`}>{c.model}</td>
-                  <td>
-                    {c.promptTokens.toLocaleString()} / {c.completionTokens.toLocaleString()}
-                  </td>
+                  <td>{c.promptTokens.toLocaleString()} / {c.completionTokens.toLocaleString()}</td>
                   <td>{(c.latencyMs / 1000).toFixed(1)}s</td>
                   <td>{usd(c.estimatedCostUsd)}</td>
                 </tr>

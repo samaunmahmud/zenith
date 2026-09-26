@@ -18,17 +18,7 @@ export function MemoPanel({ result }: { result: CommitteeResult }) {
 
   return (
     <div className="panel memo">
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h2 style={{ margin: 0 }}>Investment memo</h2>
-        <div className="row">
-          <button className="btn secondary" onClick={() => setOpen((o) => !o)}>
-            {open ? "Hide" : "Preview"}
-          </button>
-          <button className="btn" onClick={download}>
-            Download .md
-          </button>
-        </div>
-      </div>
+      <div className="label">Investment memo</div>
       <div className={`notice ${traced ? "ok" : "warn"}`}>
         {traced ? (
           <>✓ Every figure in the agents' output traces back to the computed input data.</>
@@ -38,6 +28,14 @@ export function MemoPanel({ result }: { result: CommitteeResult }) {
             {result.integrity.map((f) => `${f.agent} (${f.figures.join(", ")})`).join("; ")}. Treat them with caution.
           </>
         )}
+      </div>
+      <div className="row" style={{ marginTop: 16 }}>
+        <button className="btn" onClick={download}>
+          Download memo (.md)
+        </button>
+        <button className="btn ghost" onClick={() => setOpen((o) => !o)}>
+          {open ? "Hide preview" : "Preview"}
+        </button>
       </div>
       {open && <pre>{result.memoMarkdown}</pre>}
     </div>
