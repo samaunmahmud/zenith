@@ -40,6 +40,8 @@ interface State {
   decision: ChairDecision | null;
   result: CommitteeResult | null;
   error: string | null;
+  /** HTTP-style status of the failure: 503 = AI switched off (not configured / budget spent), 0 = connection lost. */
+  errorStatus: number | null;
   /** When each agent started and finished, as seen by this browser (the floor's live clocks). */
   timing: Timing;
 }
@@ -58,6 +60,7 @@ const initial: State = {
   decision: null,
   result: null,
   error: null,
+  errorStatus: null,
   timing: {},
 };
 
@@ -113,7 +116,7 @@ function reducer(state: State, action: Action): State {
       };
     }
     case "error":
-      return { ...state, status: "error", stage: null, error: e.message, timing: mark(state.timing, ["run"], "end", at) };
+      return { ...state, status: "error", stage: null, error: e.message, errorStatus: e.status, timing: mark(state.timing, ["run"], "end", at) };
   }
 }
 
@@ -273,9 +276,19 @@ export default function App() {
         )}
 
         {halted && (
-          <div className="notice error">
-            <b>The committee couldn't finish.</b> {state.error}
-            {state.snapshot && <div className="small muted">The market data below was computed successfully; the AI analysis did not run.</div>}
+          <div className={`notice ${state.errorStatus === 503 ? "warn" : "error"}`}>
+            {state.errorStatus === 503 ? (
+              <>
+                <b>The AI committee is switched off right now.</b> Its model budget is used up or not configured, so no Nemotron
+                calls were made.{state.snapshot && " The market data and indicators below were still computed live."}
+                <div className="small dim" style={{ marginTop: 4 }}>{state.error}</div>
+              </>
+            ) : (
+              <>
+                <b>The committee couldn't finish.</b> {state.error}
+                {state.snapshot && <div className="small muted">The market data below was computed successfully; the AI analysis did not run.</div>}
+              </>
+            )}
           </div>
         )}
         {state.result?.replayed && (

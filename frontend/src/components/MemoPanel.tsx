@@ -1,8 +1,11 @@
 import { useState } from "react";
 import type { CommitteeResult } from "../types";
+import { Markdown } from "./Markdown";
+
+type View = "closed" | "document" | "source";
 
 export function MemoPanel({ result }: { result: CommitteeResult }) {
-  const [open, setOpen] = useState(false);
+  const [view, setView] = useState<View>("closed");
 
   const download = () => {
     const blob = new Blob([result.memoMarkdown], { type: "text/markdown" });
@@ -15,10 +18,14 @@ export function MemoPanel({ result }: { result: CommitteeResult }) {
   };
 
   const traced = result.integrity.length === 0;
+  const toggle = (v: View) => setView((cur) => (cur === v ? "closed" : v));
 
   return (
     <div className="panel memo">
       <div className="label">Investment memo</div>
+      <p className="small muted" style={{ margin: "8px 0 0" }}>
+        Assembled in code from the agents' structured output, so its tables, figures and disclaimer can't be hallucinated.
+      </p>
       <div className={`notice ${traced ? "ok" : "warn"}`}>
         {traced ? (
           <>✓ Every figure in the agents' output traces back to the computed input data.</>
@@ -33,11 +40,19 @@ export function MemoPanel({ result }: { result: CommitteeResult }) {
         <button className="btn" onClick={download}>
           Download memo (.md)
         </button>
-        <button className="btn ghost" onClick={() => setOpen((o) => !o)}>
-          {open ? "Hide preview" : "Preview"}
+        <button className="btn ghost" aria-pressed={view === "document"} onClick={() => toggle("document")}>
+          {view === "document" ? "Hide memo" : "Read memo"}
+        </button>
+        <button className="linkish" aria-pressed={view === "source"} onClick={() => toggle("source")}>
+          {view === "source" ? "Hide source" : "View Markdown"}
         </button>
       </div>
-      {open && <pre>{result.memoMarkdown}</pre>}
+      {view === "document" && (
+        <div className="memo-doc">
+          <Markdown source={result.memoMarkdown} />
+        </div>
+      )}
+      {view === "source" && <pre>{result.memoMarkdown}</pre>}
     </div>
   );
 }

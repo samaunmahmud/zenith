@@ -462,3 +462,33 @@ details > summary { cursor: pointer; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   html { scroll-behavior: auto; }
 }
+
+/* ── Guardrails ──────────────────────────────────────── */
+.guardrails { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+@media (max-width: 760px) { .guardrails { grid-template-columns: 1fr; } }
+.guardrail { display: flex; gap: 16px; background: var(--surface); padding: 22px 24px; }
+.guardrail .check { flex: none; width: 28px; height: 28px; display: grid; place-items: center; background: var(--green); color: #000; font-weight: 900; }
+.guardrail h3 { margin: 2px 0 6px; font-size: 1.02rem; }
+.guardrail p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+
+/* ── Memo document ───────────────────────────────────── */
+.memo-doc { margin-top: 16px; max-height: 560px; overflow: auto; background: #fafaf7; color: #1a1a1a; padding: 28px 32px; border-top: 4px solid var(--green); }
+.markdown { font-size: 0.9rem; line-height: 1.6; }
+.markdown h1 { font-size: 1.35rem; margin: 0 0 6px; line-height: 1.25; }
+.markdown h2 { font-size: 1.05rem; margin: 22px 0 6px; padding-top: 14px; border-top: 1px solid #ddd; }
+.markdown h3 { font-size: 0.92rem; margin: 14px 0 4px; }
+.markdown p, .markdown ul { margin: 6px 0; }
+.markdown ul { padding-left: 20px; }
+.markdown blockquote { margin: 10px 0; padding: 8px 14px; border-left: 3px solid #b00020; background: #fbeeee; }
+.markdown hr { border: 0; border-top: 1px solid #ddd; margin: 16px 0; }
+.markdown table { border-collapse: collapse; width: 100%; font-size: 0.8rem; margin: 8px 0; }
+.markdown th, .markdown td { border: 1px solid #ddd; padding: 5px 8px; text-align: left; vertical-align: top; }
+.markdown th { background: #eeeee8; }
+.markdown em { color: #555; }
+
+/* ── Keyboard focus ──────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.form input:focus-visible { outline: none; } /* the form frame already shows focus */
+
+.linkish { font: inherit; font-size: 0.8rem; font-weight: 700; background: none; border: 0; padding: 4px 2px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.linkish:hover { color: var(--green); }

@@ -128,7 +128,7 @@ export function CommitteeFloor(p: FloorProps) {
   let caption: string;
   if (p.mode === "preview") caption = "Five agents, three Nemotron sizes, one decision";
   else if (p.mode === "running") caption = p.stage ? STAGE_TEXT[p.stage] : "Convening the committee";
-  else if (p.mode === "error") caption = "The session stopped early";
+  else if (p.mode === "error") caption = p.digest === undefined ? "Adjourned before any model was called" : "Adjourned before the committee finished";
   else if (p.costs) {
     caption = `${p.costs.calls.length} model calls · ${(p.costs.totalPromptTokens + p.costs.totalCompletionTokens).toLocaleString()} tokens · $${p.costs.totalUsd.toFixed(4)}`;
   } else caption = "Session complete";

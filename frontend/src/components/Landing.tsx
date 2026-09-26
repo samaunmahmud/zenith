@@ -8,6 +8,13 @@ const STEPS = [
   { n: "04", title: "Decide", text: "The chair on Nemotron Ultra weighs the arguments, makes a BUY / HOLD / SELL call and records the strongest dissent." },
 ];
 
+const GUARDRAILS = [
+  { title: "Code calculates", text: "Models never do arithmetic. They receive a fact sheet of figures computed in Java and are told to quote only those." },
+  { title: "Schema-constrained", text: "Every reply must match a JSON schema generated from the Java records, then pass validation. One retry with the errors fed back, never more." },
+  { title: "Numbers are traced", text: "Each figure an analyst cites is matched against its input (allowing for rounding). Untraceable evidence is rejected; untraceable prose is flagged." },
+  { title: "Hard spending cap", text: "The running spend is checked before every call and persisted across restarts. Once the cap is reached, model calls are refused, so a public demo can't run up a bill." },
+];
+
 export function Landing({ agents }: { agents: AgentModel[] }) {
   return (
     <>
@@ -31,6 +38,24 @@ export function Landing({ agents }: { agents: AgentModel[] }) {
               <div className="n">{s.n}</div>
               <h3>{s.title}</h3>
               <p>{s.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="section" id="guardrails">
+        <div className="section-head">
+          <h2>Guardrails, not vibes</h2>
+          <p>An AI committee is only useful if you can check it. These rules are enforced in code, on every run.</p>
+        </div>
+        <div className="guardrails">
+          {GUARDRAILS.map((g) => (
+            <div className="guardrail" key={g.title}>
+              <span className="check" aria-hidden="true">✓</span>
+              <div>
+                <h3>{g.title}</h3>
+                <p>{g.text}</p>
+              </div>
             </div>
           ))}
         </div>
