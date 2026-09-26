@@ -10,6 +10,10 @@ spring:
   threads:
     virtual:
       enabled: true # Java 21 virtual threads: cheap blocking I/O for parallel agent calls
+  web:
+    resources:
+      # The built React app: from the repo in dev (../frontend/dist) or bundled into the jar in Docker.
+      static-locations: classpath:/static/, file:../frontend/dist/, file:frontend/dist/
   mvc:
     async:
       request-timeout: 600000 # SSE committee runs can take a few minutes
@@ -27,9 +31,15 @@ zenith:
       ultra: ${NEMOTRON_ULTRA_MODEL:nvidia/Nemotron-3-Ultra-550b-a55b}
     # USD per 1M tokens: Token Factory list prices (Sept 2026)
     pricing:
-      nano: { input: ${PRICE_NANO_INPUT:0.06}, output: ${PRICE_NANO_OUTPUT:0.24} }
-      super: { input: ${PRICE_SUPER_INPUT:0.30}, output: ${PRICE_SUPER_OUTPUT:0.90} }
-      ultra: { input: ${PRICE_ULTRA_INPUT:1.00}, output: ${PRICE_ULTRA_OUTPUT:3.00} }
+      nano:
+        input: ${PRICE_NANO_INPUT:0.06}
+        output: ${PRICE_NANO_OUTPUT:0.24}
+      super:
+        input: ${PRICE_SUPER_INPUT:0.30}
+        output: ${PRICE_SUPER_OUTPUT:0.90}
+      ultra:
+        input: ${PRICE_ULTRA_INPUT:1.00}
+        output: ${PRICE_ULTRA_OUTPUT:3.00}
   market-data:
     fmp-api-key: ${FMP_API_KEY:}
     finnhub-api-key: ${FINNHUB_API_KEY:}
