@@ -3,8 +3,10 @@ package com.zenith.llm;
 import com.zenith.config.ZenithProperties;
 import com.zenith.json.Json;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpConnectTimeoutException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
@@ -20,7 +22,8 @@ import tools.jackson.databind.JsonNode;
 @Component
 public class HttpChatTransport implements ChatTransport {
 
-    private static final int MAX_RETRIES = 2; // for 429 rate limits and 5xx errors only
+    // For 429 rate limits, 5xx errors and failed connections: cases where no generation was billed.
+    private static final int MAX_RETRIES = 2;
 
     private final ZenithProperties props;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(15)).build();
@@ -54,12 +57,16 @@ public class HttpChatTransport implements ChatTransport {
             HttpResponse<String> res;
             try {
                 res = http.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            } catch (IOException e) {
+            } catch (ConnectException | HttpConnectTimeoutException e) {
+                // The request never reached the server, so retrying can't double-bill.
                 if (attempt < MAX_RETRIES) {
                     backoff(attempt);
                     continue;
                 }
                 throw new IllegalStateException("Could not reach Token Factory: " + e.getMessage(), e);
+            } catch (IOException e) {
+                // Sent, but no reply (timeout, connection dropped mid-response): it may still be generating and billing.
+                throw new MaybeBilledException("No reply from Token Factory (" + e.getClass().getSimpleName() + "): " + e.getMessage(), e);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("Interrupted while calling Token Factory", e);

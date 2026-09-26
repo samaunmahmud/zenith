@@ -86,4 +86,21 @@ class SpendGuardTest {
         call(cli); // the CLI uses up the budget
         assertThatThrownBy(() -> call(server)).isInstanceOf(SpendGuard.BudgetExceededException.class);
     }
+
+    @Test
+    void aCallThatGetsNoReplyIsChargedAtWorstCaseAndNotRetried() {
+        var props = TestProps.create(dir, false, 12, 1.0);
+        ChatTransport timesOut = req -> {
+            sent.incrementAndGet();
+            throw new ChatTransport.MaybeBilledException("timed out", null);
+        };
+        var c = new TokenFactoryClient(timesOut, props, Validation.buildDefaultValidatorFactory().getValidator(), new SpendGuard(props));
+        CostTracker tracker = new CostTracker();
+        assertThatThrownBy(() -> c.chat("chair", ModelTier.ULTRA, List.of(new ChatTransport.Message("user", "x".repeat(3000))),
+                0.2, 8192, null, tracker, 1)).isInstanceOf(LlmException.class);
+        assertThat(sent.get()).isEqualTo(1);
+        double worst = (1000 * 1.00 + 8192 * 3.00) / 1_000_000; // ~1000 prompt tokens + all 8192 output tokens on Ultra
+        assertThat(c.spendGuard().spentUsd()).isCloseTo(worst, within(1e-9));
+        assertThat(tracker.calls()).singleElement().satisfies(call -> assertThat(call.ok()).isFalse());
+    }
 }

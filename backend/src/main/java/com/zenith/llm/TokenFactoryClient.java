@@ -108,6 +108,18 @@ public class TokenFactoryClient {
                 return chat(agent, tier, messages, temperature, maxTokens, schemaType, tracker, attempt);
             }
             throw new LlmException(agent + " call failed: " + e.getMessage(), agent, e);
+        } catch (ChatTransport.MaybeBilledException e) {
+            // No usage came back, but the call may have been billed: charge the worst case against the cap
+            // (the whole prompt plus max_tokens of output). Over-counting is the safe error for a hard cap.
+            int promptEstimate = messages.stream().mapToInt(m -> m.content().length()).sum() / 3;
+            double worst = CostTracker.estimateCostUsd(promptEstimate, maxTokens, price.input(), price.output());
+            spendGuard.record(worst);
+            if (tracker != null) {
+                tracker.record(new CallCost(agent, model, tier, promptEstimate, maxTokens,
+                        System.currentTimeMillis() - started, worst, attempt, false));
+            }
+            log.warn("{} got no reply; charged a worst-case ${} against the cap", agent, String.format(java.util.Locale.ROOT, "%.4f", worst));
+            throw new LlmException(agent + " call failed: " + e.getMessage(), agent, e);
         } catch (RuntimeException e) {
             throw new LlmException(agent + " call failed: " + e.getMessage(), agent, e);
         }

@@ -34,5 +34,15 @@ public interface ChatTransport {
         }
     }
 
+    /**
+     * The request may have reached the endpoint (e.g. it timed out waiting for the reply), so it may have been
+     * processed and billed even though no usage came back. Never retried; the caller records a conservative cost.
+     */
+    class MaybeBilledException extends RuntimeException {
+        public MaybeBilledException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
     Response send(Request request);
 }
