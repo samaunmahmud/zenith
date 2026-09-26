@@ -43,6 +43,10 @@ public class TokenFactoryClient {
         this.validator = validator;
     }
 
+    public boolean configured() {
+        return props.tokenFactory().configured();
+    }
+
     public String modelFor(ModelTier tier) {
         return props.tokenFactory().models().get(tier);
     }

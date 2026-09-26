@@ -83,6 +83,12 @@ public class CommitteeService {
         Snapshot snapshot = SnapshotBuilder.build(md);
         emit.accept(new CommitteeEvent.SnapshotReady(snapshot, md.sources(), md.news(), agents));
 
+        // Fail fast with one clear message instead of letting every agent fail separately.
+        // The market data above has already been sent, so the UI still shows it.
+        if (!llm.configured()) {
+            throw new NotConfiguredException("AI analysis unavailable: Token Factory is not configured (set TOKEN_FACTORY_API_KEY in .env)");
+        }
+
         // News digest (Nano). Optional: a failure just means the analysts see "no news".
         emit.accept(new CommitteeEvent.Stage("news", "News desk is summarising headlines"));
         NewsDigest digest = null;
@@ -165,6 +171,13 @@ public class CommitteeService {
         // Keep the last complete run per ticker: the demo safety net if Token Factory is unreachable on stage.
         if (decision != null) cache.write(ticker, "last-committee", result);
         return result;
+    }
+
+    /** A required service (Token Factory, market data) has no API key. Maps to HTTP 503. */
+    public static class NotConfiguredException extends RuntimeException {
+        public NotConfiguredException(String message) {
+            super(message);
+        }
     }
 
     public Optional<CommitteeResult> lastSavedRun(String ticker) {

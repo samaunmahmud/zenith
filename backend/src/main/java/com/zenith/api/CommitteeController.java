@@ -49,6 +49,7 @@ public class CommitteeController {
     }
 
     static int statusFor(Throwable e) {
+        if (e instanceof CommitteeService.NotConfiguredException) return 503;
         if (e instanceof DataException de) return de.status();
         if (e instanceof LlmException le && le.getCause() instanceof IllegalStateException ise
                 && ise.getMessage() != null && ise.getMessage().contains("not configured")) return 503;

@@ -25,6 +25,7 @@ class CommitteeControllerTest {
         assertThat(CommitteeController.statusFor(new LlmException("bad output", "chair", List.of()))).isEqualTo(502);
         assertThat(CommitteeController.statusFor(new LlmException("x", "news",
                 new IllegalStateException("Token Factory is not configured: set TOKEN_FACTORY_API_KEY")))).isEqualTo(503);
+        assertThat(CommitteeController.statusFor(new com.zenith.committee.CommitteeService.NotConfiguredException("no key"))).isEqualTo(503);
         assertThat(CommitteeController.statusFor(new RuntimeException("boom"))).isEqualTo(500);
     }
 }
