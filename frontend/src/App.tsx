@@ -163,7 +163,10 @@ export default function App() {
   const agentFor = (id: string) => state.agents.find((a) => a.id === id) ?? config?.agents.find((a) => a.id === id);
   const stages = STAGES.filter((s) => s.id !== "rebuttals" || withRebuttals || state.rebuttals.length > 0);
   const showRoom = state.status !== "idle" && (state.snapshot || running);
-  const lastSeen = state.stagesSeen[state.stagesSeen.length - 1];
+  // A stage is complete once a later stage has started (or, for market data, once the snapshot arrived).
+  const completed = new Set<Stage>(state.stagesSeen.slice(0, -1));
+  if (state.snapshot) completed.add("data");
+  const failedStage = halted ? stages.find((s) => !completed.has(s.id))?.id : undefined;
 
   return (
     <>
@@ -228,10 +231,9 @@ export default function App() {
           <div className="progress" aria-live="polite">
             {stages.map((s) => {
               const active = state.stage === s.id;
-              const done = !active && (state.status === "done" || (state.stagesSeen.includes(s.id) && s.id !== lastSeen) || (state.stagesSeen.includes(s.id) && !halted));
-              const failedHere = halted && s.id === lastSeen;
+              const cls = failedStage === s.id ? "halted" : active ? "active" : state.status === "done" || completed.has(s.id) ? "done" : "";
               return (
-                <div key={s.id} className={`pstep ${failedHere ? "halted" : active ? "active" : done ? "done" : ""}`}>
+                <div key={s.id} className={`pstep ${cls}`}>
                   {s.label}
                 </div>
               );
