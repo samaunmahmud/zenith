@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import type { CommitteeState } from "../../state/committee";
-import type { Stage } from "../../types";
+import type { ChairDecision, Stage } from "../../types";
 import { pct, toneOf } from "../../lib/format";
 import { VerdictChip } from "../ui/Badges";
 import { DownloadIcon, LinkIcon } from "../ui/Icons";
@@ -15,7 +15,7 @@ const STAGE_LABEL: Record<Stage, string> = {
   memo: "Memo",
 };
 
-function SessionStatus({ state }: { state: CommitteeState }) {
+function SessionStatus({ state, decision }: { state: CommitteeState; decision: ChairDecision | null }) {
   if (state.status === "running") {
     return (
       <span className="session-chip" aria-live="polite">
@@ -23,14 +23,16 @@ function SessionStatus({ state }: { state: CommitteeState }) {
       </span>
     );
   }
-  if (state.decision) return <VerdictChip decision={state.decision} />;
+  if (decision) return <VerdictChip decision={decision} />;
+  if (state.decision) return <span className="session-chip">In session</span>; // the ruling hasn't been read out yet
   if (state.status === "error") return <span className="session-chip">Adjourned</span>;
   if (state.result?.chairError) return <span className="session-chip">No decision</span>;
   return null;
 }
 
 /** Sticky header for the security under review: identity, price, the committee's call, actions, and the tabs. */
-export function SecurityHeader({ state, tabs }: { state: CommitteeState; tabs: ReactNode }) {
+/** `decision` is the ruling as far as the visitor has seen it, so the header never gives it away before the table does. */
+export function SecurityHeader({ state, tabs, decision = state.decision }: { state: CommitteeState; tabs: ReactNode; decision?: ChairDecision | null }) {
   const [copied, setCopied] = useState(false);
   const s = state.snapshot;
   const r1y = s?.technicals.return1y ?? null;
@@ -62,7 +64,7 @@ export function SecurityHeader({ state, tabs }: { state: CommitteeState; tabs: R
             </div>
           )}
           <div className="sec-actions">
-            <SessionStatus state={state} />
+            <SessionStatus state={state} decision={decision} />
             <button className="btn btn-sm" onClick={copyLink} aria-live="polite">
               <LinkIcon /> {copied ? "Link copied" : "Share"}
             </button>

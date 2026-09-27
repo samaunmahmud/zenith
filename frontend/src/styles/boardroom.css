@@ -1,0 +1,214 @@
+/* The boardroom: the table, the minutes, the proof. */
+
+.id-clerk { --id: var(--id-clerk); }
+
+/* ── Layout: table on the left (stays in view), minutes on the right ── */
+.room { display: grid; gap: 16px; align-items: start; }
+@media (min-width: 1100px) {
+  .room { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+  .room-stage { position: sticky; top: calc(var(--topbar-h) + 88px); }
+}
+.room-stage { display: grid; gap: 12px; }
+.room-vote { padding: 14px 18px 12px; animation: rise 0.5s ease both; }
+.room-vote .consensus { margin-top: 0; padding-top: 0; border-top: 0; }
+.room-minutes .card-body { max-height: min(72vh, 820px); overflow-y: auto; scroll-behavior: smooth; }
+.room-minutes .sub { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ── The table ── */
+.board {
+  position: relative;
+  aspect-ratio: 16 / 12;
+  min-height: 440px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse at 50% 50%, color-mix(in srgb, var(--accent) 7%, transparent) 0, transparent 60%),
+    var(--panel);
+  overflow: hidden;
+}
+.board-wires { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.board-wires line { stroke: var(--line-2); stroke-width: 1; stroke-dasharray: 3 5; transition: stroke 0.4s, stroke-width 0.4s, opacity 0.4s; }
+.board-wires .wire-idle, .board-wires .wire-waiting { opacity: 0.6; }
+.board-wires .wire-thinking { stroke: var(--id, var(--accent)); opacity: 0.7; animation: dash 1s linear infinite; }
+.board-wires .wire-speaking { stroke: var(--id, var(--accent)); stroke-width: 2.5; stroke-dasharray: none; }
+.board-wires .wire-spoke { stroke: color-mix(in srgb, var(--id, var(--accent)) 45%, transparent); stroke-width: 1.5; stroke-dasharray: none; }
+@keyframes dash { to { stroke-dashoffset: -16; } }
+
+.board-table {
+  position: absolute;
+  left: 27%; right: 27%; top: 23%; bottom: 23%;
+  display: grid; place-items: center;
+  padding: 0 7%;
+  border-radius: 50%;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 35%, var(--panel), var(--panel-3));
+  border: 1px solid var(--line-2);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.board-caption { display: grid; gap: 6px; max-width: 100%; animation: fade 0.4s ease both; }
+.board-caption p {
+  font-family: var(--serif); font-size: 15px; line-height: 1.4; color: var(--text-2);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* The chair's ruling, stamped onto the table */
+.stamp { display: grid; justify-items: center; gap: 6px; animation: stamp 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.stamp-call {
+  font-family: var(--serif); font-size: clamp(34px, 4.4vw, 58px); font-weight: 700; letter-spacing: 0.08em; line-height: 1;
+  padding: 6px 18px 4px; border: 4px double currentColor; border-radius: 10px; transform: rotate(-7deg);
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+.stamp-meta { font-size: 12px; color: var(--text-2); }
+@keyframes stamp {
+  0% { opacity: 0; transform: scale(2.6); }
+  60% { opacity: 1; transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+/* Seats */
+.bseat {
+  position: absolute; transform: translate(-50%, -50%);
+  width: clamp(150px, 27%, 200px);
+  display: flex; gap: 10px; align-items: center;
+  padding: 9px 11px;
+  background: color-mix(in srgb, var(--id, var(--accent)) 5%, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  transition: opacity 0.3s, border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+}
+.bseat-avatar {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center;
+  font: 700 13px var(--mono);
+  color: var(--id, var(--accent));
+  background: color-mix(in srgb, var(--id, var(--accent)) 14%, var(--panel));
+  border: 1.5px solid color-mix(in srgb, var(--id, var(--accent)) 50%, transparent);
+}
+.btier-ultra .bseat-avatar { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btier-code .bseat-avatar { font-size: 11px; }
+.bseat-body { display: grid; min-width: 0; line-height: 1.3; }
+.bseat-body b { font-size: 13px; font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bseat-model { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bseat-status { display: inline-flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.bseat-status::first-letter { text-transform: uppercase; }
+
+.bseat-waiting { opacity: 0.55; }
+.bseat-thinking { border-color: color-mix(in srgb, var(--id, var(--accent)) 55%, transparent); }
+.bseat-thinking .bseat-avatar { animation: ring 1.2s ease-out infinite; }
+.bseat-speaking {
+  border-color: var(--id, var(--accent));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--id, var(--accent)) 18%, transparent), var(--shadow);
+  transform: translate(-50%, -50%) scale(1.04);
+  z-index: 2;
+}
+.bseat-failed { border-color: var(--neg); }
+.bseat-failed .bseat-avatar { color: var(--neg); border-color: var(--neg); }
+@keyframes ring {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--id, var(--accent)) 45%, transparent); }
+  100% { box-shadow: 0 0 0 9px transparent; }
+}
+
+/* Typing indicator */
+.typing { display: inline-flex; gap: 3px; align-items: center; font-style: normal; }
+.typing i { width: 5px; height: 5px; border-radius: 50%; background: var(--id, var(--accent)); animation: bounce 1s ease-in-out infinite; }
+.typing i:nth-child(2) { animation-delay: 0.15s; }
+.typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bounce { 0%, 80%, 100% { opacity: 0.3; transform: none; } 40% { opacity: 1; transform: translateY(-3px); } }
+
+/* Phones: the oval doesn't fit, so the table becomes a banner above a grid of seats */
+@media (max-width: 720px) {
+  .board { aspect-ratio: auto; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; }
+  .board-wires { display: none; }
+  .board-table { position: static; grid-column: 1 / -1; order: -1; border-radius: 12px; padding: 18px 14px; min-height: 120px; }
+  .bseat { position: static; transform: none; width: auto; padding: 8px; gap: 8px; }
+  .bseat-speaking { transform: none; }
+  .bseat-avatar { width: 28px; height: 28px; font-size: 11px; }
+}
+
+/* ── Minutes ── */
+.minutes-feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.minute { animation: rise 0.45s ease both; }
+.minute-who { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; font-size: 13px; }
+.minute-who .id-mark { margin-right: 0; }
+.minute-who b { font-weight: 650; }
+.minute-time { margin-left: auto; font: 11.5px var(--mono); color: var(--text-3); }
+.minute-body { padding-left: 14px; border-left: 2px solid color-mix(in srgb, var(--id, var(--line-2)) 55%, transparent); display: grid; gap: 8px; }
+.minute .said { font-family: var(--serif); font-size: 16.5px; line-height: 1.5; font-variation-settings: "opsz" 18; color: var(--text); }
+.minute .said.ruling { font-size: 18px; }
+.minute .aside { font-size: 12.5px; color: var(--text-3); }
+.minute .points { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--text-2); }
+.minute .points li { margin: 3px 0; }
+.minute .points li::marker { color: var(--text-4); }
+.minute-ruling .minute-body { border-left-width: 3px; }
+.minute-typing .minute-body { padding-top: 4px; padding-bottom: 4px; }
+.stance-line { display: flex; align-items: center; gap: 8px; }
+.stance-line .badge { text-transform: capitalize; }
+.changed { margin-left: 8px; padding: 1px 6px; border-radius: 4px; font-size: 11px; font-weight: 600; color: var(--warn); background: var(--warn-soft); }
+.badge.code { color: var(--text-2); background: var(--panel-3); border: 1px solid var(--line); font-family: var(--mono); }
+
+.evidence-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.echip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel-2); font-size: 12px; color: var(--text-3); cursor: help; }
+.echip b { color: var(--text); font-weight: 650; }
+.echip i { font-style: normal; color: var(--pos); font-weight: 700; }
+
+.concerns-d summary { cursor: pointer; font-size: 12.5px; color: var(--text-3); }
+.concerns-d[open] summary { margin-bottom: 4px; }
+.dissent-note { padding: 10px 12px; border-radius: 8px; background: var(--neg-soft); }
+.dissent-note .label { color: var(--neg); }
+.dissent-note p { margin-top: 3px; font-size: 13.5px; }
+
+/* Figures in the minutes: traced to the fact sheet, or flagged by the guard */
+.fig { color: inherit; border-radius: 3px; padding: 0 2px; }
+.fig-traced { background: var(--pos-soft); box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--pos) 55%, transparent); }
+.fig-flagged { background: var(--neg-soft); color: var(--neg); text-decoration: underline wavy var(--neg); text-underline-offset: 3px; font-weight: 600; }
+
+/* ── Proof ── */
+.proof { margin-top: 40px; scroll-margin-top: calc(var(--topbar-h) + 100px); }
+.proof-head { margin-bottom: 16px; }
+.proof-head h2 { font-family: var(--serif); font-size: 28px; font-weight: 600; letter-spacing: -0.015em; }
+.proof-head p { color: var(--text-3); margin-top: 4px; }
+.proof-grid { display: grid; gap: 16px; }
+@media (min-width: 900px) { .proof-grid { grid-template-columns: 1fr 1fr; } }
+.proof-card { display: grid; gap: 14px; align-content: start; padding: 18px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.proof-card > header { display: flex; gap: 12px; align-items: flex-start; }
+.proof-card h3 { font-size: 15px; font-weight: 650; }
+.proof-card header p { font-size: 13px; color: var(--text-3); margin-top: 2px; }
+.proof-num { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 700 12px var(--mono); color: var(--accent-ink); background: var(--accent); }
+.proof-cost .card { border: 0; box-shadow: none; background: transparent; }
+.proof-cost .card-head { display: none; }
+
+.seg { display: flex; gap: 4px; flex-wrap: wrap; }
+.seg button { display: inline-flex; align-items: center; gap: 2px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: none; font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+.seg button[aria-selected="true"] { background: var(--panel-3); border-color: var(--line-2); color: var(--text); font-weight: 600; }
+.seg .dim { margin-left: 4px; }
+.factsheet { margin: 0; max-height: 280px; overflow-y: auto; display: grid; font-size: 12.5px; }
+.factsheet > div { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-top: 1px solid var(--line); }
+.factsheet dt { color: var(--text-3); }
+.factsheet dd { margin: 0; font-weight: 600; text-align: right; }
+
+.guard-status { display: grid; gap: 2px; padding: 12px 14px; border-radius: 8px; }
+.guard-status b { font-size: 22px; font-weight: 700; }
+.guard-status span { font-size: 12.5px; color: var(--text-2); }
+.guard-status.clean { background: var(--pos-soft); }
+.guard-status.clean b { color: var(--pos); }
+.guard-status.has-flags { background: var(--neg-soft); }
+.guard-status.has-flags b { color: var(--neg); }
+.guard-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; color: var(--text-2); }
+.guard-list b { color: var(--text); }
+.guard-flags { display: grid; gap: 4px; font-size: 12.5px; }
+.guard-flags mark { margin-left: 4px; }
+
+.record-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.record-tiles > div { display: grid; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.record-tiles b { font-size: 22px; font-weight: 700; }
+.record-tiles span { font-size: 11.5px; color: var(--text-3); }
+.record-mine { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 12.5px; }
+.record-mine li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ── Dossier ── */
+.dossier { margin-top: 40px; }
+.dossier > .tabs { border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+
+/* ── Landing hero figure ── */
+.hero-board .board { min-height: 420px; }

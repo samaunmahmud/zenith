@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import type { AppConfig } from "../../types";
-import { CommitteeFloor } from "../committee/CommitteeFloor";
+import { BoardTable } from "../boardroom/BoardTable";
+import { SEATS, type Seat, type SeatState } from "../../lib/minutes";
 import { Roster } from "./Roster";
 
 /** A committee member's name with its identity colour mark, as used across the results. */
@@ -30,6 +31,8 @@ const RULES = [
   { title: "The budget is hard.", text: "Spend is checked before each call and kept across restarts. When the cap is reached, the committee stops meeting and saved decisions are served instead." },
 ];
 
+const IDLE = Object.fromEntries(SEATS.map((s) => [s, "idle"])) as Record<Seat, SeatState>;
+
 const today = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date());
 
 interface Props {
@@ -39,7 +42,7 @@ interface Props {
 
 export function Landing({ config, onConvene }: Props) {
   const [ticker, setTicker] = useState("");
-  const [rebuttals, setRebuttals] = useState(false);
+  const [rebuttals, setRebuttals] = useState(true);
   const agents = config?.agents ?? [];
 
   const submit = (e: FormEvent) => {
@@ -57,10 +60,11 @@ export function Landing({ config, onConvene }: Props) {
           </div>
           <div className="hero-grid">
             <div>
-              <h1>Put a stock in front of a&nbsp;committee.</h1>
+              <h1>An AI investment committee you can hold to&nbsp;account.</h1>
               <p className="lede">
-                Three analysts read the same figures and argue a position. A chair on NVIDIA Nemotron Ultra hears them out,
-                makes the call and writes down who disagreed. You get the minutes, a memo and the bill.
+                Watch three NVIDIA Nemotron analysts argue a stock across the table, rebut each other, and a Nemotron Ultra chair
+                stamp BUY, HOLD or SELL. Every number is computed in code, every figure they quote is checked, and every call is
+                scored against the S&amp;P&nbsp;500 afterwards.
               </p>
               <form className="convene" onSubmit={submit} role="search">
                 <label htmlFor="ticker" className="convene-label">Ticker</label>
@@ -97,10 +101,12 @@ export function Landing({ config, onConvene }: Props) {
             </div>
             {agents.length > 0 && (
               <figure className="hero-figure" aria-hidden="true">
-                <CommitteeFloor agents={agents} mode="preview" stage={null} timing={{}} now={0} digest={undefined}
-                  reports={{}} errors={{}} decision={null} chairError={null} costs={null} />
+                <div className="hero-board">
+                  <BoardTable agents={agents} states={IDLE} said={{}} decision={null} preview
+                    caption={{ title: "The boardroom", line: "Five Nemotron models and one Java clerk, who computes every figure first." }} />
+                </div>
                 <figcaption>
-                  <b>Seating plan.</b> The news desk briefs three analysts in parallel; only the chair sees everyone's work.
+                  <b>Seating plan.</b> The Clerk computes the numbers in code, the analysts argue in parallel, and only the Chair hears everyone.
                 </figcaption>
               </figure>
             )}

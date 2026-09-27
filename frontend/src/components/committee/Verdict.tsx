@@ -46,7 +46,7 @@ const edge = (x: number) => (x > 78 ? "edge-right" : x < 22 ? "edge-left" : "");
  * Where each analyst landed (stance × confidence) and where the chair came down.
  * A picture of the vote: agreement clusters, dissent stands apart.
  */
-function Consensus({ reports, decision }: { reports: AnalystReport[]; decision: ChairDecision }) {
+export function Consensus({ reports, decision }: { reports: AnalystReport[]; decision: ChairDecision }) {
   const counts = { bullish: 0, neutral: 0, bearish: 0 };
   reports.forEach((r) => counts[r.stance]++);
   const xs = reports.map((r) => position(SIGN[r.stance], r.confidence));

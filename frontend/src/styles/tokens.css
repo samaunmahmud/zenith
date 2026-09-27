@@ -41,6 +41,7 @@
   --id-risk: #eb6834;
   --id-news: #6b7a8f;
   --id-chair: var(--accent);
+  --id-clerk: #57606b;
 
   /* Nemotron tiers */
   --nano: #52691d;
@@ -96,6 +97,7 @@
     --id-technicals: #199e70;
     --id-risk: #d95926;
     --id-news: #8494a8;
+    --id-clerk: #9aa3ad;
     --chart-grid: #232729;
     --chart-sma50: #d9d8d2;
     --chart-sma200: #6c6d68;
@@ -129,6 +131,7 @@
   --id-technicals: #199e70;
   --id-risk: #d95926;
   --id-news: #8494a8;
+  --id-clerk: #9aa3ad;
   --chart-grid: #232729;
   --chart-sma50: #d9d8d2;
   --chart-sma200: #6c6d68;

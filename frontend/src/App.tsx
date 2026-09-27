@@ -9,7 +9,7 @@ import type { AppConfig } from "./types";
 import { Landing } from "./components/landing/Landing";
 import { Footer } from "./components/layout/Footer";
 import { TopBar } from "./components/layout/TopBar";
-import { Workspace } from "./components/workspace/Workspace";
+import { Boardroom } from "./components/boardroom/Boardroom";
 
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -58,7 +58,7 @@ export default function App() {
       ) : idle ? (
         <Landing config={config} onConvene={openTicker} />
       ) : (
-        <Workspace state={state} agents={agents} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} />
+        <Boardroom state={state} agents={agents} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} onOpenRecord={() => openPage("record")} />
       )}
       <Footer />
     </>
