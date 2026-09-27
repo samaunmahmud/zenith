@@ -1,5 +1,7 @@
 package com.zenith.api;
 
+import com.zenith.agents.SecretaryAgent;
+import com.zenith.ask.AskService;
 import com.zenith.committee.CommitteeEvent;
 import com.zenith.committee.CommitteeGate;
 import com.zenith.committee.CommitteeService;
@@ -10,6 +12,7 @@ import com.zenith.llm.LlmException;
 import com.zenith.thesis.ThesisService;
 import com.zenith.track.TrackRecordService;
 import java.io.IOException;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -43,20 +46,24 @@ public class CommitteeController {
     private final com.zenith.llm.SpendGuard spendGuard;
     private final TrackRecordService trackRecord;
     private final ThesisService thesis;
+    private final AskService ask;
 
     public CommitteeController(CommitteeService committee, CommitteeGate gate, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard,
-            TrackRecordService trackRecord, ThesisService thesis) {
+            TrackRecordService trackRecord, ThesisService thesis, AskService ask) {
         this.committee = committee;
         this.gate = gate;
         this.props = props;
         this.spendGuard = spendGuard;
         this.trackRecord = trackRecord;
         this.thesis = thesis;
+        this.ask = ask;
     }
 
     public record CommitteeRequest(String ticker, Boolean rebuttals) {}
 
     public record ThesisRequest(String ticker, String thesis) {}
+
+    public record AskRequest(String ticker, String question, List<SecretaryAgent.Turn> history) {}
 
     static Optional<String> parseTicker(String raw) {
         String t = raw == null ? "" : raw.trim().toUpperCase();
@@ -64,9 +71,9 @@ public class CommitteeController {
     }
 
     static int statusFor(Throwable e) {
-        if (e instanceof CommitteeGate.BusyException || e instanceof ThesisService.BusyException) return 429;
-        if (e instanceof ThesisService.InvalidThesisException) return 400;
-        if (e instanceof ThesisService.NoSessionException) return 409;
+        if (e instanceof CommitteeGate.BusyException || e instanceof ThesisService.BusyException || e instanceof AskService.BusyException) return 429;
+        if (e instanceof ThesisService.InvalidThesisException || e instanceof AskService.InvalidQuestionException) return 400;
+        if (e instanceof ThesisService.NoSessionException || e instanceof AskService.NoSessionException) return 409;
         if (e instanceof CommitteeService.NotConfiguredException) return 503;
         if (e instanceof com.zenith.llm.SpendGuard.BudgetExceededException) return 503;
         if (e instanceof LlmException && e.getCause() instanceof com.zenith.llm.SpendGuard.BudgetExceededException) return 503;
@@ -123,6 +130,20 @@ public class CommitteeController {
         } catch (RuntimeException e) {
             int status = statusFor(e);
             if (status >= 500) log.error("Thesis review failed for {}", ticker.get(), e);
+            return json(status, Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    /** Ask the committee: a follow-up question about the latest session on a stock, answered from that session only. */
+    @PostMapping("/ask")
+    public ResponseEntity<String> ask(@RequestBody(required = false) AskRequest req) {
+        Optional<String> ticker = parseTicker(req == null ? null : req.ticker());
+        if (ticker.isEmpty()) return json(400, Map.of("error", BAD_TICKER));
+        try {
+            return json(200, ask.ask(ticker.get(), req.question(), req.history()));
+        } catch (RuntimeException e) {
+            int status = statusFor(e);
+            if (status >= 500) log.error("Question failed for {}", ticker.get(), e);
             return json(status, Map.of("error", String.valueOf(e.getMessage())));
         }
     }
