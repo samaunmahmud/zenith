@@ -17,6 +17,15 @@ Built for the **Nebius x NVIDIA Global AI Hackathon** (Best Apps and Agents trac
 
 **Live demo:** _coming soon_ · **Demo video:** _coming soon_
 
+![The boardroom: five Nemotron models and a Java clerk around the table, the chair's BUY stamped in the centre, and the minutes on the right](docs/screenshots/boardroom.png)
+
+<details>
+<summary>Head to head: two committees in parallel (light theme)</summary>
+
+![Two committees side by side: JPM stamped HOLD, TSLA stamped SELL](docs/screenshots/head-to-head.png)
+
+</details>
+
 ---
 
 ## Why
