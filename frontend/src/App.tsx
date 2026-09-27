@@ -9,7 +9,7 @@ import type { AppConfig } from "./types";
 import { Landing } from "./components/landing/Landing";
 import { Footer } from "./components/layout/Footer";
 import { TopBar } from "./components/layout/TopBar";
-import { Boardroom } from "./components/boardroom/Boardroom";
+import { TerminalSession } from "./components/terminal/TerminalSession";
 
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -28,7 +28,6 @@ export default function App() {
   }, [state.status, state.ticker, page]);
 
   const idle = state.status === "idle";
-  const agents = state.agents.length ? state.agents : config?.agents ?? [];
   // Leaving a standalone page for a committee session: the session's own URL (?ticker=) replaces the page's.
   const openTicker = (ticker: string, rebuttals: boolean) => {
     setPage(null);
@@ -58,7 +57,7 @@ export default function App() {
       ) : idle ? (
         <Landing config={config} onConvene={openTicker} />
       ) : (
-        <Boardroom state={state} agents={agents} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} onOpenRecord={() => openPage("record")} />
+        <TerminalSession state={state} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} />
       )}
       <Footer />
     </>
