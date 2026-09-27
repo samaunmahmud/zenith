@@ -121,7 +121,7 @@ export function TrackRecordPage({ onOpen }: Props) {
                             <button type="button" className="ticker-link" onClick={() => onOpen(call.ticker)}>{call.ticker}</button>
                             <div className="xs dim">{call.company}</div>
                           </td>
-                          <td><span className={`badge ${call.call}`}>{call.call}</span> <span className="xs dim num">{Math.round(call.confidence * 100)}%</span></td>
+                          <td><span className={`stamp-mini call-${call.call}`}>{call.call}</span> <span className="xs dim num">{Math.round(call.confidence * 100)}%</span></td>
                           <td className="num">{money(call.entryClose, "USD")}<div className="xs dim">close {shortDate(call.asOf)}</div></td>
                           {[7, 30, 90].map((d) => <OutcomeCell key={d} o={outcomes.find((o) => o.days === d)} />)}
                         </tr>

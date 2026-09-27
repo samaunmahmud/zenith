@@ -212,3 +212,24 @@
 
 /* ── Landing hero figure ── */
 .hero-board .board { min-height: 420px; }
+
+/* ── Compact table: one per side of a head-to-head (phones keep the stacked seat grid above) ── */
+@media (min-width: 721px) {
+  .board-compact .board { min-height: 360px; aspect-ratio: 16 / 13; }
+  .board-compact .bseat { width: clamp(112px, 30%, 170px); padding: 7px 8px; gap: 7px; }
+  .board-compact .bseat-avatar { width: 26px; height: 26px; font-size: 11px; }
+  .board-compact .bseat-body b { font-size: 12px; }
+  .board-compact .bseat-model { font-size: 10.5px; }
+  .board-compact .bseat-status { font-size: 11px; margin-top: 1px; }
+  .board-compact .board-caption p { font-size: 13px; -webkit-line-clamp: 2; }
+  .board-compact .stamp-call { font-size: clamp(28px, 3vw, 42px); }
+}
+.side-ruling { animation: rise 0.45s ease both; }
+
+/* ── A ruling stamp small enough for a table cell ── */
+.stamp-mini {
+  display: inline-block; padding: 1px 7px 0; transform: rotate(-4deg);
+  font: 700 14px/1.3 var(--serif); letter-spacing: 0.08em;
+  border: 3px double currentColor; border-radius: 5px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}

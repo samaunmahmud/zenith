@@ -1,22 +1,15 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import { useMeeting, type Meeting } from "../../hooks/useMeeting";
 import { useSession } from "../../hooks/useSession";
 import { ANALYSTS, ANALYST_TITLE, secs, usd } from "../../lib/format";
 import type { CommitteeState } from "../../state/committee";
-import type { Stage } from "../../types";
+import type { AgentModel } from "../../types";
+import { BoardTable } from "../boardroom/BoardTable";
 import { Term } from "../ui/Term";
 import { metricRows, preferred } from "./matrix";
 
-const STAGES: Stage[] = ["data", "news", "analysts", "rebuttals", "chair", "memo"];
-const STAGE_LABEL: Record<Stage, string> = {
-  data: "Fetching market data",
-  news: "News desk is reading",
-  analysts: "Analysts are working",
-  rebuttals: "Rebuttals",
-  chair: "The chair is deciding",
-  memo: "Writing the memo",
-};
-
 interface Props {
+  agents: AgentModel[];
   onFile: string[];
   onOpen: (ticker: string) => void;
 }
@@ -28,31 +21,9 @@ const duration = (s: CommitteeState) => {
   return r?.start !== undefined && r.end !== undefined ? r.end - r.start : null;
 };
 
-/** One side's progress while its committee sits: stage, and each member's state as a coloured mark. */
-function Progress({ s }: { s: CommitteeState }) {
-  const at = s.stage ? STAGES.indexOf(s.stage) : 0;
-  const members = [
-    { id: "news", label: "News desk", done: s.digest !== undefined },
-    ...ANALYSTS.map((a) => ({ id: a, label: ANALYST_TITLE[a], done: !!s.reports[a] || !!s.errors[a] })),
-    { id: "chair", label: "Chair", done: !!s.decision },
-  ];
-  return (
-    <div className="side-progress">
-      <p className="small muted" aria-live="polite">
-        {s.status === "running" ? (s.stage ? STAGE_LABEL[s.stage] : "Convening") : s.status === "error" ? "Adjourned" : "Decided"}
-      </p>
-      <div className="stage-bar" aria-hidden="true"><i style={{ width: `${s.status === "running" ? ((at + 1) / STAGES.length) * 100 : 100}%` }} /></div>
-      <ul className="member-row">
-        {members.map((m) => (
-          <li key={m.id} className={`id-${m.id} ${m.done ? "is-done" : ""}`}><i className="id-mark" aria-hidden="true" />{m.label}{m.done ? "" : "…"}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function Side({ s, onOpen }: { s: CommitteeState; onOpen: (t: string) => void }) {
-  const d = s.decision;
+/** One side: its own small boardroom, then the ruling in words once the chair's stamp has landed. */
+function Side({ s, m, agents, onOpen }: { s: CommitteeState; m: Meeting; agents: AgentModel[]; onOpen: (t: string) => void }) {
+  const d = m.decision;
   return (
     <article className="side card">
       <header className="side-head">
@@ -62,15 +33,14 @@ function Side({ s, onOpen }: { s: CommitteeState; onOpen: (t: string) => void })
         </div>
         {d && <button type="button" className="btn btn-sm" onClick={() => onOpen(s.ticker)}>Full session</button>}
       </header>
-      <div className="card-body">
-        {s.status === "error" ? (
+      <div className="card-body stack">
+        <div className="board-compact">
+          <BoardTable agents={s.agents.length ? s.agents : agents} states={m.states} said={m.said} caption={m.caption} decision={d} />
+        </div>
+        {s.status === "error" && !m.pending ? (
           <div className="notice error"><div>{s.error}</div></div>
         ) : d ? (
-          <>
-            <div className="side-call">
-              <span className={`call call-${d.recommendation}`}>{d.recommendation}</span>
-              <span className="muted num">{Math.round(d.confidence * 100)}% confidence · {d.timeHorizon}</span>
-            </div>
+          <div className="side-ruling">
             <p className="side-summary">{d.summary}</p>
             <ul className="side-stances">
               {ANALYSTS.map((a) => {
@@ -84,10 +54,8 @@ function Side({ s, onOpen }: { s: CommitteeState; onOpen: (t: string) => void })
               })}
             </ul>
             {s.result?.replayed && <p className="xs dim">Decided recently, so this is the saved session (no new cost).</p>}
-          </>
-        ) : (
-          <Progress s={s} />
-        )}
+          </div>
+        ) : null}
       </div>
     </article>
   );
@@ -97,9 +65,11 @@ function Side({ s, onOpen }: { s: CommitteeState; onOpen: (t: string) => void })
  * Head to head: two committees sit at the same time, one per stock, and the results are laid out side by side.
  * Each side is an ordinary session (same gate, same reuse, same budget), so a pair decided recently costs nothing.
  */
-export function ComparePage({ onFile, onOpen }: Props) {
+export function ComparePage({ agents, onFile, onOpen }: Props) {
   const left = useSession();
   const right = useSession();
+  const lm = useMeeting(left.state);
+  const rm = useMeeting(right.state);
   const [a, setA] = useState(() => clean(params().get("a") ?? ""));
   const [b, setB] = useState(() => clean(params().get("b") ?? ""));
   const started = left.state.status !== "idle";
@@ -116,12 +86,10 @@ export function ComparePage({ onFile, onOpen }: Props) {
     right.start(tb);
   };
 
-  // A shared comparison link starts once, like a shared session link.
-  const loaded = useRef(false);
+  // A shared comparison link starts on arrival. No run-once guard: each useSession closes its stream on unmount, so a
+  // remount (React StrictMode does one in dev) has to start the pair again rather than leave both sides hanging.
   useEffect(() => {
     document.title = "Head to head · Zenith";
-    if (loaded.current) return;
-    loaded.current = true;
     if (a && b) convene(a, b);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -131,7 +99,8 @@ export function ComparePage({ onFile, onOpen }: Props) {
     convene(a, b);
   };
 
-  const done = left.state.decision && right.state.decision && !running;
+  // The comparison is laid out once both stamps have landed, not the moment the data arrives.
+  const done = lm.decision && rm.decision && !running && !lm.pending && !rm.pending;
   const pick = done ? preferred(left.state, right.state) : null;
   const rows = done ? metricRows(left.state, right.state) : [];
   const pairs = onFile.length >= 2 ? [[onFile[0], onFile[1]], ...(onFile.length >= 4 ? [[onFile[2], onFile[3]]] : [])] : [];
@@ -172,13 +141,13 @@ export function ComparePage({ onFile, onOpen }: Props) {
             ))}
           </div>
         )}
-        <span className="xs dim">About 4¢ for two stocks not decided in the last 6 hours; free otherwise.</span>
+        <span className="xs dim">About 4¢ for two stocks with no recent saved decision; free otherwise.</span>
       </div>
 
       {started && (
         <section className="sides" aria-label="The two committees">
-          <Side s={left.state} onOpen={onOpen} />
-          <Side s={right.state} onOpen={onOpen} />
+          <Side s={left.state} m={lm} agents={agents} onOpen={onOpen} />
+          <Side s={right.state} m={rm} agents={agents} onOpen={onOpen} />
         </section>
       )}
 
