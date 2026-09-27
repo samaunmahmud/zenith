@@ -4,6 +4,12 @@
 
 Type a stock ticker. Three AI analysts (**Fundamentals**, **Technicals** and **Risk**) each study the stock and argue a position. A **chair** running **NVIDIA Nemotron Ultra** weighs their arguments, makes a **BUY / HOLD / SELL** call with a confidence level, records the strongest **dissenting view**, and writes an investment memo. Every decision comes with a **cost readout**: tokens, latency and dollars, broken down by model.
 
+Beyond a single decision:
+
+- **Track record.** Every decision is recorded with its price and scored against the S&P 500 at 7, 30 and 90 days: BUY is right if the stock beat SPY, SELL if it trailed, HOLD if it stayed within 5 points. Calls stay pending until their window closes; nothing is backfilled. See `/?page=record`.
+- **Test your thesis.** Write your own case for or against the stock. The chair (Nemotron Ultra) cross-examines each claim against the analysts' fact sheets, marks it supported, contradicted or unverifiable, argues the strongest case against you, and writes a Counter-Thesis Memo. About 1¢.
+- **Head to head.** Put two stocks on trial: two full committees sit in parallel, then the calls, key figures and risks are laid side by side. See `/?page=compare&a=NVDA&b=AMD`.
+
 Built for the **Nebius x NVIDIA Global AI Hackathon** (Best Apps and Agents track), running on **Nebius Token Factory** with the **NVIDIA Nemotron** family (Nano, Super and Ultra).
 
 > ⚠️ **Research and education tool only. Not financial advice.** The analysts are language models and can be wrong. Market data may be delayed or incomplete.

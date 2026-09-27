@@ -89,6 +89,9 @@ export function TopBar({ showSearch, busy, health, onSearch, onHome, page, onPag
           </form>
         )}
         <nav className="topnav" aria-label="Main">
+          <a href="/?page=compare" aria-current={page === "compare" ? "page" : undefined} onClick={(e) => { e.preventDefault(); onPage("compare"); }}>
+            Compare
+          </a>
           <a href="/?page=record" aria-current={page === "record" ? "page" : undefined} onClick={(e) => { e.preventDefault(); onPage("record"); }}>
             Track record
           </a>

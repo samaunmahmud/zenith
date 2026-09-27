@@ -4,6 +4,7 @@ import { useCommittee } from "./hooks/useCommittee";
 import { useHealth } from "./hooks/useHealth";
 import { usePage } from "./hooks/usePage";
 import { TrackRecordPage } from "./components/record/TrackRecordPage";
+import { ComparePage } from "./components/compare/ComparePage";
 import type { AppConfig } from "./types";
 import { Landing } from "./components/landing/Landing";
 import { Footer } from "./components/layout/Footer";
@@ -52,6 +53,8 @@ export default function App() {
         onHome={home} page={page} onPage={openPage} />
       {page === "record" ? (
         <TrackRecordPage onOpen={(t) => openTicker(t, false)} />
+      ) : page === "compare" ? (
+        <ComparePage onFile={config?.demoTickers ?? []} onOpen={(t) => openTicker(t, false)} />
       ) : idle ? (
         <Landing config={config} onConvene={openTicker} />
       ) : (
