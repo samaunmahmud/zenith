@@ -44,8 +44,8 @@ public class MarketDataService {
         DiskCache.Result<CompanyProfile> profile = cache.cached(ticker, "profile", "FMP profile", PROFILE, () -> fmp.profile(ticker));
 
         try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
-            var prices = async(pool, () -> cache.<List<PriceBar>>cached(ticker, "prices", "FMP daily prices", BARS, () -> fmp.prices(ticker, 400)));
-            var benchmark = async(pool, () -> cache.<List<PriceBar>>cached(BENCHMARK, "prices", "FMP daily prices (SPY)", BARS, () -> fmp.prices(BENCHMARK, 400)));
+            var prices = async(pool, () -> prices(ticker));
+            var benchmark = async(pool, () -> prices(BENCHMARK));
             // Fundamentals and news are optional: if they fail, the analysts are told the data is missing.
             var ratios = optional(pool, "ratios", () -> cache.<Map<String, Object>>cached(ticker, "ratios-ttm", "FMP ratios (TTM)", RAW, () -> fmp.ratiosTtm(ticker)));
             var metrics = optional(pool, "key metrics", () -> cache.<Map<String, Object>>cached(ticker, "key-metrics-ttm", "FMP key metrics (TTM)", RAW, () -> fmp.keyMetricsTtm(ticker)));
@@ -69,6 +69,12 @@ public class MarketDataService {
                     dataOr(join(news), List.of()),
                     sources);
         }
+    }
+
+    /** About 13 months of daily bars, cache-first (the track record scores past calls against these). */
+    public DiskCache.Result<List<PriceBar>> prices(String ticker) {
+        String label = BENCHMARK.equals(ticker) ? "FMP daily prices (SPY)" : "FMP daily prices";
+        return cache.cached(ticker, "prices", label, BARS, () -> fmp.prices(ticker, 400));
     }
 
     private DiskCache.Result<List<NewsItem>> news(String ticker) {

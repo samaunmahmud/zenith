@@ -39,6 +39,8 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.zenith.track.DecisionLedger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -60,9 +62,16 @@ public class CommitteeService implements CommitteeRunner {
     private final ChairAgent chairAgent;
     private final TokenFactoryClient llm;
     private final DiskCache cache;
+    private final DecisionLedger ledger; // null in tests that don't need a track record
 
     public CommitteeService(MarketDataService marketData, NewsAgent newsAgent, AnalystAgent analystAgent,
             RebuttalAgent rebuttalAgent, ChairAgent chairAgent, TokenFactoryClient llm, DiskCache cache) {
+        this(marketData, newsAgent, analystAgent, rebuttalAgent, chairAgent, llm, cache, null);
+    }
+
+    @Autowired
+    public CommitteeService(MarketDataService marketData, NewsAgent newsAgent, AnalystAgent analystAgent,
+            RebuttalAgent rebuttalAgent, ChairAgent chairAgent, TokenFactoryClient llm, DiskCache cache, DecisionLedger ledger) {
         this.marketData = marketData;
         this.newsAgent = newsAgent;
         this.analystAgent = analystAgent;
@@ -70,6 +79,7 @@ public class CommitteeService implements CommitteeRunner {
         this.chairAgent = chairAgent;
         this.llm = llm;
         this.cache = cache;
+        this.ledger = ledger;
     }
 
     public List<AgentModel> roster() {
@@ -185,6 +195,8 @@ public class CommitteeService implements CommitteeRunner {
 
         // Keep the last complete run per ticker: the demo safety net if Token Factory is unreachable on stage.
         if (decision != null) cache.write(ticker, "last-committee", result);
+        // Every fresh decision goes on the record, to be scored against the market later. Replays never get here.
+        if (decision != null && ledger != null) ledger.record(result);
         return result;
     }
 

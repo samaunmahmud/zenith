@@ -7,6 +7,7 @@ import com.zenith.config.ZenithProperties;
 import com.zenith.data.DataException;
 import com.zenith.json.Json;
 import com.zenith.llm.LlmException;
+import com.zenith.track.TrackRecordService;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -39,12 +40,15 @@ public class CommitteeController {
     private final CommitteeGate gate;
     private final ZenithProperties props;
     private final com.zenith.llm.SpendGuard spendGuard;
+    private final TrackRecordService trackRecord;
 
-    public CommitteeController(CommitteeService committee, CommitteeGate gate, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard) {
+    public CommitteeController(CommitteeService committee, CommitteeGate gate, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard,
+            TrackRecordService trackRecord) {
         this.committee = committee;
         this.gate = gate;
         this.props = props;
         this.spendGuard = spendGuard;
+        this.trackRecord = trackRecord;
     }
 
     public record CommitteeRequest(String ticker, Boolean rebuttals) {}
@@ -89,6 +93,17 @@ public class CommitteeController {
         body.put("demoTickers", props.demoTickerList());
         body.put("agents", committee.roster());
         return json(200, body);
+    }
+
+    /** Every decision the chair has made, scored against the market at 7, 30 and 90 days. */
+    @GetMapping("/track-record")
+    public ResponseEntity<String> trackRecord() {
+        try {
+            return json(200, trackRecord.report());
+        } catch (RuntimeException e) {
+            log.error("Track record failed", e);
+            return json(500, Map.of("error", String.valueOf(e.getMessage())));
+        }
     }
 
     /** Plain request/response version. */
