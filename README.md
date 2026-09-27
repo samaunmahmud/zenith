@@ -7,6 +7,7 @@ Type a stock ticker. Three AI analysts (**Fundamentals**, **Technicals** and **R
 Beyond a single decision:
 
 - **Track record.** Every decision is recorded with its price and scored against the S&P 500 at 7, 30 and 90 days: BUY is right if the stock beat SPY, SELL if it trailed, HOLD if it stayed within 5 points. Calls stay pending until their window closes; nothing is backfilled. See `/?page=record`.
+  The record itself, `cache/_track-record.json`, is committed to this repository, so the commit history shows every call was written down before its result was known. Publish new calls with `npm run track-record:publish`.
 - **Test your thesis.** Write your own case for or against the stock. The chair (Nemotron Ultra) cross-examines each claim against the analysts' fact sheets, marks it supported, contradicted or unverifiable, argues the strongest case against you, and writes a Counter-Thesis Memo. About 1¢.
 - **Head to head.** Put two stocks on trial: two full committees sit in parallel, then the calls, key figures and risks are laid side by side. See `/?page=compare&a=NVDA&b=AMD`.
 

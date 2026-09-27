@@ -12,7 +12,8 @@
     "start": "java -jar backend/target/zenith.jar",
     "test": "npm run test --workspace frontend && cd backend && mvn -q -B test",
     "smoke": "cd backend && mvn -q spring-boot:run -Dspring-boot.run.arguments=--smoke",
-    "precache": "cd backend && mvn -q spring-boot:run -Dspring-boot.run.arguments=--precache"
+    "precache": "cd backend && mvn -q spring-boot:run -Dspring-boot.run.arguments=--precache",
+    "track-record:publish": "git add cache/_track-record.json && git commit -m \"Track record: add new calls\" && git push"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"
