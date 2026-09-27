@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { fetchConfig } from "./api";
 import { useCommittee } from "./hooks/useCommittee";
 import { useHealth } from "./hooks/useHealth";
+import { usePage } from "./hooks/usePage";
+import { TrackRecordPage } from "./components/record/TrackRecordPage";
 import type { AppConfig } from "./types";
 import { Landing } from "./components/landing/Landing";
 import { Footer } from "./components/layout/Footer";
@@ -11,6 +13,7 @@ import { Workspace } from "./components/workspace/Workspace";
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const { state, convene, reset } = useCommittee();
+  const [page, setPage] = usePage();
   // Re-check live-AI availability on load and after each session ends (a run may have used up the budget).
   const health = useHealth(state.status === "running" ? "running" : state.timing.run?.end ?? 0);
 
@@ -19,21 +22,41 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (page) return;
     document.title = state.status === "idle" ? "Zenith · AI Investment Committee" : `${state.ticker} · Zenith`;
-  }, [state.status, state.ticker]);
+  }, [state.status, state.ticker, page]);
 
   const idle = state.status === "idle";
   const agents = state.agents.length ? state.agents : config?.agents ?? [];
-  const convenePreservingOptions = (ticker: string) => convene(ticker, state.rebuttals);
+  // Leaving a standalone page for a committee session: the session's own URL (?ticker=) replaces the page's.
+  const openTicker = (ticker: string, rebuttals: boolean) => {
+    setPage(null);
+    convene(ticker, rebuttals);
+    window.scrollTo({ top: 0 });
+  };
+  const convenePreservingOptions = (ticker: string) => openTicker(ticker, state.rebuttals);
   const home = () => {
+    setPage(null);
     reset();
+    window.scrollTo({ top: 0 });
+  };
+  const openPage = (p: "record" | "compare") => {
+    reset();
+    setPage(p);
     window.scrollTo({ top: 0 });
   };
 
   return (
     <>
-      <TopBar showSearch={!idle} busy={state.status === "running"} health={health} onSearch={convenePreservingOptions} onHome={home} />
-      {idle ? <Landing config={config} onConvene={convene} /> : <Workspace state={state} agents={agents} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} />}
+      <TopBar showSearch={!idle || page !== null} busy={state.status === "running"} health={health} onSearch={convenePreservingOptions}
+        onHome={home} page={page} onPage={openPage} />
+      {page === "record" ? (
+        <TrackRecordPage onOpen={(t) => openTicker(t, false)} />
+      ) : idle ? (
+        <Landing config={config} onConvene={openTicker} />
+      ) : (
+        <Workspace state={state} agents={agents} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} />
+      )}
       <Footer />
     </>
   );

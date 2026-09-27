@@ -11,6 +11,8 @@ interface Props {
   health: Health | null;
   onSearch: (ticker: string) => void;
   onHome: () => void;
+  page: "record" | "compare" | null;
+  onPage: (page: "record" | "compare") => void;
 }
 
 /** Whether a live committee can run right now: shown to visitors before they click. */
@@ -38,7 +40,7 @@ function ThemeToggle() {
   );
 }
 
-export function TopBar({ showSearch, busy, health, onSearch, onHome }: Props) {
+export function TopBar({ showSearch, busy, health, onSearch, onHome, page, onPage }: Props) {
   const [q, setQ] = useState("");
   const input = useRef<HTMLInputElement>(null);
 
@@ -67,7 +69,7 @@ export function TopBar({ showSearch, busy, health, onSearch, onHome }: Props) {
   return (
     <header className={`topbar ${showSearch ? "has-search" : ""}`}>
       <div className="container">
-        <a className="brand" href="/" onClick={(e) => { e.preventDefault(); onHome(); }}>
+        <a className="brand" href="/" aria-label="Zenith home" onClick={(e) => { e.preventDefault(); onHome(); }}>
           <BrandMark />
           <span className="brand-name">Zenith</span> <span className="brand-sub">Investment committee</span>
         </a>
@@ -87,6 +89,9 @@ export function TopBar({ showSearch, busy, health, onSearch, onHome }: Props) {
           </form>
         )}
         <nav className="topnav" aria-label="Main">
+          <a href="/?page=record" aria-current={page === "record" ? "page" : undefined} onClick={(e) => { e.preventDefault(); onPage("record"); }}>
+            Track record
+          </a>
           <a className="hide-sm" href="/#how" onClick={(e) => { e.preventDefault(); onHome(); setTimeout(() => document.getElementById("how")?.scrollIntoView(), 0); }}>
             How it works
           </a>

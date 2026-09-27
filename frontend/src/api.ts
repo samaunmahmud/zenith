@@ -1,4 +1,4 @@
-import type { AppConfig, CommitteeEvent, Health } from "./types";
+import type { AppConfig, CommitteeEvent, Health, TrackRecord } from "./types";
 
 export async function fetchConfig(): Promise<AppConfig | null> {
   try {
@@ -16,6 +16,12 @@ export async function fetchHealth(): Promise<Health | null> {
   } catch {
     return null;
   }
+}
+
+export async function fetchTrackRecord(): Promise<TrackRecord> {
+  const res = await fetch("/api/track-record");
+  if (!res.ok) throw new Error(`The track record couldn't be loaded (HTTP ${res.status}).`);
+  return (await res.json()) as TrackRecord;
 }
 
 const EVENT_TYPES: CommitteeEvent["type"][] = [

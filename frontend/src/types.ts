@@ -143,3 +143,44 @@ export interface Health {
   budget: { maxUsd: number; spentUsd: number };
   keys: { tokenFactory: boolean; fmp: boolean; finnhub: boolean };
 }
+
+export interface TrackedCall {
+  id: string;
+  ticker: string;
+  company: string;
+  decidedAt: string;
+  asOf: string;
+  call: "BUY" | "HOLD" | "SELL";
+  confidence: number;
+  timeHorizon: string;
+  entryClose: number;
+}
+
+export interface TrackOutcome {
+  days: number;
+  status: "pending" | "scored";
+  dueDate: string;
+  exitDate: string | null;
+  stockReturn: number | null;
+  spyReturn: number | null;
+  excess: number | null;
+  correct: boolean | null;
+}
+
+export interface HorizonSummary {
+  days: number;
+  scored: number;
+  correct: number;
+  pending: number;
+  winRate: number | null;
+  avgEdge: number | null;
+}
+
+export interface TrackRecord {
+  generatedAt: string;
+  benchmark: string;
+  holdBandPct: number;
+  summary: HorizonSummary[];
+  calls: { call: TrackedCall; outcomes: TrackOutcome[] }[];
+  unavailable: string[];
+}
