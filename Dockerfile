@@ -1,6 +1,7 @@
 # Zenith: one container serving the React frontend and the Spring Boot API on one URL.
 # Build:  docker build -t zenith .
-# Run:    docker run -p 8080:8080 --env-file .env zenith
+# Run:    docker run -p 8080:8080 --env-file .env -e PORT=8080 -e MAX_SPEND_USD=0 zenith
+#         (-e wins over --env-file: .env sets PORT=3001 for dev, and MAX_SPEND_USD=0 keeps a local test free)
 
 # 1) Build the React frontend
 FROM node:22-alpine AS frontend

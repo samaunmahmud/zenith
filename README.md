@@ -166,8 +166,14 @@ nebius ai endpoint create \
   --env-secret "FINNHUB_API_KEY=<secret>" \
   --env-secret "MAX_SPEND_USD=0.20" \
   --env-secret "LIVE_RUNS_PER_HOUR=10" \
+  --env-secret "REUSE_HOURS=1000" \
   --subnet-id <subnet_ID>
 ```
+
+Two settings matter more on a public URL than locally:
+
+- **`REUSE_HOURS`** decides how long a saved decision is served instead of a new paid run. The default is 6 hours, so without it every visitor who clicks a demo ticker after that window starts a live committee. Set it high so the pre-cached demo decisions keep replaying for free; typing a new ticker still convenes a live committee.
+- **Don't pass `PORT`.** The image sets `PORT=8080` to match `--container-port`. Your local `.env` sets `3001` for development, so forwarding it (for example with `docker run --env-file .env`) moves the server off the port the endpoint routes to. To test the image locally, add `-e PORT=8080` after `--env-file .env`; an explicit `-e` wins.
 
 Omitting `--auth` leaves the endpoint open, which is what a public demo URL needs. Get the HTTPS URL with `nebius ai endpoint get <endpoint_ID> --format json`. See the [Serverless AI endpoints docs](https://docs.nebius.com/serverless/endpoints/manage) for secret and platform options.
 
