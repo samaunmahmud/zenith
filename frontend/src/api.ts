@@ -1,4 +1,4 @@
-import type { AppConfig, CommitteeEvent, Health, ThesisResult, TrackRecord } from "./types";
+import type { AppConfig, AskResult, AskTurn, CommitteeEvent, Health, ThesisResult, TrackRecord } from "./types";
 
 export async function fetchConfig(): Promise<AppConfig | null> {
   try {
@@ -35,6 +35,19 @@ export async function postThesis(ticker: string, thesis: string): Promise<Thesis
   const body = await res.json().catch(() => null);
   if (!res.ok) throw new Error(body?.error ?? `The review failed (HTTP ${res.status}).`);
   return body as ThesisResult;
+}
+
+/** Asks the committee secretary a follow-up question about the latest session on a stock. */
+export async function postAsk(ticker: string, question: string, history: AskTurn[]): Promise<AskResult> {
+  let res: Response;
+  try {
+    res = await fetch("/api/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker, question, history }) });
+  } catch {
+    throw new Error("Couldn't reach the server. Check your connection and try again.");
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error ?? `The question failed (HTTP ${res.status}).`);
+  return body as AskResult;
 }
 
 const EVENT_TYPES: CommitteeEvent["type"][] = [

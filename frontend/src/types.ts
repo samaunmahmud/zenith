@@ -205,3 +205,23 @@ export interface ThesisResult {
   costs: CostSummary;
   memoMarkdown: string;
 }
+
+/** POST /api/ask: the committee secretary's answer to a follow-up question about the latest session. */
+export interface AskResult {
+  ticker: string;
+  sessionAt: string;
+  question: string;
+  answer: {
+    answer: string;
+    basis: { metric: string; value: string; interpretation: string }[];
+    followUps: string[];
+  };
+  untraced: string[];
+  costs: CostSummary;
+}
+
+/** One earlier exchange, sent back with the next question so the server can stay stateless. */
+export interface AskTurn {
+  question: string;
+  answer: string;
+}

@@ -9,6 +9,7 @@ import { PriceChart } from "../market/PriceChart";
 import { TabPanel, Tabs, type TabDef } from "../ui/Tabs";
 import { RunNotices } from "../workspace/RunNotices";
 import { ThesisTab } from "../workspace/ThesisTab";
+import { AskPanel } from "./AskPanel";
 import { CostMeter } from "./CostMeter";
 import { FactsPanel, IntegrityPanel, NewsPanel } from "./DataPanels";
 import { EventLog } from "./EventLog";
@@ -61,6 +62,7 @@ export function TerminalSession({ state, onFile, onConvene }: Props) {
           <div className="tcol tcol-main">
             <ProcessMonitor play={play} />
             <EventLog state={state} play={play} />
+            {state.result && state.decision && play.finished && <AskPanel key={`${state.ticker}-${state.result.generatedAt}`} state={state} />}
           </div>
           <div className="tcol tcol-side">
             <VerdictPanel state={state} play={play} decision={decision} />

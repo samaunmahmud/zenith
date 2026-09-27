@@ -58,7 +58,9 @@ flowchart LR
 6. **The chair (Ultra)** decides. It must name the analyst behind each part of its reasoning, and it must record the strongest dissent.
 7. **Memo.** The memo is assembled **in code** from the structured outputs, so its tables and disclaimer can't be hallucinated. You can download it as Markdown.
 
-The UI streams each step live over Server-Sent Events, so analyst cards appear as each agent finishes.
+The UI is a trading-terminal view of the session: a process monitor shows each Nemotron call running (model, time, tokens, cost), a session log prints what each agent said as it finishes, and the ruling lands with its confidence and dissent. Live runs stream over Server-Sent Events; a saved session is replayed from its recorded per-call timings, labelled as a replay.
+
+8. **Ask the committee.** After the ruling, visitors can question the session in a chat. The secretary (Super) answers only from that session's figures, reports and ruling; cited figures are checked like the analysts' evidence (an invented value is sent back for one retry), and any figure in the prose that isn't in the session is flagged on the page.
 
 ## How the Nemotron models are used
 
@@ -69,6 +71,7 @@ The UI streams each step live over Server-Sent Events, so analyst cards appear a
 | Fundamentals analyst | **Nemotron Super** (`nvidia/nemotron-3-super-120b-a12b`) | Weighing valuation against growth, margins and leverage needs mid-weight reasoning. |
 | Risk analyst | **Nemotron Super** | Combining volatility, drawdown, beta, leverage and news risk into one view. |
 | Chair | **Nemotron Ultra** (`nvidia/Nemotron-3-Ultra-550b-a55b`) | The final judgement weighs conflicting arguments and records the dissent, so it gets the strongest reasoning model. |
+| Secretary ("Ask the committee") | **Nemotron Super** | Answers follow-up questions about a finished session from its fact sheets, reports and ruling. It explains a decision already made, so it needs clear reasoning over evidence, not Ultra's final judgement. About 0.3¢ a question. |
 
 The principle is to **spend reasoning where it matters**. Most calls go to Nano and Super, and there is exactly one Ultra call per decision. The in-app cost readout shows this split for every run, and compares it with what the same calls (same tokens) would have cost on Ultra alone. The live **committee floor** shows each agent's tier, status and measured latency while the committee works. Model IDs are set in `.env`, so you can swap tiers without changing code.
 
