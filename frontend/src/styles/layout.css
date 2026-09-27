@@ -29,7 +29,7 @@
 .top-search kbd { font: 11px var(--mono); color: var(--text-4); border: 1px solid var(--line-2); border-radius: 4px; padding: 0 5px; }
 
 .topnav { margin-left: auto; display: flex; align-items: center; gap: 18px; font-size: 13px; }
-.topnav a { color: var(--text-2); }
+.topnav a { color: var(--text-2); white-space: nowrap; }
 .topnav a:hover { color: var(--text); }
 .icon-link { display: inline-flex; color: var(--text-2); }
 .icon-link svg { width: 18px; height: 18px; }
@@ -121,4 +121,5 @@
   .topbar.has-search .brand-name { display: none; }
   .top-search { flex: 1 1 auto; min-width: 0; }
   .topnav { gap: 10px; }
+  .topnav .icon-link { display: none; } /* the footer links to the source too */
 }
