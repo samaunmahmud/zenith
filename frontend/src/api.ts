@@ -1,4 +1,4 @@
-import type { AppConfig, CommitteeEvent, Health, TrackRecord } from "./types";
+import type { AppConfig, CommitteeEvent, Health, ThesisResult, TrackRecord } from "./types";
 
 export async function fetchConfig(): Promise<AppConfig | null> {
   try {
@@ -22,6 +22,19 @@ export async function fetchTrackRecord(): Promise<TrackRecord> {
   const res = await fetch("/api/track-record");
   if (!res.ok) throw new Error(`The track record couldn't be loaded (HTTP ${res.status}).`);
   return (await res.json()) as TrackRecord;
+}
+
+/** Asks the chair to cross-examine the investor's thesis. Errors carry the server's message for the visitor. */
+export async function postThesis(ticker: string, thesis: string): Promise<ThesisResult> {
+  let res: Response;
+  try {
+    res = await fetch("/api/thesis", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ticker, thesis }) });
+  } catch {
+    throw new Error("Couldn't reach the server. Check your connection and try again.");
+  }
+  const body = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(body?.error ?? `The review failed (HTTP ${res.status}).`);
+  return body as ThesisResult;
 }
 
 const EVENT_TYPES: CommitteeEvent["type"][] = [

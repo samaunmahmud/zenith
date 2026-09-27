@@ -174,6 +174,7 @@ Omitting `--auth` leaves the endpoint open, which is what a public demo URL need
 | `GET` | `/api/config` | Demo tickers and the agent → model roster |
 | `POST` | `/api/committee` | `{ "ticker": "AAPL", "rebuttals": false }` → full result as JSON |
 | `GET` | `/api/committee/stream?ticker=AAPL&rebuttals=true` | The same run as Server-Sent Events (`stage`, `snapshot`, `news`, `report`, `analystError`, `rebuttal`, `decision`, `done`, `error`) |
+| `POST` | `/api/thesis` | `{ "ticker": "NVDA", "thesis": "..." }` → the chair cross-examines the thesis against the latest session on that stock (one Nemotron Ultra call) and returns the review and a Counter-Thesis Memo |
 | `GET` | `/api/track-record` | Every recorded decision, scored against SPY at 7, 30 and 90 days, with a win rate per window |
 
 ## Project structure

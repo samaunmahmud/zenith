@@ -361,3 +361,30 @@ details.facts dd { margin: 0; font-weight: 600; text-align: right; }
 .verdict-mark.right { color: var(--pos); background: var(--pos-soft); }
 .verdict-mark.wrong { color: var(--neg); background: var(--neg-soft); }
 .topnav a[aria-current="page"] { color: var(--text); text-decoration: underline; text-underline-offset: 6px; text-decoration-color: var(--accent); text-decoration-thickness: 2px; }
+
+
+/* ── Thesis testing ───────────────────────────────────── */
+.thesis { display: grid; gap: 16px; max-width: 960px; }
+.thesis-title { font-family: var(--serif); font-size: 24px; font-weight: 500; font-variation-settings: "opsz" 36; margin-bottom: 4px; }
+.thesis textarea { width: 100%; min-height: 110px; resize: vertical; padding: 12px 14px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--bg); color: var(--text); font: 16px/1.55 var(--serif); font-variation-settings: "opsz" 16; }
+.thesis textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.thesis-actions { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
+.thesis-actions .btn .spinner { border-top-color: var(--accent-ink); }
+.thesis-result { display: grid; gap: 16px; animation: fade 0.4s ease both; }
+.tone-pos { --tone: var(--pos); }
+.tone-neg { --tone: var(--neg); }
+.tone-warn { --tone: var(--warn); }
+.tone-muted { --tone: var(--text-3); }
+.thesis-verdict { padding: 18px 20px; border-radius: var(--r); border: 1px solid color-mix(in srgb, var(--tone) 35%, transparent); border-left: 4px solid var(--tone); background: color-mix(in srgb, var(--tone) 7%, var(--panel)); }
+.thesis-verdict-row { display: flex; align-items: baseline; gap: 6px 14px; flex-wrap: wrap; margin: 6px 0 8px; }
+.thesis-verdict-word { font: 600 32px/1.1 var(--serif); font-variation-settings: "opsz" 48; color: var(--tone); }
+.thesis-summary { font-size: 15px; line-height: 1.6; margin-bottom: 6px; }
+.claims { list-style: none; margin: 0; padding: 0; }
+.claims li { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+.claims li:first-child { border-top: 0; }
+.claims p { margin-top: 3px; }
+.claim-mark { align-self: start; justify-self: start; padding: 2px 7px; border-radius: var(--r-sm); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tone); background: color-mix(in srgb, var(--tone) 10%, transparent); }
+@media (max-width: 560px) { .claims li { grid-template-columns: 1fr; gap: 6px; } }
+.counter { padding: 18px 22px; border-radius: var(--r); background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--neg); }
+.counter .label { color: var(--neg); }
+.counter p { margin-top: 6px; font: 18px/1.6 var(--serif); font-variation-settings: "opsz" 16; }

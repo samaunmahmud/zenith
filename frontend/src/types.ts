@@ -184,3 +184,24 @@ export interface TrackRecord {
   calls: { call: TrackedCall; outcomes: TrackOutcome[] }[];
   unavailable: string[];
 }
+
+export type ThesisVerdict = "supported" | "partly_supported" | "contradicted" | "untestable";
+
+export interface ThesisResult {
+  ticker: string;
+  generatedAt: string;
+  sessionAt: string;
+  call: "BUY" | "HOLD" | "SELL";
+  thesis: string;
+  review: {
+    verdict: ThesisVerdict;
+    summary: string;
+    claims: { claim: string; assessment: "supported" | "contradicted" | "unverifiable"; evidence: string; analyst: AnalystName | null }[];
+    counterThesis: string;
+    blindSpots: string[];
+    whatWouldChangeIt: string[];
+  };
+  untraced: string[];
+  costs: CostSummary;
+  memoMarkdown: string;
+}

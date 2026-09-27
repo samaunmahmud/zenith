@@ -7,6 +7,7 @@ import com.zenith.config.ZenithProperties;
 import com.zenith.data.DataException;
 import com.zenith.json.Json;
 import com.zenith.llm.LlmException;
+import com.zenith.thesis.ThesisService;
 import com.zenith.track.TrackRecordService;
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -41,17 +42,21 @@ public class CommitteeController {
     private final ZenithProperties props;
     private final com.zenith.llm.SpendGuard spendGuard;
     private final TrackRecordService trackRecord;
+    private final ThesisService thesis;
 
     public CommitteeController(CommitteeService committee, CommitteeGate gate, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard,
-            TrackRecordService trackRecord) {
+            TrackRecordService trackRecord, ThesisService thesis) {
         this.committee = committee;
         this.gate = gate;
         this.props = props;
         this.spendGuard = spendGuard;
         this.trackRecord = trackRecord;
+        this.thesis = thesis;
     }
 
     public record CommitteeRequest(String ticker, Boolean rebuttals) {}
+
+    public record ThesisRequest(String ticker, String thesis) {}
 
     static Optional<String> parseTicker(String raw) {
         String t = raw == null ? "" : raw.trim().toUpperCase();
@@ -59,7 +64,9 @@ public class CommitteeController {
     }
 
     static int statusFor(Throwable e) {
-        if (e instanceof CommitteeGate.BusyException) return 429;
+        if (e instanceof CommitteeGate.BusyException || e instanceof ThesisService.BusyException) return 429;
+        if (e instanceof ThesisService.InvalidThesisException) return 400;
+        if (e instanceof ThesisService.NoSessionException) return 409;
         if (e instanceof CommitteeService.NotConfiguredException) return 503;
         if (e instanceof com.zenith.llm.SpendGuard.BudgetExceededException) return 503;
         if (e instanceof LlmException && e.getCause() instanceof com.zenith.llm.SpendGuard.BudgetExceededException) return 503;
@@ -103,6 +110,20 @@ public class CommitteeController {
         } catch (RuntimeException e) {
             log.error("Track record failed", e);
             return json(500, Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    /** Devil's advocate: the chair cross-examines the investor's own thesis against the latest session on that stock. */
+    @PostMapping("/thesis")
+    public ResponseEntity<String> thesis(@RequestBody(required = false) ThesisRequest req) {
+        Optional<String> ticker = parseTicker(req == null ? null : req.ticker());
+        if (ticker.isEmpty()) return json(400, Map.of("error", BAD_TICKER));
+        try {
+            return json(200, thesis.test(ticker.get(), req.thesis()));
+        } catch (RuntimeException e) {
+            int status = statusFor(e);
+            if (status >= 500) log.error("Thesis review failed for {}", ticker.get(), e);
+            return json(status, Map.of("error", String.valueOf(e.getMessage())));
         }
     }
 

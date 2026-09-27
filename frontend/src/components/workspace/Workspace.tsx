@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import type { ThesisResult } from "../../types";
+import { ThesisTab } from "./ThesisTab";
 import type { CommitteeState } from "../../state/committee";
 import type { AgentModel } from "../../types";
 import { useNow } from "../../hooks/useNow";
@@ -12,7 +14,7 @@ import { OverviewTab } from "./OverviewTab";
 import { RunNotices } from "./RunNotices";
 import { SecurityHeader } from "./SecurityHeader";
 
-type TabId = "overview" | "analysts" | "debate" | "memo" | "models";
+type TabId = "overview" | "analysts" | "debate" | "thesis" | "memo" | "models";
 
 /** The results view for one ticker: sticky security header, tabs, and the active tab's content. */
 interface Props {
@@ -25,17 +27,22 @@ interface Props {
 
 export function Workspace({ state, agents, onFile, onConvene }: Props) {
   const [tab, setTab] = useState<TabId>("overview");
+  const [thesis, setThesis] = useState<ThesisResult | null>(null);
   const running = state.status === "running";
   const now = useNow(running);
 
   // A new session always opens on the overview.
-  useEffect(() => setTab("overview"), [state.ticker, state.timing.run?.start]);
+  useEffect(() => {
+    setTab("overview");
+    setThesis(null);
+  }, [state.ticker, state.timing.run?.start]);
 
   const reports = Object.keys(state.reports).length;
   const tabs: TabDef<TabId>[] = [
     { id: "overview", label: "Overview", live: running },
     { id: "analysts", label: "Analysts", count: reports },
     { id: "debate", label: "Debate", count: state.debate.length },
+    { id: "thesis", label: "Your thesis" },
     { id: "memo", label: "Memo" },
     { id: "models", label: "Models & cost" },
   ];
@@ -49,6 +56,7 @@ export function Workspace({ state, agents, onFile, onConvene }: Props) {
           {tab === "overview" && <OverviewTab state={state} agents={agents} now={now} openTab={setTab} />}
           {tab === "analysts" && <AnalystsTab state={state} agents={agents} />}
           {tab === "debate" && <DebateTab state={state} />}
+          {tab === "thesis" && <ThesisTab state={state} result={thesis} onResult={setThesis} />}
           {tab === "memo" &&
             (state.result ? (
               <MemoPanel result={state.result} />
