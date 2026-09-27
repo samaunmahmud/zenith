@@ -1,4 +1,4 @@
-# Private notes — never commit
+# Local-only files — never commit
 CLAUDE.md
 CLAUDE.local.md
 .claude/
@@ -15,8 +15,6 @@ docs/private/
 # Market data cache
 cache/*
 !cache/.gitkeep
-# The track record is public on purpose: git history proves each call was made before its result was known.
-!cache/_track-record.json
 
 # Dependencies & builds
 node_modules/
