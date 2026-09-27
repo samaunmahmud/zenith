@@ -65,7 +65,13 @@ export type CommitteeAction =
   | { type: "event"; event: CommitteeEvent; at: number };
 
 /** Which agents begin work when a stage starts. */
-const STAGE_AGENTS: Partial<Record<Stage, string[]>> = { news: ["news"], analysts: ANALYSTS, chair: ["chair"] };
+const STAGE_AGENTS: Partial<Record<Stage, string[]>> = {
+  data: ["clerk"],
+  news: ["news"],
+  analysts: ANALYSTS,
+  rebuttals: ANALYSTS.map((a) => `${a}-rebuttal`),
+  chair: ["chair"],
+};
 
 /** Sets start/end for the given ids, never overwriting a time already recorded. */
 function mark(timing: Timing, ids: string[], key: "start" | "end", at: number): Timing {
@@ -87,7 +93,7 @@ export function committeeReducer(state: CommitteeState, action: CommitteeAction)
     case "stage":
       return { ...state, stage: e.stage, timing: mark(state.timing, STAGE_AGENTS[e.stage] ?? [], "start", at) };
     case "snapshot":
-      return { ...state, snapshot: e.snapshot, sources: e.sources, news: e.news, agents: e.agents };
+      return { ...state, snapshot: e.snapshot, sources: e.sources, news: e.news, agents: e.agents, timing: mark(state.timing, ["clerk"], "end", at) };
     case "news":
       return { ...state, digest: e.digest, timing: mark(state.timing, ["news"], "end", at) };
     case "report":
@@ -95,7 +101,7 @@ export function committeeReducer(state: CommitteeState, action: CommitteeAction)
     case "analystError":
       return { ...state, errors: { ...state.errors, [e.analyst]: e.message }, timing: mark(state.timing, [e.analyst], "end", at) };
     case "rebuttal":
-      return { ...state, debate: [...state.debate, e.rebuttal] };
+      return { ...state, debate: [...state.debate, e.rebuttal], timing: mark(state.timing, [`${e.rebuttal.analyst}-rebuttal`], "end", at) };
     case "decision":
       return { ...state, decision: e.decision, timing: mark(state.timing, ["chair"], "end", at) };
     case "done": {
