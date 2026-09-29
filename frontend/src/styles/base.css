@@ -4,44 +4,50 @@ html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
+  background:
+    radial-gradient(900px 480px at 12% -120px, var(--glow-a), transparent 70%),
+    radial-gradient(760px 420px at 92% -80px, var(--glow-b), transparent 70%),
+    var(--bg);
+  background-repeat: no-repeat;
   color: var(--text);
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.55;
-  font-feature-settings: "cv11", "ss01";
+  font-feature-settings: "cv11", "ss01", "ss03";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
+h1, h2, h3, h4 { margin: 0; font-weight: 650; letter-spacing: -0.015em; line-height: 1.2; }
 p { margin: 0; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-hi); }
 button { font: inherit; color: inherit; }
-code { font-family: var(--mono); font-size: 0.92em; }
+code { font-family: var(--mono); font-size: 0.9em; }
 
-::selection { background: var(--accent-soft); }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+::selection { background: var(--accent-glow); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 
 /* Utilities */
-.num { font-variant-numeric: tabular-nums; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .muted { color: var(--text-2); }
 .dim { color: var(--text-3); }
-.small { font-size: 12.5px; }
-.xs { font-size: 11.5px; }
-.label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-3); }
+.small { font-size: 13px; }
+.xs { font-size: 12px; }
+.label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .spread { justify-content: space-between; }
 .stack { display: grid; gap: 12px; }
 .pos { color: var(--pos); }
 .neg { color: var(--neg); }
+.warn { color: var(--warn); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
-@keyframes blink { from { opacity: 0.3; } to { opacity: 1; } }
+@keyframes blink { 50% { opacity: 0.25; } }
 @keyframes ping { 0% { box-shadow: 0 0 0 0 var(--accent-line); } 100% { box-shadow: 0 0 0 8px transparent; } }
 @keyframes spin { to { transform: rotate(360deg); } }
 

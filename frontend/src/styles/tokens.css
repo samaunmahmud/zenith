@@ -1,143 +1,161 @@
 /*
  * Design tokens: every colour, radius, shadow and font in one place.
- * Light ("paper") is the default; dark ("ink") applies when the visitor picks it, or when
- * they haven't picked and their system is dark. index.html sets data-theme before first paint.
+ * Dark is the signature look; light applies when the visitor picks it, or when they haven't picked and their
+ * system is light. index.html sets data-theme before first paint.
+ *
+ * One accent (NVIDIA green) for brand and action. Signal colours (up, down, hold) are kept apart from it, and each
+ * Nemotron tier has its own colour so the Nano / Super / Ultra split reads at a glance.
  */
 :root {
   /* Surfaces */
-  --bg: #f5f3ee;
-  --bg-2: #eeebe4;
-  --panel: #fcfbf8;
-  --panel-2: #f5f3ee;
-  --panel-3: #ebe8e0;
-  --line: #e0dcd2;
-  --line-2: #cbc6ba;
+  --bg: #f5f7fa;
+  --bg-2: #eef1f5;
+  --panel: #ffffff;
+  --panel-2: #f6f8fb;
+  --panel-3: #eaeef3;
+  --line: #e2e7ee;
+  --line-2: #cdd5df;
 
   /* Text */
-  --text: #1a1c1b;
-  --text-2: #464945;
-  --text-3: #64665f;
-  --text-4: #6e6f68;
+  --text: #0c1118;
+  --text-2: #3b4452;
+  --text-3: #566070;
+  --text-4: #687282;
 
-  /* Accent: a leaf green, dark enough to read as text on paper */
-  --accent: #33680f;
-  --accent-hi: #28540b;
-  --accent-ink: #ffffff; /* text on an accent fill */
+  /* Accent: NVIDIA green, deepened so it reads as text on white */
+  --accent: #4a7a00;
+  --accent-hi: #3d6500;
+  --accent-ink: #ffffff;
   --accent-soft: color-mix(in srgb, var(--accent) 9%, transparent);
   --accent-line: color-mix(in srgb, var(--accent) 35%, transparent);
+  --accent-glow: color-mix(in srgb, #76b900 14%, transparent);
 
-  /* Semantics: kept apart from the accent so "up" and "brand" never read as the same signal */
-  --pos: #176b3a;
-  --neg: #b0301f;
-  --warn: #7f5300;
-  --pos-soft: color-mix(in srgb, var(--pos) 11%, transparent);
-  --neg-soft: color-mix(in srgb, var(--neg) 9%, transparent);
-  --warn-soft: color-mix(in srgb, var(--warn) 11%, transparent);
+  /* Signals */
+  --pos: #12813f;
+  --neg: #c2261d;
+  --warn: #a15c00;
+  --pos-soft: color-mix(in srgb, var(--pos) 10%, transparent);
+  --neg-soft: color-mix(in srgb, var(--neg) 8%, transparent);
+  --warn-soft: color-mix(in srgb, var(--warn) 10%, transparent);
 
-  /* Committee members: an identity colour each (validated as a set for colour-blind separation).
-     Used on marks next to the member's name, never on text and never alone. */
-  --id-fundamentals: #2a78d6;
-  --id-technicals: #1baf7a;
-  --id-risk: #eb6834;
-  --id-news: #6b7a8f;
+  /* Committee members: an identity colour each, used on marks beside the name, never alone */
+  --id-fundamentals: #2563eb;
+  --id-technicals: #0d9488;
+  --id-risk: #ea580c;
+  --id-news: #64748b;
   --id-chair: var(--accent);
-  --id-clerk: #57606b;
+  --id-clerk: #71717a;
 
   /* Nemotron tiers */
-  --nano: #52691d;
-  --super: var(--accent);
+  --nano: #0e7490;
+  --super: #6d28d9;
   --ultra: var(--accent);
 
   /* Chart */
-  --chart-grid: #e6e2d9;
-  --chart-sma50: #3b3e3a;
-  --chart-sma200: #a3a39a;
-  --chart-cross: #8d8d85;
+  --chart-grid: #e6eaf0;
+  --chart-sma50: #334155;
+  --chart-sma200: #94a3b8;
+  --chart-cross: #94a3b8;
 
   /* Chrome */
-  --topbar-bg: color-mix(in srgb, var(--bg) 88%, transparent);
-  --memo-bg: #fffefb;
+  --topbar-bg: color-mix(in srgb, var(--bg) 82%, transparent);
+  --memo-bg: #ffffff;
   --memo-edge: var(--line);
+  --glow-a: color-mix(in srgb, #76b900 10%, transparent);
+  --glow-b: color-mix(in srgb, #7c3aed 7%, transparent);
 
-  --r-sm: 4px;
-  --r: 6px;
-  --r-lg: 8px;
-  --shadow: 0 1px 2px rgba(40, 36, 28, 0.06), 0 6px 20px rgba(40, 36, 28, 0.06);
+  --r-sm: 8px;
+  --r: 12px;
+  --r-lg: 16px;
+  --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 2px 4px rgba(15, 23, 42, 0.04), 0 24px 48px -12px rgba(15, 23, 42, 0.14);
+  --panel-edge: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
   --font: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --serif: "Newsreader Variable", Newsreader, Georgia, "Times New Roman", serif;
-  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --serif: var(--font);
+  --mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --topbar-h: 56px;
+  --topbar-h: 60px;
   color-scheme: light;
 }
 
-/* Dark ("ink"): warm charcoal rather than pure black, with a softer green. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #111213;
-    --bg-2: #151718;
-    --panel: #181a1b;
-    --panel-2: #1d2021;
-    --panel-3: #25282a;
-    --line: #2a2d2f;
-    --line-2: #383c3e;
-    --text: #ebeae4;
-    --text-2: #b8b7b0;
-    --text-3: #9a9992;
-    --text-4: #85847d;
-    --accent: #8dc641;
-    --accent-hi: #a3d65f;
-    --accent-ink: #0e1206;
-    --pos: #52c486;
-    --neg: #ef6a5f;
-    --warn: #dcae48;
-    --nano: #bcd98c;
-    --id-fundamentals: #3987e5;
-    --id-technicals: #199e70;
-    --id-risk: #d95926;
-    --id-news: #8494a8;
-    --id-clerk: #9aa3ad;
-    --chart-grid: #232729;
-    --chart-sma50: #d9d8d2;
-    --chart-sma200: #6c6d68;
-    --chart-cross: #86867f;
-    --memo-bg: #f7f5ef;
+    --bg: #07090d;
+    --bg-2: #0b0e13;
+    --panel: #0f1319;
+    --panel-2: #141922;
+    --panel-3: #1b212c;
+    --line: #1e2530;
+    --line-2: #2b3441;
+    --text: #eef1f6;
+    --text-2: #b9c0cc;
+    --text-3: #8e97a6;
+    --text-4: #79828f;
+    --accent: #76b900;
+    --accent-hi: #8fd400;
+    --accent-ink: #081000;
+    --accent-glow: color-mix(in srgb, #76b900 22%, transparent);
+    --pos: #3ddc84;
+    --neg: #ff6b6b;
+    --warn: #f5b83d;
+    --id-fundamentals: #60a5fa;
+    --id-technicals: #2dd4bf;
+    --id-risk: #fb923c;
+    --id-news: #94a3b8;
+    --id-clerk: #a1a1aa;
+    --nano: #38bdf8;
+    --super: #a78bfa;
+    --chart-grid: #1a212b;
+    --chart-sma50: #cbd5e1;
+    --chart-sma200: #64748b;
+    --chart-cross: #64748b;
+    --memo-bg: #f8fafc;
     --memo-edge: transparent;
-    --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+    --glow-a: color-mix(in srgb, #76b900 13%, transparent);
+    --glow-b: color-mix(in srgb, #7c3aed 11%, transparent);
+    --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 32px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+    --panel-edge: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #111213;
-  --bg-2: #151718;
-  --panel: #181a1b;
-  --panel-2: #1d2021;
-  --panel-3: #25282a;
-  --line: #2a2d2f;
-  --line-2: #383c3e;
-  --text: #ebeae4;
-  --text-2: #b8b7b0;
-  --text-3: #9a9992;
-  --text-4: #85847d;
-  --accent: #8dc641;
-  --accent-hi: #a3d65f;
-  --accent-ink: #0e1206;
-  --pos: #52c486;
-  --neg: #ef6a5f;
-  --warn: #dcae48;
-  --nano: #bcd98c;
-  --id-fundamentals: #3987e5;
-  --id-technicals: #199e70;
-  --id-risk: #d95926;
-  --id-news: #8494a8;
-  --id-clerk: #9aa3ad;
-  --chart-grid: #232729;
-  --chart-sma50: #d9d8d2;
-  --chart-sma200: #6c6d68;
-  --chart-cross: #86867f;
-  --memo-bg: #f7f5ef;
+  --bg: #07090d;
+  --bg-2: #0b0e13;
+  --panel: #0f1319;
+  --panel-2: #141922;
+  --panel-3: #1b212c;
+  --line: #1e2530;
+  --line-2: #2b3441;
+  --text: #eef1f6;
+  --text-2: #b9c0cc;
+  --text-3: #8e97a6;
+  --text-4: #79828f;
+  --accent: #76b900;
+  --accent-hi: #8fd400;
+  --accent-ink: #081000;
+  --accent-glow: color-mix(in srgb, #76b900 22%, transparent);
+  --pos: #3ddc84;
+  --neg: #ff6b6b;
+  --warn: #f5b83d;
+  --id-fundamentals: #60a5fa;
+  --id-technicals: #2dd4bf;
+  --id-risk: #fb923c;
+  --id-news: #94a3b8;
+  --id-clerk: #a1a1aa;
+  --nano: #38bdf8;
+  --super: #a78bfa;
+  --chart-grid: #1a212b;
+  --chart-sma50: #cbd5e1;
+  --chart-sma200: #64748b;
+  --chart-cross: #64748b;
+  --memo-bg: #f8fafc;
   --memo-edge: transparent;
-  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 10px 30px rgba(0, 0, 0, 0.35);
+  --glow-a: color-mix(in srgb, #76b900 13%, transparent);
+  --glow-b: color-mix(in srgb, #7c3aed 11%, transparent);
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 12px 32px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 30px 60px -20px rgba(0, 0, 0, 0.7);
+  --panel-edge: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   color-scheme: dark;
 }
