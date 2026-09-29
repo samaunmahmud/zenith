@@ -92,6 +92,27 @@ public class FmpClient {
         return firstRecord(get("financial-growth", Map.of("symbol", ticker, "limit", "1")));
     }
 
+    /** Securities whose ticker matches {@code query}, on any exchange. */
+    public List<SymbolMatch> searchSymbol(String query) {
+        return matches(get("search-symbol", Map.of("query", query, "limit", "20")));
+    }
+
+    /** Securities whose company name matches {@code query}, on any exchange. */
+    public List<SymbolMatch> searchName(String query) {
+        return matches(get("search-name", Map.of("query", query, "limit", "20")));
+    }
+
+    private static List<SymbolMatch> matches(JsonNode body) {
+        List<SymbolMatch> out = new ArrayList<>();
+        if (!body.isArray()) return out;
+        for (JsonNode r : body) {
+            String symbol = r.path("symbol").asString("");
+            if (symbol.isBlank()) continue;
+            out.add(new SymbolMatch(symbol, r.path("name").asString(symbol), r.path("exchange").asString("")));
+        }
+        return out;
+    }
+
     private static String str(Object v, String fallback) {
         return v instanceof String s && !s.isBlank() ? s : fallback;
     }

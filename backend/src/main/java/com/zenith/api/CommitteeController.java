@@ -7,6 +7,7 @@ import com.zenith.committee.CommitteeGate;
 import com.zenith.committee.CommitteeService;
 import com.zenith.config.ZenithProperties;
 import com.zenith.data.DataException;
+import com.zenith.data.SymbolSearch;
 import com.zenith.json.Json;
 import com.zenith.llm.LlmException;
 import com.zenith.tape.TapeService;
@@ -49,9 +50,10 @@ public class CommitteeController {
     private final ThesisService thesis;
     private final AskService ask;
     private final TapeService tape;
+    private final SymbolSearch symbols;
 
     public CommitteeController(CommitteeService committee, CommitteeGate gate, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard,
-            TrackRecordService trackRecord, ThesisService thesis, AskService ask, TapeService tape) {
+            TrackRecordService trackRecord, ThesisService thesis, AskService ask, TapeService tape, SymbolSearch symbols) {
         this.committee = committee;
         this.gate = gate;
         this.props = props;
@@ -60,6 +62,7 @@ public class CommitteeController {
         this.thesis = thesis;
         this.ask = ask;
         this.tape = tape;
+        this.symbols = symbols;
     }
 
     public record CommitteeRequest(String ticker, Boolean rebuttals) {}
@@ -116,6 +119,12 @@ public class CommitteeController {
     @GetMapping("/tape")
     public ResponseEntity<String> tape() {
         return json(200, tape.rows());
+    }
+
+    /** Finds US-listed stocks by ticker or company name ("sandisk" → SNDK), for the search box's suggestions. */
+    @GetMapping("/search")
+    public ResponseEntity<String> search(@RequestParam(name = "q", required = false) String q) {
+        return json(200, symbols.search(q));
     }
 
     /** Every decision the chair has made, scored against the market at 7, 30 and 90 days. */
