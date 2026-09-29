@@ -103,7 +103,8 @@ export function ComparePage({ onFile, onOpen }: Props) {
   const done = !running && lp.finished && rp.finished && Boolean(ruling(left.state, lp) && ruling(right.state, rp));
   const pick = done ? preferred(left.state, right.state) : null;
   const rows = done ? metricRows(left.state, right.state) : [];
-  const pairs = onFile.length >= 2 ? [[onFile[0], onFile[1]], ...(onFile.length >= 4 ? [[onFile[2], onFile[3]]] : [])] : [];
+  // The stocks on file in twos (AAPL vs NVDA, JPM vs TSLA, ...), at most three pairs: each replays for free.
+  const pairs = Array.from({ length: Math.min(3, Math.floor(onFile.length / 2)) }, (_, i) => [onFile[2 * i], onFile[2 * i + 1]]);
 
   const da = duration(left.state);
   const db = duration(right.state);

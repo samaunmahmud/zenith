@@ -53,4 +53,4 @@ zenith:
     dir: ${CACHE_DIR:}
     ttl-hours: ${CACHE_TTL_HOURS:12}
   demo-mode: ${DEMO_MODE:false}
-  demo-tickers: ${DEMO_TICKERS:AAPL,NVDA,JPM,TSLA}
+  demo-tickers: ${DEMO_TICKERS:AAPL,NVDA,JPM,TSLA,GOOGL,MSFT,AMD}

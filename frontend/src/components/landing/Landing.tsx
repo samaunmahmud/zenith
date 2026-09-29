@@ -95,7 +95,7 @@ export function Landing({ config, health, onConvene, onPage }: Props) {
                 onKeyDown={suggest.onKeyDown} onFocus={() => suggest.setOpen(true)} onBlur={() => suggest.setOpen(false)}
                 role="combobox" aria-expanded={suggest.shown} aria-controls="hero-suggest" aria-autocomplete="list"
                 aria-activedescendant={suggest.active >= 0 ? `hero-suggest-${suggest.active}` : undefined}
-                placeholder="Ticker or company, e.g. NVDA or Sandisk" maxLength={40} autoComplete="off" spellCheck={false} autoFocus />
+                placeholder="Ticker or company, e.g. NVDA" maxLength={40} autoComplete="off" spellCheck={false} autoFocus />
               <button className="btn btn-primary" type="submit"><span>Convene<span className="hide-sm"> the committee</span></span></button>
             </form>
             {suggest.shown && <SuggestList id="hero-suggest" matches={suggest.matches} active={suggest.active} onPick={(m) => onConvene(m.symbol, rebuttals)} />}
