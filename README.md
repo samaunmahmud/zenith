@@ -17,14 +17,14 @@ Built for the **Nebius x NVIDIA Global AI Hackathon** (Best Apps and Agents trac
 
 **Live demo:** _coming soon_ · **Demo video:** _coming soon_
 
-![The session screen: every Nemotron call in a process monitor with its model, time, tokens and cost; the session log with traced figures highlighted; the Ultra chair's BUY at 75% confidence with its reasons and the dissent on the record](docs/screenshots/terminal.png)
+![The session screen: the Nemotron Ultra chair's BUY at 72% confidence with its reasons, each tagged with the analyst it came from, and the dissent on the record; below, the three analyst cards with traced figures highlighted](docs/screenshots/session.png)
 
 <details>
 <summary>The landing console, and head to head in the light theme</summary>
 
-![The landing page: start-up checks stating which Nemotron model holds which seat, a command prompt, and the stocks on file with their last recorded close and latest call](docs/screenshots/landing.png)
+![The landing page: one search box to convene the committee, a live diagram of which Nemotron model holds each seat, and a status strip checked from the real config](docs/screenshots/landing.png)
 
-![Two committees in parallel: JPM ruled HOLD, TSLA ruled SELL, each with its own process monitor and analyst stances](docs/screenshots/head-to-head.png)
+![Two committees in parallel: JPM ruled HOLD, TSLA ruled SELL, each with its ruling, dissent and analyst stances](docs/screenshots/head-to-head.png)
 
 </details>
 
@@ -60,7 +60,7 @@ flowchart LR
 6. **The chair (Ultra)** decides. It must name the analyst behind each part of its reasoning, and it must record the strongest dissent.
 7. **Memo.** The memo is assembled **in code** from the structured outputs, so its tables and disclaimer can't be hallucinated. You can download it as Markdown.
 
-The UI is a trading-terminal view of the session: a process monitor shows each Nemotron call running (model, time, tokens, cost), a session log prints what each agent said as it finishes, and the ruling lands with its confidence and dissent. Live runs stream over Server-Sent Events; a saved session is replayed from its recorded per-call timings, labelled as a replay.
+The session screen leads with the verdict. While the committee works, a progress banner shows each stage; three analyst cards fill in as each report lands (stance, confidence, headline, key points, rebuttal); and a pipeline chart draws every Nemotron call on one time axis, coloured by tier, with its time, tokens and cost. Then the chair's ruling lands with its confidence, the reasons (each tagged with the analyst it came from) and the dissent. Live runs stream over Server-Sent Events; a saved session is replayed from its recorded per-call timings, labelled as a replay.
 
 8. **Ask the committee.** After the ruling, visitors can question the session in a chat. The secretary (Super) answers only from that session's figures, reports and ruling; cited figures are checked like the analysts' evidence (an invented value is sent back for one retry), and any figure in the prose that isn't in the session is flagged on the page.
 
