@@ -17,12 +17,14 @@ Built for the **Nebius x NVIDIA Global AI Hackathon** (Best Apps and Agents trac
 
 **Live demo:** _coming soon_ · **Demo video:** _coming soon_
 
-![The boardroom: five Nemotron models and a Java clerk around the table, the chair's BUY stamped in the centre, and the minutes on the right](docs/screenshots/boardroom.png)
+![The session screen: every Nemotron call in a process monitor with its model, time, tokens and cost; the session log with traced figures highlighted; the Ultra chair's BUY at 75% confidence with its reasons and the dissent on the record](docs/screenshots/terminal.png)
 
 <details>
-<summary>Head to head: two committees in parallel (light theme)</summary>
+<summary>The landing console and head to head (light theme)</summary>
 
-![Two committees side by side: JPM stamped HOLD, TSLA stamped SELL](docs/screenshots/head-to-head.png)
+![The landing page: start-up checks stating which Nemotron model holds which seat, a command prompt, and the stocks on file with their last recorded close and latest call](docs/screenshots/landing.png)
+
+![Two committees in parallel: JPM ruled HOLD, TSLA ruled SELL, each with its own process monitor and analyst stances](docs/screenshots/head-to-head.png)
 
 </details>
 
