@@ -1,0 +1,17 @@
+# Core
+google-genai>=1.50      # Gemini SDK (the "brain", and the default speech-to-text)
+pydantic>=2.7           # validates Gemini's JSON replies
+python-dotenv>=1.0      # loads API keys from .env
+numpy>=1.26
+
+# Audio in: sounddevice ships PortAudio inside its macOS wheel, so no Homebrew step is needed
+sounddevice>=0.5
+pynput>=1.8.1           # global push-to-talk hotkey (1.8+ fixes crashes on recent macOS)
+
+# macOS automation: keystroke typing (app control uses the built-in osascript)
+pyautogui>=0.9.54
+
+# Optional speech-to-text backends (install the one you choose with STT_BACKEND)
+openai>=1.40            # STT_BACKEND=openai   (Whisper API)
+SpeechRecognition>=3.10 # STT_BACKEND=google   (free Google Web Speech)
+# faster-whisper>=1.1   # STT_BACKEND=local    (offline) - uncomment or: pip install faster-whisper

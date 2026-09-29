@@ -17,3 +17,6 @@ frontend/dist/
 .idea/
 .vscode/
 .DS_Store
+
+# Standalone Python voice assistant (not part of the image)
+voice-assistant/
