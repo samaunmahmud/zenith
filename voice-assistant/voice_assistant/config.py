@@ -13,7 +13,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-STT_BACKENDS = ("gemini", "openai", "local", "google")
+# "gemini-direct" sends the audio straight to the brain (one API call per command); the
+# others transcribe first and then send the text.
+STT_BACKENDS = ("gemini-direct", "gemini", "openai", "local", "google")
 PTT_MODES = ("hold", "toggle")
 
 
@@ -62,7 +64,7 @@ class Config:
     history_turns: int = 6  # previous exchanges sent for follow-ups ("make it shorter")
 
     # --- Speech-to-text ---
-    stt_backend: str = "gemini"
+    stt_backend: str = "gemini-direct"
     language: str = "en"
     openai_api_key: str | None = None
     openai_stt_model: str = "whisper-1"

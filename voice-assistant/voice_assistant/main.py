@@ -4,11 +4,13 @@ Run with ``python -m voice_assistant`` (see ``--help``). Every stage logs a numb
 so you can follow what the assistant is doing in real time::
 
     [1/4] 🎙  Listening... (release to finish)
-    [2/4] 📝 Transcribing 2.1s of audio with gemini
-    [2/4] 📝 Heard: "open spotify"
-    [3/4] 🧠 Thinking...
-    [3/4] 🧠 Intent OPEN_APP (confidence 0.98) in 0.62s
-    [4/4] ⚙️  Opening Spotify (/Applications/Spotify.app)
+    [2/4] 🧠 Sending 1.6s of audio to Gemini (transcribe + decide in one call)
+    [3/4] 🧠 Thinking... (frontmost: Notes)
+    [3/4] 📝 Heard: "Open Spotify."
+    [3/4] 🧠 Intent OPEN_APP (confidence 0.98) in 0.81s
+    [4/4] ⚙️  Opening app 'Spotify'
+
+(With a separate STT backend, step 2 logs "Transcribing ..." and "Heard: ..." instead.)
 """
 
 from __future__ import annotations
@@ -24,6 +26,7 @@ from .ai_client import AIServiceError, AssistantAction, GeminiBrain, Intent
 from .audio import AudioClip, MicrophoneError, PushToTalk, Recorder
 from .config import STT_BACKENDS, Config, ConfigError
 from .mac_controller import AutomationError, FrontApp, MacController
+from .permissions import warn_about_missing_permissions
 from .stt import Transcriber, TranscriptionError, build_transcriber
 
 log = logging.getLogger("voice_assistant")
@@ -52,16 +55,27 @@ class Assistant:
     # ------------------------------------------------------------------ pipeline
 
     def handle_clip(self, clip: AudioClip) -> None:
-        """Steps 2-4 for one recording. Never raises: every failure is reported to the user."""
+        """Steps 2-4 for one recording. Never raises: every failure is reported to the user.
+
+        With no transcriber (``STT_BACKEND=gemini-direct``) the audio goes straight to
+        Gemini, which transcribes and decides in one call.
+        """
         if clip.duration < self.config.min_record_seconds:
             log.info("[2/4] Recording too short (%.2fs); ignoring. Hold the hotkey while you speak.", clip.duration)
             return
         if clip.rms < self.config.silence_rms_threshold:
-            log.info("[2/4] Only silence recorded (level %.4f); ignoring. Is the right microphone selected?", clip.rms)
+            log.info(
+                "[2/4] Only silence recorded (level %.4f). Check the input device and that your terminal has "
+                "Microphone permission (macOS records silence when it's denied).", clip.rms,
+            )
             self._say_error("I didn't hear anything.")
             return
 
-        assert self.transcriber is not None, "voice mode needs a transcriber"
+        if self.transcriber is None:
+            log.info("[2/4] 🧠 Sending %.1fs of audio to Gemini (transcribe + decide in one call)", clip.duration)
+            self._decide_and_act(clip=clip)
+            return
+
         log.info("[2/4] 📝 Transcribing %.1fs of audio with %s", clip.duration, self.transcriber.name)
         started = time.perf_counter()
         try:
@@ -83,12 +97,19 @@ class Assistant:
         self.handle_command(transcript)
 
     def handle_command(self, transcript: str) -> None:
-        """Steps 3-4: ask Gemini what to do, then do it. Never raises."""
+        """Steps 3-4 for a text command: ask Gemini what to do, then do it. Never raises."""
+        self._decide_and_act(transcript=transcript)
+
+    def _decide_and_act(self, *, transcript: str | None = None, clip: AudioClip | None = None) -> None:
         front = self.mac.frontmost_app()
         log.info("[3/4] 🧠 Thinking...%s", f" (frontmost: {front.name})" if front else "")
+        frontmost = front.name if front else None
         started = time.perf_counter()
         try:
-            action = self.brain.decide(transcript, frontmost_app=front.name if front else None)
+            if clip is not None:
+                action = self.brain.decide_audio(clip.to_wav_bytes(), frontmost_app=frontmost)
+            else:
+                action = self.brain.decide(transcript or "", frontmost_app=frontmost)
         except AIServiceError as exc:
             log.error("[3/4] Gemini failed: %s", exc)
             self._say_error(exc.user_message)
@@ -97,10 +118,15 @@ class Assistant:
             log.exception("[3/4] Unexpected error talking to Gemini")
             self._say_error("Something went wrong while thinking about that.")
             return
-        log.info(
-            "[3/4] 🧠 Intent %s (confidence %.2f) in %.2fs",
-            action.intent.value, action.confidence, time.perf_counter() - started,
-        )
+        elapsed = time.perf_counter() - started
+
+        if clip is not None:
+            if not action.transcript:
+                log.info("[3/4] No intelligible speech recognised (%.2fs).", elapsed)
+                self._say_error("Sorry, I didn't catch that.")
+                return
+            log.info('[3/4] 📝 Heard: "%s"', action.transcript)
+        log.info("[3/4] 🧠 Intent %s (confidence %.2f) in %.2fs", action.intent.value, action.confidence, elapsed)
 
         try:
             self.execute(action, front)
@@ -161,6 +187,8 @@ class Assistant:
 
     def run_voice(self) -> None:
         """Push-to-talk loop: blocks until Ctrl+C."""
+        if sys.platform == "darwin" and not self.config.dry_run:
+            warn_about_missing_permissions()
         recorder = Recorder(self.config.sample_rate, self.config.max_record_seconds)
 
         def on_start() -> None:
@@ -223,6 +251,7 @@ def setup_logging(level: str) -> None:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="voice_assistant", description="Push-to-talk macOS voice assistant powered by Gemini.")
+    parser.add_argument("--doctor", action="store_true", help="check permissions, microphone, packages and API key, then exit")
     parser.add_argument("--text", action="store_true", help="type commands in the terminal instead of speaking")
     parser.add_argument("--stt", choices=STT_BACKENDS, help="speech-to-text backend (overrides STT_BACKEND)")
     parser.add_argument("--hotkey", help="push-to-talk key, e.g. alt_r, cmd_r, f8 (overrides HOTKEY)")
@@ -237,6 +266,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point. Returns a process exit code."""
     args = parse_args(argv)
+    if args.doctor:
+        from .doctor import run_doctor
+
+        setup_logging("DEBUG" if args.debug else "WARNING")
+        return run_doctor()
     try:
         config = Config.from_env(args.env_file).with_overrides(
             stt_backend=args.stt,

@@ -123,3 +123,21 @@ def test_invalid_key_reported_as_400_gets_key_message():
     with pytest.raises(AIServiceError) as info:
         brain.decide("hello")
     assert "API key" in info.value.user_message
+
+
+def test_decide_audio_sends_wav_and_remembers_the_transcript():
+    reply = json.dumps({"transcript": "Open Notes.", "intent": "OPEN_APP", "app_name": "Notes", "confidence": 0.9})
+    follow = json.dumps({"transcript": None, "intent": "ANSWER_QUESTION", "answer": "Sure.", "confidence": 0.9})
+    brain, models = fake_brain([reply, follow])
+    action = brain.decide_audio(b"RIFF....WAVE")
+    assert action.transcript == "Open Notes." and action.app_name == "Notes"
+    parts = models.calls[0]["contents"][-1].parts
+    assert any(p.inline_data and p.inline_data.mime_type == "audio/wav" for p in parts)
+    brain.decide("thanks")
+    history = models.calls[1]["contents"]
+    assert history[0].parts[0].text == "Open Notes."  # text, not the audio, is kept
+
+
+def test_downgrade_to_unclear_keeps_the_transcript():
+    action = parse_action('{"transcript":"open the","intent":"OPEN_APP","app_name":null,"confidence":0.4}')
+    assert action.intent is Intent.UNCLEAR and action.transcript == "open the"

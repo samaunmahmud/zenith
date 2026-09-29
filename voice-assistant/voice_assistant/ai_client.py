@@ -63,12 +63,13 @@ class AssistantAction(BaseModel):
     """A validated decision from the model."""
 
     intent: Intent
+    transcript: str | None = None  # what was heard, when the command arrived as audio
     app_name: str | None = None  # OPEN_APP target, or the app to write in for WRITE_TEXT
     text: str | None = None  # WRITE_TEXT: exactly what to type
     answer: str | None = None  # ANSWER_QUESTION reply or UNCLEAR clarifying question
     confidence: float = 1.0
 
-    @field_validator("app_name", "text", "answer", mode="before")
+    @field_validator("transcript", "app_name", "text", "answer", mode="before")
     @classmethod
     def _blank_to_none(cls, value: object) -> object:
         if isinstance(value, str) and value.strip() == "":
@@ -86,13 +87,16 @@ class AssistantAction(BaseModel):
     @model_validator(mode="after")
     def _require_payload(self) -> AssistantAction:
         """Downgrade actions that are missing the field they need to UNCLEAR."""
+        question = None
         if self.intent is Intent.OPEN_APP and not self.app_name:
-            return AssistantAction(intent=Intent.UNCLEAR, answer="Which app should I open?", confidence=0.0)
-        if self.intent is Intent.WRITE_TEXT and not self.text:
-            return AssistantAction(intent=Intent.UNCLEAR, answer="What would you like me to write?", confidence=0.0)
-        if self.intent in (Intent.ANSWER_QUESTION, Intent.UNCLEAR) and not self.answer:
-            return AssistantAction(intent=Intent.UNCLEAR, answer="Sorry, could you say that again?", confidence=0.0)
-        return self
+            question = "Which app should I open?"
+        elif self.intent is Intent.WRITE_TEXT and not self.text:
+            question = "What would you like me to write?"
+        elif self.intent in (Intent.ANSWER_QUESTION, Intent.UNCLEAR) and not self.answer:
+            question = "Sorry, could you say that again?"
+        if question is None:
+            return self
+        return AssistantAction(intent=Intent.UNCLEAR, transcript=self.transcript, answer=question, confidence=0.0)
 
 
 SYSTEM_PROMPT = """\
@@ -129,6 +133,8 @@ acting could do the wrong thing.
 confidence: 0.0-1.0, how sure you are about the intent.
 Only fill the fields the chosen intent uses; set the others to null.
 
+transcript: when the command arrives as AUDIO, first write down exactly what was said (verbatim, with punctuation), then decide as if that were the text. If the audio holds no intelligible speech, set transcript to "" and use UNCLEAR. When the command arrives as text, set transcript to null.
+
 Examples:
 "open safari" -> {"intent":"OPEN_APP","app_name":"Safari","text":null,"answer":null,"confidence":0.98}
 "launch v s code" -> {"intent":"OPEN_APP","app_name":"Visual Studio Code","text":null,"answer":null,"confidence":0.95}
@@ -139,11 +145,12 @@ Examples:
 """
 
 # Explicit schema (rather than letting the SDK derive one from Pydantic) keeps the request
-# stable across SDK versions. property_ordering makes the model decide `intent` first.
+# stable across SDK versions.
 _NULLABLE_STRING = types.Schema(type=types.Type.STRING, nullable=True)
 RESPONSE_SCHEMA = types.Schema(
     type=types.Type.OBJECT,
     properties={
+        "transcript": _NULLABLE_STRING,
         "intent": types.Schema(type=types.Type.STRING, enum=[i.value for i in Intent]),
         "app_name": _NULLABLE_STRING,
         "text": _NULLABLE_STRING,
@@ -151,7 +158,8 @@ RESPONSE_SCHEMA = types.Schema(
         "confidence": types.Schema(type=types.Type.NUMBER),
     },
     required=["intent", "confidence"],
-    property_ordering=["intent", "app_name", "text", "answer", "confidence"],
+    # Transcribe first, then decide: the model reasons in the order it writes.
+    property_ordering=["transcript", "intent", "app_name", "text", "answer", "confidence"],
 )
 
 _RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
@@ -234,7 +242,7 @@ class GeminiBrain:
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
         )
 
-    def _contents(self, transcript: str, frontmost_app: str | None) -> list[types.Content]:
+    def _contents(self, user_parts: list[types.Part], frontmost_app: str | None) -> list[types.Content]:
         contents: list[types.Content] = []
         for user_text, model_json in self._history:
             contents.append(types.Content(role="user", parts=[types.Part(text=user_text)]))
@@ -243,14 +251,14 @@ class GeminiBrain:
         if frontmost_app:
             context += f". Frontmost app: {frontmost_app}"
         context += "]"
-        contents.append(types.Content(role="user", parts=[types.Part(text=f"{context}\n{transcript}")]))
+        contents.append(types.Content(role="user", parts=[types.Part(text=context), *user_parts]))
         return contents
 
     def decide(self, transcript: str, frontmost_app: str | None = None) -> AssistantAction:
-        """Classify ``transcript`` and generate its payload.
+        """Classify a text command and generate its payload.
 
         Args:
-            transcript: What the user said.
+            transcript: What the user said (or typed).
             frontmost_app: The app in focus, given to the model as context (helps it pick
                 e.g. code vs. prose for "write a function that...").
 
@@ -258,11 +266,31 @@ class GeminiBrain:
             AIServiceError: The API failed after retries (quota, auth, network...).
             IntentParseError: The reply couldn't be turned into an action.
         """
+        return self._decide([types.Part(text=transcript)], transcript, frontmost_app)
 
+    def decide_audio(self, wav_bytes: bytes, frontmost_app: str | None = None) -> AssistantAction:
+        """Transcribe *and* decide in a single call by sending the recording itself.
+
+        This skips the separate speech-to-text round trip, which is the biggest single
+        latency saving available. The heard words come back in ``action.transcript``
+        (``None`` or ``""`` means nothing intelligible was said).
+
+        Raises:
+            AIServiceError / IntentParseError: As for :meth:`decide`.
+        """
+        parts = [
+            types.Part(text="The command is in this audio recording:"),
+            types.Part.from_bytes(data=wav_bytes, mime_type="audio/wav"),
+        ]
+        return self._decide(parts, None, frontmost_app)
+
+    def _decide(
+        self, user_parts: list[types.Part], transcript: str | None, frontmost_app: str | None
+    ) -> AssistantAction:
         def request() -> types.GenerateContentResponse:
             return self.client.models.generate_content(
                 model=self._config.gemini_model,
-                contents=self._contents(transcript, frontmost_app),
+                contents=self._contents(user_parts, frontmost_app),
                 config=self._generation_config(),
             )
 
@@ -284,7 +312,10 @@ class GeminiBrain:
             raise IntentParseError("Sorry, I didn't get an answer. Please try again.", detail=f"Empty reply ({reason})")
 
         action = parse_action(raw)
-        self._history.append((transcript, raw))
+        # History stores text only (never audio) so follow-up requests stay small and fast.
+        heard = transcript if transcript is not None else action.transcript
+        if heard:
+            self._history.append((heard, raw))
         return action
 
     def clear_history(self) -> None:

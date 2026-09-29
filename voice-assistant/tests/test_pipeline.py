@@ -23,6 +23,9 @@ class FakeBrain:
             raise self.result
         return self.result
 
+    def decide_audio(self, wav_bytes, frontmost_app=None):
+        return self.decide(("audio", len(wav_bytes)), frontmost_app)
+
 
 class FakeMac:
     def __init__(self, open_error=None):
@@ -141,3 +144,18 @@ def test_wav_encoding_round_trip():
 
     with wave.open(io.BytesIO(loud_clip(0.5).to_wav_bytes())) as wav:
         assert (wav.getframerate(), wav.getnchannels(), wav.getnframes()) == (16_000, 1, 8_000)
+
+
+def test_direct_audio_mode_sends_the_recording_to_the_brain():
+    mac = FakeMac()
+    brain = FakeBrain(AssistantAction(intent=Intent.OPEN_APP, transcript="Open Safari.", app_name="Safari", confidence=0.9))
+    Assistant(CONFIG, brain, mac, transcriber=None).handle_clip(loud_clip())
+    assert brain.seen[0][0] == "audio"
+    assert ("open", "Safari") in mac.events
+
+
+def test_direct_audio_mode_with_no_speech_does_not_act():
+    mac = FakeMac()
+    brain = FakeBrain(AssistantAction(intent=Intent.UNCLEAR, transcript="", answer="Sorry?", confidence=0.1))
+    Assistant(CONFIG, brain, mac, transcriber=None).handle_clip(loud_clip())
+    assert ("speak", "Sorry, I didn't catch that.") in mac.events

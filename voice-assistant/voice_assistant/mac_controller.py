@@ -33,7 +33,8 @@ from typing import Any
 log = logging.getLogger(__name__)
 
 # Spoken nicknames -> the app's real name. Keys are already normalised (see _normalise).
-APP_ALIASES: dict[str, str] = {
+# A tuple lists candidates in order of preference; the first one installed wins.
+APP_ALIASES: dict[str, str | tuple[str, ...]] = {
     "vs code": "Visual Studio Code",
     "vscode": "Visual Studio Code",
     "code": "Visual Studio Code",
@@ -48,9 +49,11 @@ APP_ALIASES: dict[str, str] = {
     "outlook": "Microsoft Outlook",
     "teams": "Microsoft Teams",
     "onenote": "Microsoft OneNote",
-    "settings": "System Settings",
-    "system preferences": "System Settings",
-    "preferences": "System Settings",
+    # Renamed from System Preferences in macOS 13.
+    "settings": ("System Settings", "System Preferences"),
+    "system settings": ("System Settings", "System Preferences"),
+    "system preferences": ("System Settings", "System Preferences"),
+    "preferences": ("System Settings", "System Preferences"),
     "iterm": "iTerm",
     "iterm2": "iTerm",
     "zoom": "zoom.us",
@@ -82,6 +85,8 @@ APP_DIRECTORIES: tuple[Path, ...] = (
     Path("/System/Applications/Utilities"),
     Path.home() / "Applications",
     Path.home() / "Applications/Chrome Apps.localized",
+    # Since macOS 13, Safari's real bundle lives in a cryptex; /Applications has a stub.
+    Path("/System/Volumes/Preboot/Cryptexes/App/System/Applications"),
 )
 # Finder lives outside the normal folders.
 EXTRA_APPS: tuple[Path, ...] = (Path("/System/Library/CoreServices/Finder.app"),)
@@ -292,9 +297,10 @@ class MacController:
         if not query:
             raise AppNotFoundError(spoken_name, [])
 
-        alias = APP_ALIASES.get(query)
-        if alias and _normalise(alias) in by_norm:
-            return by_norm[_normalise(alias)]
+        alias = APP_ALIASES.get(query, ())
+        for candidate in (alias,) if isinstance(alias, str) else alias:
+            if _normalise(candidate) in by_norm:
+                return by_norm[_normalise(candidate)]
         if query in by_norm:
             return by_norm[query]
 
@@ -427,14 +433,14 @@ class MacController:
             raise AutomationError("Typing stopped because the mouse hit a screen corner.", detail=str(exc)) from exc
 
     def _paste(self, text: str) -> None:
-        env = {**os.environ, "LANG": "en_US.UTF-8"}  # pbcopy/pbpaste need UTF-8 for non-ASCII
-        previous = self._run(["pbpaste"], capture_output=True, text=True, env=env, check=False).stdout
-        self._run(["pbcopy"], input=text, text=True, env=env, check=True)
+        clipboard = _Clipboard(self._run)
+        snapshot = clipboard.snapshot()
+        clipboard.set_text(text)
         try:
             self.run_applescript(_PASTE)
-            time.sleep(0.3)  # give the target app time to read the clipboard
+            time.sleep(0.5)  # give the target app time to read the clipboard before restoring it
         finally:
-            self._run(["pbcopy"], input=previous or "", text=True, env=env, check=False)
+            clipboard.restore(snapshot)
 
     # ------------------------------------------------------------------ audio out
 
@@ -472,3 +478,66 @@ class MacController:
             self._popen(["afplay", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except OSError:
             pass
+
+
+class _Clipboard:
+    """Save, replace and restore the general pasteboard.
+
+    With PyObjC's AppKit (installed alongside ``pyautogui`` on macOS) *every* type on the
+    clipboard is saved, so an image, file or rich text you copied survives the paste.
+    Without it, ``pbcopy``/``pbpaste`` are used, which only round-trip plain text.
+    """
+
+    def __init__(self, runner: Callable[..., subprocess.CompletedProcess[str]]) -> None:
+        self._run = runner
+        self._env = {**os.environ, "LANG": "en_US.UTF-8"}  # pbcopy/pbpaste need UTF-8 for non-ASCII
+        try:
+            import AppKit  # type: ignore[import-not-found]
+
+            self._appkit: Any = AppKit
+        except ImportError:
+            self._appkit = None
+
+    def snapshot(self) -> Any:
+        """Capture the current clipboard contents."""
+        if self._appkit is not None:
+            try:
+                board = self._appkit.NSPasteboard.generalPasteboard()
+                items = []
+                for item in board.pasteboardItems() or []:
+                    data = {str(kind): item.dataForType_(kind) for kind in item.types()}
+                    items.append({kind: value for kind, value in data.items() if value is not None})
+                return ("appkit", items)
+            except Exception as exc:  # noqa: BLE001 - fall back to plain text below
+                log.debug("AppKit clipboard snapshot failed: %s", exc)
+        result = self._run(["pbpaste"], capture_output=True, text=True, env=self._env, check=False)
+        return ("text", result.stdout or "")
+
+    def set_text(self, text: str) -> None:
+        """Put ``text`` on the clipboard."""
+        if self._appkit is not None:
+            board = self._appkit.NSPasteboard.generalPasteboard()
+            board.clearContents()
+            if board.setString_forType_(text, self._appkit.NSPasteboardTypeString):
+                return
+        self._run(["pbcopy"], input=text, text=True, env=self._env, check=True)
+
+    def restore(self, snapshot: Any) -> None:
+        """Put back what :meth:`snapshot` captured. Never raises."""
+        kind, payload = snapshot
+        try:
+            if kind == "appkit":
+                board = self._appkit.NSPasteboard.generalPasteboard()
+                board.clearContents()
+                restored = []
+                for entry in payload:
+                    item = self._appkit.NSPasteboardItem.alloc().init()
+                    for data_type, data in entry.items():
+                        item.setData_forType_(data, data_type)
+                    restored.append(item)
+                if restored:
+                    board.writeObjects_(restored)
+            else:
+                self._run(["pbcopy"], input=payload, text=True, env=self._env, check=False)
+        except Exception as exc:  # noqa: BLE001 - losing the old clipboard is not worth crashing over
+            log.warning("Couldn't restore the previous clipboard: %s", exc)

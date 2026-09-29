@@ -1,14 +1,17 @@
 """Speech-to-text backends behind one small interface.
 
-=========  ==============================  ============================================
-Backend    Needs                           Notes
-=========  ==============================  ============================================
-gemini     GEMINI_API_KEY (already set)    Default. One key for everything; good accuracy.
-openai     OPENAI_API_KEY                  OpenAI Whisper API; very accurate, ~$0.006/min.
-local      ``pip install faster-whisper``  Fully offline. First run downloads the model.
-google     nothing                         Free Google Web Speech via SpeechRecognition;
-                                           rate-limited, fine for experimenting.
-=========  ==============================  ============================================
+=============  ==============================  ========================================
+Backend        Needs                           Notes
+=============  ==============================  ========================================
+gemini-direct  GEMINI_API_KEY (already set)    Default. No separate STT step: the audio
+                                               goes straight to the brain in one call
+                                               (see GeminiBrain.decide_audio).
+gemini         GEMINI_API_KEY (already set)    Separate Gemini transcription call.
+openai         OPENAI_API_KEY                  OpenAI Whisper API; very accurate.
+local          ``pip install faster-whisper``  Fully offline. First run downloads the model.
+google         nothing                         Free Google Web Speech (SpeechRecognition);
+                                               rate-limited, fine for experimenting.
+=============  ==============================  ========================================
 
 Every backend returns ``""`` when it heard nothing intelligible and raises
 :class:`TranscriptionError` when the service itself failed.
@@ -189,8 +192,13 @@ class GoogleWebSpeechTranscriber:
             raise TranscriptionError("Google speech recognition is unavailable right now.", detail=str(exc)) from exc
 
 
-def build_transcriber(config: Config, gemini_client: Any = None) -> Transcriber:
-    """Instantiate the backend named by ``config.stt_backend``."""
+def build_transcriber(config: Config, gemini_client: Any = None) -> Transcriber | None:
+    """Instantiate the backend named by ``config.stt_backend``.
+
+    Returns ``None`` for ``gemini-direct``, where no separate transcriber is used.
+    """
+    if config.stt_backend == "gemini-direct":
+        return None
     if config.stt_backend == "gemini":
         if gemini_client is None:
             raise ValueError("The gemini STT backend needs the shared Gemini client")

@@ -109,3 +109,45 @@ def test_scan_applications(tmp_path):
     (tmp_path / "readme.txt").write_text("x")
     names = [app.name for app in scan_applications([tmp_path], extra=[])]
     assert names == ["Bar", "Foo"]
+
+
+def test_plain_text_clipboard_fallback_restores_previous_contents():
+    from voice_assistant.mac_controller import _Clipboard
+
+    calls = []
+
+    def runner(cmd, **kwargs):
+        calls.append((cmd[0], kwargs.get("input")))
+        return subprocess.CompletedProcess(cmd, 0, "old clipboard" if cmd[0] == "pbpaste" else "", "")
+
+    clipboard = _Clipboard(runner)
+    clipboard._appkit = None  # force the pbcopy/pbpaste path
+    snapshot = clipboard.snapshot()
+    clipboard.set_text("new text")
+    clipboard.restore(snapshot)
+    assert calls == [("pbpaste", None), ("pbcopy", "new text"), ("pbcopy", "old clipboard")]
+
+
+def test_paste_restores_clipboard_even_if_the_keystroke_fails(monkeypatch):
+    from voice_assistant import mac_controller
+
+    events = []
+
+    class FakeClipboard:
+        def __init__(self, _runner):
+            pass
+
+        def snapshot(self):
+            return "saved"
+
+        def set_text(self, text):
+            events.append(("set", text))
+
+        def restore(self, snapshot):
+            events.append(("restore", snapshot))
+
+    monkeypatch.setattr(mac_controller, "_Clipboard", FakeClipboard)
+    mac = controller(FakeRunner(returncode=1, stderr="boom"))
+    with pytest.raises(AutomationError):
+        mac._paste("hello")
+    assert events == [("set", "hello"), ("restore", "saved")]
