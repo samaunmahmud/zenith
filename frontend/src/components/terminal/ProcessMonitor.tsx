@@ -1,5 +1,4 @@
-import { modelName } from "../boardroom/BoardTable";
-import { usd } from "../../lib/format";
+import { modelName, usd } from "../../lib/format";
 import { progressAt, statusAt, totalsAt, type Proc, type ProcStatus } from "../../lib/tape";
 import type { Playback } from "../../hooks/usePlayback";
 import { Panel, TierTag } from "./Panel";
@@ -34,16 +33,16 @@ function Row({ p, t, live }: { p: Proc; t: number; live: boolean }) {
  * Every process the committee ran, like a system monitor: who, on which model, how long, how many tokens, what it
  * cost. The analysts share a start time because they run in parallel; the round waits for the slowest.
  */
-export function ProcessMonitor({ play }: { play: Playback }) {
+export function ProcessMonitor({ play, id = "prc" }: { play: Playback; id?: string }) {
   const { tape, t, mode } = play;
   const live = mode === "live";
   const tot = totalsAt(tape, t);
   const running = tape.procs.filter((p) => statusAt(p, t) === "running").length;
   return (
-    <Panel code="PRC" title="Process monitor" id="prc"
+    <Panel code="PRC" title="Process monitor" id={id}
       meta={<span className="num">{running > 0 ? <><b className="pos">{running}</b> running · </> : null}{tot.calls} model calls · {tot.tokens.toLocaleString("en-GB")} tok</span>}>
       <div className="table-scroll">
-        <table className="ptable">
+        <table className="ptable pmon">
           <thead>
             <tr><th aria-label="Status" /><th>Process</th><th>Model</th><th aria-label="Progress" /><th className="num">Time</th><th className="num">Out tok</th><th className="num">Cost</th></tr>
           </thead>

@@ -53,7 +53,7 @@ export default function App() {
       {page === "record" ? (
         <TrackRecordPage onOpen={(t) => openTicker(t, false)} />
       ) : page === "compare" ? (
-        <ComparePage agents={config?.agents ?? []} onFile={config?.demoTickers ?? []} onOpen={(t) => openTicker(t, false)} />
+        <ComparePage onFile={config?.demoTickers ?? []} onOpen={(t) => openTicker(t, false)} />
       ) : idle ? (
         <Landing config={config} health={health} onConvene={openTicker} onPage={openPage} />
       ) : (

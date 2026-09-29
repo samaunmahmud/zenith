@@ -1,15 +1,18 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useMeeting, type Meeting } from "../../hooks/useMeeting";
+import { usePlayback, type Playback } from "../../hooks/usePlayback";
 import { useSession } from "../../hooks/useSession";
-import { ANALYSTS, ANALYST_TITLE, secs, usd } from "../../lib/format";
+import { secs, usd } from "../../lib/format";
+import { statusAt } from "../../lib/tape";
 import type { CommitteeState } from "../../state/committee";
-import type { AgentModel } from "../../types";
-import { BoardTable } from "../boardroom/BoardTable";
+import type { ChairDecision } from "../../types";
 import { Term } from "../ui/Term";
+import { Panel, clock } from "../terminal/Panel";
+import { ProcessMonitor } from "../terminal/ProcessMonitor";
+import { StanceBoard } from "../terminal/StanceBoard";
+import { VerdictPanel } from "../terminal/VerdictPanel";
 import { metricRows, preferred } from "./matrix";
 
 interface Props {
-  agents: AgentModel[];
   onFile: string[];
   onOpen: (ticker: string) => void;
 }
@@ -21,43 +24,37 @@ const duration = (s: CommitteeState) => {
   return r?.start !== undefined && r.end !== undefined ? r.end - r.start : null;
 };
 
-/** One side: its own small boardroom, then the ruling in words once the chair's stamp has landed. */
-function Side({ s, m, agents, onOpen }: { s: CommitteeState; m: Meeting; agents: AgentModel[]; onOpen: (t: string) => void }) {
-  const d = m.decision;
+/** The chair's ruling once the tape has reached it (never before), as on the session screen. */
+function ruling(s: CommitteeState, play: Playback): ChairDecision | null {
+  const chair = play.tape.procs.find((p) => p.id === "chair");
+  return chair && statusAt(chair, play.t) === "done" ? s.decision : null;
+}
+
+/** One side: its security line, then the same process monitor, stances and ruling as a full session. */
+function Side({ s, play, side, onOpen }: { s: CommitteeState; play: Playback; side: "a" | "b"; onOpen: (t: string) => void }) {
+  const decision = ruling(s, play);
+  const running = !play.finished && s.status !== "error";
   return (
-    <article className="side card">
-      <header className="side-head">
-        <div>
-          <h2>{s.ticker}</h2>
-          <p className="small muted">{s.snapshot?.companyName ?? " "}</p>
+    <section className="cside" aria-label={`${s.ticker} committee`}>
+      <header className="cside-head">
+        <div className="q-id">
+          <h2 className="q-sym">{s.ticker}</h2>
+          <span className="q-name">{s.snapshot?.companyName ?? (s.status === "error" ? "" : "Loading…")}</span>
         </div>
-        {d && <button type="button" className="btn btn-sm" onClick={() => onOpen(s.ticker)}>Full session</button>}
+        <div className="q-session">
+          <span className={`q-mode ${play.mode === "live" ? "is-live" : "is-replay"} ${running ? "is-running" : ""}`}>
+            <i aria-hidden="true" />{play.mode === "live" ? "LIVE" : `REPLAY ×${play.speed.toFixed(1)}`}
+          </span>
+          <span className="q-clock num" aria-hidden="true">{clock(play.t)}</span>
+          {play.mode === "replay" && !play.finished && <button className="tbtn" onClick={play.skip}>Skip ▸▸</button>}
+          {decision && play.finished && <button className="tbtn" onClick={() => onOpen(s.ticker)}>Full session ▸</button>}
+        </div>
       </header>
-      <div className="card-body stack">
-        <div className="board-compact">
-          <BoardTable agents={s.agents.length ? s.agents : agents} states={m.states} said={m.said} caption={m.caption} decision={d} />
-        </div>
-        {s.status === "error" && !m.pending ? (
-          <div className="notice error"><div>{s.error}</div></div>
-        ) : d ? (
-          <div className="side-ruling">
-            <p className="side-summary">{d.summary}</p>
-            <ul className="side-stances">
-              {ANALYSTS.map((a) => {
-                const r = s.reports[a];
-                return (
-                  <li key={a} className={`id-${a}`}>
-                    <i className="id-mark" aria-hidden="true" />{ANALYST_TITLE[a]}
-                    <span className={r ? `badge ${r.stance}` : "badge"}>{r ? r.stance : "no report"}</span>
-                  </li>
-                );
-              })}
-            </ul>
-            {s.result?.replayed && <p className="xs dim">Decided recently, so this is the saved session (no new cost).</p>}
-          </div>
-        ) : null}
-      </div>
-    </article>
+      {s.status === "error" && play.finished && <div className="notice error"><div>{s.error}</div></div>}
+      <ProcessMonitor play={play} id={`prc-${side}`} />
+      <StanceBoard state={s} play={play} decision={decision} id={`vot-${side}`} />
+      <VerdictPanel state={s} play={play} decision={decision} id={`rul-${side}`} compact />
+    </section>
   );
 }
 
@@ -65,11 +62,11 @@ function Side({ s, m, agents, onOpen }: { s: CommitteeState; m: Meeting; agents:
  * Head to head: two committees sit at the same time, one per stock, and the results are laid out side by side.
  * Each side is an ordinary session (same gate, same reuse, same budget), so a pair decided recently costs nothing.
  */
-export function ComparePage({ agents, onFile, onOpen }: Props) {
+export function ComparePage({ onFile, onOpen }: Props) {
   const left = useSession();
   const right = useSession();
-  const lm = useMeeting(left.state);
-  const rm = useMeeting(right.state);
+  const lp = usePlayback(left.state);
+  const rp = usePlayback(right.state);
   const [a, setA] = useState(() => clean(params().get("a") ?? ""));
   const [b, setB] = useState(() => clean(params().get("b") ?? ""));
   const started = left.state.status !== "idle";
@@ -99,8 +96,8 @@ export function ComparePage({ agents, onFile, onOpen }: Props) {
     convene(a, b);
   };
 
-  // The comparison is laid out once both stamps have landed, not the moment the data arrives.
-  const done = lm.decision && rm.decision && !running && !lm.pending && !rm.pending;
+  // The comparison is laid out once both tapes have played to the end, not the moment the data arrives.
+  const done = !running && lp.finished && rp.finished && Boolean(ruling(left.state, lp) && ruling(right.state, rp));
   const pick = done ? preferred(left.state, right.state) : null;
   const rows = done ? metricRows(left.state, right.state) : [];
   const pairs = onFile.length >= 2 ? [[onFile[0], onFile[1]], ...(onFile.length >= 4 ? [[onFile[2], onFile[3]]] : [])] : [];
@@ -110,110 +107,108 @@ export function ComparePage({ agents, onFile, onOpen }: Props) {
   const bothLive = done && !left.state.result?.replayed && !right.state.result?.replayed && da !== null && db !== null;
   const wall = bothLive ? Math.max(left.state.timing.run!.end!, right.state.timing.run!.end!) - Math.min(left.state.timing.run!.start!, right.state.timing.run!.start!) : null;
   const cost = (left.state.result?.costs.totalUsd ?? 0) + (right.state.result?.costs.totalUsd ?? 0);
+  const winner = pick === "a" ? left.state : pick === "b" ? right.state : null;
+  const loser = pick === "a" ? right.state : pick === "b" ? left.state : null;
 
   return (
-    <main className="container compare">
-      <header className="record-head">
-        <div className="masthead"><span>Head to head</span><span>Two committees, sitting at once</span></div>
-        <h1>Put two stocks on trial.</h1>
-        <p className="lede">
-          Each stock gets its own full committee, running in parallel on Nebius Token Factory. Then the calls, the evidence
-          and the risks are laid side by side.
-        </p>
-      </header>
+    <main className="tx">
+      <div className="container tx-body">
+        <header className="tland-head">
+          <p className="tland-kicker"><span className="tpanel-code">CMP</span> Head to head · two committees in parallel on Nebius Token Factory</p>
+          <h1>Two stocks. Two committees. <em>One screen.</em></h1>
+          <p className="tland-lede">
+            Each stock gets its own full committee, running at the same time. Then the calls, the key figures and the risks
+            are laid side by side. Research and education, not financial advice.
+          </p>
+        </header>
 
-      <form className="versus" onSubmit={submit}>
-        <label className="sr-only" htmlFor="ta">First ticker</label>
-        <input id="ta" value={a} onChange={(e) => setA(e.target.value)} placeholder="NVDA" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
-        <span className="vs" aria-hidden="true">vs</span>
-        <label className="sr-only" htmlFor="tb">Second ticker</label>
-        <input id="tb" value={b} onChange={(e) => setB(e.target.value)} placeholder="AMD" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
-        <button className="btn btn-primary" type="submit" disabled={running || !clean(a) || !clean(b) || clean(a) === clean(b)}>
-          {running ? "In session…" : "Convene both"}
-        </button>
-      </form>
-      <div className="convene-meta">
-        {pairs.length > 0 && (
-          <div className="recent">
-            <span>On file</span>
-            {pairs.map(([x, y]) => (
-              <button key={x + y} type="button" className="ticker-link" disabled={running} onClick={() => convene(x, y)}>{x} vs {y}</button>
-            ))}
+        <Panel code="VS" title="Convene both" id="versus" className="tconsole"
+          meta={<span>about 4¢ for a pair with no recent saved decision; free otherwise</span>}>
+          <form className="con-prompt con-versus" onSubmit={submit}>
+            <span className="con-ps" aria-hidden="true">❯</span>
+            <label className="sr-only" htmlFor="ta">First ticker</label>
+            <input id="ta" value={a} onChange={(e) => setA(e.target.value)} placeholder="NVDA" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
+            <span className="vs-sep" aria-hidden="true">vs</span>
+            <label className="sr-only" htmlFor="tb">Second ticker</label>
+            <input id="tb" value={b} onChange={(e) => setB(e.target.value)} placeholder="AMD" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
+            <button className="tbtn tbtn-go" type="submit" disabled={running || !clean(a) || !clean(b) || clean(a) === clean(b)}>
+              {running ? "In session…" : "Convene ⏎"}
+            </button>
+          </form>
+          {pairs.length > 0 && (
+            <div className="con-foot">
+              <span className="dim">on file</span>
+              {pairs.map(([x, y]) => (
+                <button key={x + y} type="button" className="tchip" disabled={running} onClick={() => convene(x, y)}>{x} vs {y}</button>
+              ))}
+            </div>
+          )}
+        </Panel>
+
+        {started && (
+          <div className="csides">
+            <Side s={left.state} play={lp} side="a" onOpen={onOpen} />
+            <Side s={right.state} play={rp} side="b" onOpen={onOpen} />
           </div>
         )}
-        <span className="xs dim">About 4¢ for two stocks with no recent saved decision; free otherwise.</span>
-      </div>
 
-      {started && (
-        <section className="sides" aria-label="The two committees">
-          <Side s={left.state} m={lm} agents={agents} onOpen={onOpen} />
-          <Side s={right.state} m={rm} agents={agents} onOpen={onOpen} />
-        </section>
-      )}
+        {done && (
+          <>
+            <Panel code="PRF" title="The committees' preference" id="pref" className="cpref" meta="ranked in code, not by a model">
+              {winner && loser ? (
+                <p className="cpref-line">
+                  <b className="q-sym">{winner.ticker}</b>{" "}
+                  <span className={`call-${winner.decision!.recommendation}`}>{winner.decision!.recommendation} {Math.round(winner.decision!.confidence * 100)}%</span>
+                  <span className="dim"> over </span>
+                  <b className="q-sym">{loser.ticker}</b>{" "}
+                  <span className={`call-${loser.decision!.recommendation}`}>{loser.decision!.recommendation} {Math.round(loser.decision!.confidence * 100)}%</span>
+                </p>
+              ) : (
+                <p className="cpref-line"><b>No clear preference.</b> <span className="dim">Both committees reached the same call with the same confidence.</span></p>
+              )}
+              <p className="xs dim">The stronger call wins (BUY, then HOLD, then SELL), then the chair's confidence. Not advice.</p>
+            </Panel>
 
-      {done && (
-        <>
-          <section className={`pick ${pick ? "" : "is-even"}`}>
-            <div className="label">The committees' preference</div>
-            {pick ? (
-              <p>
-                <b>{(pick === "a" ? left : right).state.ticker}</b>: a {(pick === "a" ? left : right).state.decision!.recommendation} at{" "}
-                {Math.round((pick === "a" ? left : right).state.decision!.confidence * 100)}% confidence, against{" "}
-                {(pick === "a" ? right : left).state.decision!.recommendation} at {Math.round((pick === "a" ? right : left).state.decision!.confidence * 100)}%
-                for {(pick === "a" ? right : left).state.ticker}.
-              </p>
-            ) : (
-              <p><b>No clear preference.</b> Both committees reached the same call with the same confidence.</p>
-            )}
-            <p className="xs dim">Ranked in code: the stronger call wins (BUY, then HOLD, then SELL), then the chair's confidence. Not advice.</p>
-          </section>
-
-          <section className="card">
-            <div className="table-wrap">
-              <table className="table matrix">
-                <caption className="sr-only">Key figures side by side</caption>
-                <thead>
-                  <tr><th>Figure</th><th>{left.state.ticker}</th><th>{right.state.ticker}</th><th>Better when</th></tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.label}>
-                      <td><Term label={r.term ?? r.label} /></td>
-                      <td className={`num ${r.edge === "a" ? "is-edge" : ""}`}>{r.a}{r.edge === "a" && <span className="edge-tag">better</span>}</td>
-                      <td className={`num ${r.edge === "b" ? "is-edge" : ""}`}>{r.b}{r.edge === "b" && <span className="edge-tag">better</span>}</td>
-                      <td className="dim small">{r.better ?? "depends"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section className="sides">
-            {[left.state, right.state].map((s) => (
-              <div className="card" key={s.ticker}>
-                <div className="card-head"><h2>{s.ticker}: what could go wrong</h2></div>
-                <div className="card-body stack">
-                  <ul className="events">{s.decision!.keyRisks.map((k) => <li key={k}>{k}</li>)}</ul>
-                  {s.decision!.dissent && (
-                    <div className="dissent">
-                      <div className="label">Dissent · {ANALYST_TITLE[s.decision!.dissent.analyst]}</div>
-                      <p>{s.decision!.dissent.argument}</p>
-                    </div>
-                  )}
-                </div>
+            <Panel code="FIG" title="Key figures side by side" id="matrix" meta="better value highlighted where one direction is better">
+              <div className="table-scroll">
+                <table className="ptable cmatrix">
+                  <caption className="sr-only">Key figures side by side</caption>
+                  <thead>
+                    <tr><th>Figure</th><th className="num">{left.state.ticker}</th><th className="num">{right.state.ticker}</th><th className="hide-sm">Better when</th></tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((r) => (
+                      <tr key={r.label}>
+                        <td className="cm-label"><Term label={r.term ?? r.label} /></td>
+                        <td className={`num ${r.edge === "a" ? "is-edge" : ""}`}>{r.a}</td>
+                        <td className={`num ${r.edge === "b" ? "is-edge" : ""}`}>{r.b}</td>
+                        <td className="dim hide-sm">{r.better ?? "depends"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </section>
+            </Panel>
 
-          <p className="compare-foot small muted num">
-            {wall !== null && da !== null && db !== null ? (
-              <>Both committees ran in parallel: <b>{secs(wall)}</b> instead of {secs(da + db)} one after the other. </>
-            ) : null}
-            Model cost for the pair: <b>{usd(cost)}</b>{left.state.result?.replayed || right.state.result?.replayed ? " (what the saved sessions cost when they were decided)" : ""}.
-          </p>
-        </>
-      )}
+            <div className="csides">
+              {[left.state, right.state].map((s, i) => (
+                <Panel key={s.ticker} code="RSK" title={`${s.ticker}: what could go wrong`} id={`risk-${i}`}>
+                  <ul className="checks">
+                    {s.decision!.keyRisks.map((k) => <li key={k} className="warn"><span className="chk">!</span><span>{k}</span></li>)}
+                  </ul>
+                </Panel>
+              ))}
+            </div>
+
+            <p className="cfoot num">
+              {wall !== null && da !== null && db !== null ? (
+                <>Both committees ran in parallel: <b>{secs(wall)}</b> instead of {secs(da + db)} one after the other. </>
+              ) : null}
+              Model cost for the pair: <b>{usd(cost)}</b>{left.state.result?.replayed || right.state.result?.replayed ? " (what the saved sessions cost when they were decided)" : ""}.
+            </p>
+          </>
+        )}
+      </div>
     </main>
   );
 }

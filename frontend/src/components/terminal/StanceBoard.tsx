@@ -24,7 +24,7 @@ function Track({ pos, tone, pending, label }: { pos: number | null; tone: string
 }
 
 /** Each analyst's position on one axis, landing as its report comes in; the chair's call sits underneath. */
-export function StanceBoard({ state, play, decision }: { state: CommitteeState; play: Playback; decision: ChairDecision | null }) {
+export function StanceBoard({ state, play, decision, id = "vot" }: { state: CommitteeState; play: Playback; decision: ChairDecision | null; id?: string }) {
   const { tape, t } = play;
   const seen = (id: string) => {
     const p = tape.procs.find((x) => x.id === id);
@@ -35,7 +35,7 @@ export function StanceBoard({ state, play, decision }: { state: CommitteeState; 
   const tally = (s: Stance) => shown.filter((r) => r.stance === s).length;
 
   return (
-    <Panel code="VOT" title="Analyst stances" id="vot"
+    <Panel code="VOT" title="Analyst stances" id={id}
       meta={shown.length ? <span className="num"><b className="pos">{tally("bullish")}</b> bull · <b className="warn">{tally("neutral")}</b> neutral · <b className="neg">{tally("bearish")}</b> bear</span> : "awaiting reports"}>
       <div className="stance-grid">
         <div className="axis-legend" aria-hidden="true"><span>Bearish</span><span>Neutral</span><span>Bullish</span></div>
