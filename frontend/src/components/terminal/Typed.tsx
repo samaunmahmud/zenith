@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { segmentFigures } from "../../lib/minutes";
+import { segmentFigures } from "../../lib/figures";
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 

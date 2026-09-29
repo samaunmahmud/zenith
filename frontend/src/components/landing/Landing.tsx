@@ -2,8 +2,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { fetchTape } from "../../api";
 import type { AppConfig, Health, TapeRow } from "../../types";
 import { bootLines, HELP, parseCommand } from "../../lib/console";
-import { pct, toneOf, when } from "../../lib/format";
-import { modelName } from "../boardroom/BoardTable";
+import { modelName, pct, toneOf, when } from "../../lib/format";
 import { Panel, TierTag } from "../terminal/Panel";
 import { Sparkline, Tape } from "./Tape";
 

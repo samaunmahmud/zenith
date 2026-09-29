@@ -29,6 +29,12 @@
 }
 
 .warn { color: var(--warn); }
+.id-clerk { --id: var(--id-clerk); }
+
+/* Figures in prose: traced to the fact sheet, or flagged by the guard */
+.fig { color: inherit; border-radius: 3px; padding: 0 2px; }
+.fig-traced { background: var(--pos-soft); box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--pos) 55%, transparent); }
+.fig-flagged { background: var(--neg-soft); color: var(--neg); text-decoration: underline wavy var(--neg); text-underline-offset: 3px; font-weight: 600; }
 .tx { background: var(--t-bg); min-height: calc(100vh - var(--topbar-h)); padding-bottom: 32px; }
 .tx .num, .tpanel .num { font-family: var(--tmono); font-variant-numeric: tabular-nums; }
 .tx-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding-top: 12px; }
@@ -55,7 +61,7 @@
 .q-mode.is-replay.is-running i { animation: blink 1.2s steps(2) infinite; }
 .q-clock { font-size: 13px; color: var(--text-2); min-width: 9.5ch; }
 .q-call { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 1px solid currentColor; border-radius: 3px; font: 800 13px var(--tmono); letter-spacing: 0.08em; background: color-mix(in srgb, currentColor 10%, transparent); animation: flash-in 0.6s ease both; }
-.tbtn { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px; border: 1px solid var(--t-line); border-radius: 3px; background: var(--t-panel); color: var(--text-2); font: 600 11.5px var(--tmono); cursor: pointer; }
+.tbtn { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px; border: 1px solid var(--t-line); border-radius: 3px; background: var(--t-panel); color: var(--text-2); font: 600 11.5px var(--tmono); cursor: pointer; }
 .tbtn:hover:not(:disabled) { color: var(--text); border-color: var(--line-2); }
 .tbtn:disabled { opacity: 0.45; cursor: default; }
 .tbtn svg { width: 13px; height: 13px; }
@@ -240,10 +246,10 @@
 
 /* Phones: the process table keeps who, model, time, tokens and cost; the task and bar give way. */
 @media (max-width: 640px) {
-  .ptable .p-task, .ptable .p-bar, .ptable th:nth-child(4) { display: none; }
-  .ptable { font-size: 11.5px; }
-  .ptable td, .ptable th { padding-left: 5px; padding-right: 5px; }
-  .ptable .p-who { font-size: 12.5px; }
+  .pmon .p-task, .pmon .p-bar, .pmon th:nth-child(4) { display: none; }
+  .pmon { font-size: 11.5px; }
+  .pmon td, .pmon th { padding-left: 5px; padding-right: 5px; }
+  .pmon .p-who { font-size: 12.5px; }
   .qstrip { position: static; }
 }
 .vsrc { display: inline-flex; align-items: center; gap: 5px; margin-right: 7px; padding: 0 6px; border: 1px solid var(--t-line); border-radius: 3px; font: 700 10.5px/1.7 var(--tmono); letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-2); vertical-align: 1px; }
@@ -376,3 +382,34 @@
   .tape-view { overflow-x: auto; }
   .tape-set[aria-hidden="true"] { display: none; }
 }
+
+/* ── Head to head ── */
+.con-versus { margin: 0; padding: 12px 14px; border-top: 0; }
+.con-versus input { flex: 0 1 12ch; text-transform: uppercase; }
+.con-versus .tbtn { margin-left: auto; }
+.vs-sep { font: 800 13px var(--tmono); letter-spacing: 0.1em; color: var(--text-4); text-transform: uppercase; }
+.csides { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (min-width: 1000px) { .csides { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.cside { display: grid; gap: 12px; min-width: 0; }
+.cside-head { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding: 10px 12px; background: var(--t-panel); border: 1px solid var(--t-line); border-top: 2px solid var(--t-amber); border-radius: 4px; }
+.cside-head .q-sym { font-size: 20px; }
+.cside-head .q-session { margin-left: auto; }
+.cside .pmon .p-bar { display: none; }
+.cside .pmon th:nth-child(4) { display: none; }
+.cside .verdict-call { font-size: clamp(40px, 4vw, 56px); }
+.cside .notice { margin: 0; }
+.cpref-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font: 800 20px var(--tmono); letter-spacing: 0.02em; margin-bottom: 6px; }
+.cpref-line .q-sym { font-size: 24px; }
+.cmatrix td.is-edge { color: var(--pos); font-weight: 800; background: color-mix(in srgb, var(--pos) 8%, transparent); }
+.cm-label { font-family: var(--font); }
+.cfoot { font-size: 12.5px; color: var(--text-2); }
+
+/* ── Track record ── */
+.rtiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 760px) { .rtiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.rtile-value { font: 800 40px/1 var(--tmono); color: var(--text); }
+.rtile-value.is-pending { font-size: 24px; letter-spacing: 0.1em; color: var(--t-amber); }
+.rtile-note { margin-top: 8px; font-size: 13px; color: var(--text-2); }
+.rtile-meter { margin-top: 12px; }
+.rledger td { vertical-align: top; }
+.rmark { font: 800 11px var(--tmono); letter-spacing: 0.04em; }

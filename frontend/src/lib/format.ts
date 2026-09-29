@@ -63,3 +63,12 @@ export function safeUrl(url: string | null | undefined): string | null {
     return null;
   }
 }
+
+/** "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B" → "Nemotron Nano 30B". */
+export function modelName(model: string | null | undefined): string | null {
+  if (!model) return null;
+  const tail = model.split("/").pop() ?? model;
+  const m = /nemotron-?(\d+)?-?(nano|super|ultra)-?(\d+b)?/i.exec(tail);
+  if (!m) return tail;
+  return ["Nemotron", m[2][0].toUpperCase() + m[2].slice(1).toLowerCase(), m[3]?.toUpperCase()].filter(Boolean).join(" ");
+}

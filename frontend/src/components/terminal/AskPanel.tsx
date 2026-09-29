@@ -2,8 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { postAsk } from "../../api";
 import type { CommitteeState } from "../../state/committee";
 import type { AskResult, AskTurn } from "../../types";
-import { ANALYST_TITLE, secs, usd } from "../../lib/format";
-import { modelName } from "../boardroom/BoardTable";
+import { ANALYST_TITLE, modelName, secs, usd } from "../../lib/format";
 import { Panel, TierTag } from "./Panel";
 import { Typed } from "./Typed";
 
