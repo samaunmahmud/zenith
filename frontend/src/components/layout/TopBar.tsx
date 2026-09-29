@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Health } from "../../types";
 import { aiLive } from "../../hooks/useHealth";
+import { useSymbolSuggest } from "../../hooks/useSymbolSuggest";
+import { SuggestList } from "../ui/SuggestList";
 import { useTheme } from "../../hooks/useTheme";
 import { GitHubIcon, MoonIcon, SearchIcon, SunIcon } from "../ui/Icons";
 import { BrandMark } from "./Brand";
@@ -58,12 +60,21 @@ export function TopBar({ showSearch, busy, health, onSearch, onHome, page, onPag
     return () => window.removeEventListener("keydown", onKey);
   }, [showSearch]);
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!q.trim() || busy) return;
-    onSearch(q);
+  const go = (ticker: string) => {
+    if (busy) return;
+    onSearch(ticker);
     setQ("");
     input.current?.blur();
+  };
+  const suggest = useSymbolSuggest(q, (m) => go(m.symbol));
+
+  // A company name ("sandisk") that isn't a ticker in the suggestions goes to the best match (SNDK).
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const typed = q.trim().toUpperCase();
+    if (!typed) return;
+    const best = suggest.matches[0];
+    go(best && !suggest.matches.some((m) => m.symbol === typed) ? best.symbol : typed);
   };
 
   return (
@@ -79,13 +90,24 @@ export function TopBar({ showSearch, busy, health, onSearch, onHome, page, onPag
             <input
               ref={input}
               value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder={busy ? "Committee in session…" : "Analyse another ticker"}
-              aria-label="Ticker to analyse"
-              maxLength={10}
+              onChange={(e) => { setQ(e.target.value); suggest.setOpen(true); }}
+              onKeyDown={suggest.onKeyDown}
+              onFocus={() => suggest.setOpen(true)}
+              onBlur={() => suggest.setOpen(false)}
+              placeholder={busy ? "Committee in session…" : "Search a ticker or company"}
+              aria-label="Ticker or company to analyse"
+              role="combobox"
+              aria-expanded={suggest.shown}
+              aria-controls="top-suggest"
+              aria-autocomplete="list"
+              aria-activedescendant={suggest.active >= 0 ? `top-suggest-${suggest.active}` : undefined}
+              maxLength={40}
+              autoComplete="off"
+              spellCheck={false}
               disabled={busy}
             />
             <kbd aria-hidden="true">/</kbd>
+            {suggest.shown && <SuggestList id="top-suggest" matches={suggest.matches} active={suggest.active} onPick={(m) => go(m.symbol)} />}
           </form>
         )}
         <nav className="topnav" aria-label="Main">

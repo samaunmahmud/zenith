@@ -13,6 +13,7 @@ import { AnalystCards } from "./AnalystCards";
 import { AskPanel } from "./AskPanel";
 import { CostMeter } from "./CostMeter";
 import { FactsPanel, IntegrityPanel, NewsPanel } from "./DataPanels";
+import { NoMarketData } from "./NoMarketData";
 import { EventLog } from "./EventLog";
 import { Panel } from "./Panel";
 import { QuoteStrip } from "./QuoteStrip";
@@ -53,6 +54,9 @@ export function SessionView({ state, onFile, onConvene }: Props) {
     { id: "calls", label: "Raw model calls", count: state.result?.costs.calls.length },
   ];
   const canAsk = Boolean(state.result && state.decision && play.finished);
+
+  // Nothing to show without market data: one clear card (with "did you mean" for an unknown ticker), not an empty dashboard.
+  if (state.status === "error" && !s) return <NoMarketData state={state} onFile={onFile} onConvene={onConvene} />;
 
   return (
     <main className="tx">

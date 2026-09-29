@@ -3,7 +3,9 @@ import { fetchTape } from "../../api";
 import type { AppConfig, Health, TapeRow } from "../../types";
 import { bootLines, parseCommand } from "../../lib/console";
 import { modelName, pct, shortDate, toneOf, when } from "../../lib/format";
+import { useSymbolSuggest } from "../../hooks/useSymbolSuggest";
 import { SearchIcon } from "../ui/Icons";
+import { SuggestList } from "../ui/SuggestList";
 import { TierTag } from "../session/Panel";
 import { CommitteeGraph } from "./CommitteeGraph";
 import { Sparkline, Tape } from "./Tape";
@@ -50,17 +52,22 @@ export function Landing({ config, health, onConvene, onPage }: Props) {
     fetchTape().then(setTape);
   }, []);
 
-  // The box takes a ticker, and quietly still understands the console's commands (record, compare, --no-rebuttals).
+  const suggest = useSymbolSuggest(line, (m) => onConvene(m.symbol, rebuttals));
+
+  // The box takes a ticker or a company name, and quietly still understands the console's commands (record, compare,
+  // --no-rebuttals). A name ("sandisk") that isn't a ticker in the suggestions goes to the best match (SNDK).
   const submit = (e: FormEvent) => {
     e.preventDefault();
     const c = parseCommand(line);
-    if (c.kind === "convene") onConvene(c.ticker, c.rebuttals ?? rebuttals);
+    const best = suggest.matches[0];
+    if (c.kind === "convene" && best && !suggest.matches.some((m) => m.symbol === c.ticker)) onConvene(best.symbol, c.rebuttals ?? rebuttals);
+    else if (c.kind === "convene") onConvene(c.ticker, c.rebuttals ?? rebuttals);
     else if (c.kind === "page") onPage(c.page);
     else if (c.kind === "rebuttals") {
       setRebuttals(c.on);
       setLine("");
     } else if (c.kind === "error") setError(c.message);
-    else setError("Type a US ticker symbol, e.g. NVDA, or pick a stock below.");
+    else setError("Type a US ticker or company name, e.g. NVDA or Sandisk, or pick a stock below.");
   };
 
   const boot = bootLines(agents, health, tape);
@@ -80,13 +87,19 @@ export function Landing({ config, health, onConvene, onPage }: Props) {
             and records the dissent. Every figure they quote is checked, and every call is scored against the S&amp;P&nbsp;500.
           </p>
 
-          <form className="hero-search" onSubmit={submit} role="search">
-            <SearchIcon />
-            <label htmlFor="ticker" className="sr-only">Ticker</label>
-            <input id="ticker" value={line} onChange={(e) => { setLine(e.target.value); setError(null); }}
-              placeholder="Enter a ticker, e.g. NVDA" maxLength={40} autoComplete="off" autoCapitalize="characters" spellCheck={false} autoFocus />
-            <button className="btn btn-primary" type="submit">Convene<span className="hide-sm"> the committee</span></button>
-          </form>
+          <div className="search-wrap">
+            <form className="hero-search" onSubmit={submit} role="search">
+              <SearchIcon />
+              <label htmlFor="ticker" className="sr-only">Ticker or company name</label>
+              <input id="ticker" value={line} onChange={(e) => { setLine(e.target.value); setError(null); suggest.setOpen(true); }}
+                onKeyDown={suggest.onKeyDown} onFocus={() => suggest.setOpen(true)} onBlur={() => suggest.setOpen(false)}
+                role="combobox" aria-expanded={suggest.shown} aria-controls="hero-suggest" aria-autocomplete="list"
+                aria-activedescendant={suggest.active >= 0 ? `hero-suggest-${suggest.active}` : undefined}
+                placeholder="Ticker or company, e.g. NVDA or Sandisk" maxLength={40} autoComplete="off" spellCheck={false} autoFocus />
+              <button className="btn btn-primary" type="submit"><span>Convene<span className="hide-sm"> the committee</span></span></button>
+            </form>
+            {suggest.shown && <SuggestList id="hero-suggest" matches={suggest.matches} active={suggest.active} onPick={(m) => onConvene(m.symbol, rebuttals)} />}
+          </div>
           {error && <p className="hero-error" role="alert">{error}</p>}
           <div className="hero-opts">
             <label className="switch">

@@ -1,4 +1,4 @@
-import type { AppConfig, AskResult, AskTurn, CommitteeEvent, Health, TapeRow, ThesisResult, TrackRecord } from "./types";
+import type { AppConfig, AskResult, AskTurn, CommitteeEvent, Health, SymbolMatch, TapeRow, ThesisResult, TrackRecord } from "./types";
 
 export async function fetchConfig(): Promise<AppConfig | null> {
   try {
@@ -15,6 +15,16 @@ export async function fetchHealth(): Promise<Health | null> {
     return res.ok ? ((await res.json()) as Health) : null;
   } catch {
     return null;
+  }
+}
+
+/** Stocks matching a ticker or company name. Empty on failure or when cancelled: suggestions are a convenience. */
+export async function searchSymbols(q: string, signal?: AbortSignal): Promise<SymbolMatch[]> {
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal });
+    return res.ok ? ((await res.json()) as SymbolMatch[]) : [];
+  } catch {
+    return [];
   }
 }
 

@@ -136,6 +136,13 @@ export interface AppConfig {
   agents: AgentModel[];
 }
 
+/** GET /api/search: a US-listed stock matching a ticker or company name. */
+export interface SymbolMatch {
+  symbol: string;
+  name: string;
+  exchange: string;
+}
+
 /** GET /api/tape: one stock on file, from the cache (never live). `change` is a fraction of the previous close. */
 export interface TapeRow {
   ticker: string;
