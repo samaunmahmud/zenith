@@ -136,6 +136,17 @@ export interface AppConfig {
   agents: AgentModel[];
 }
 
+/** GET /api/tape: one stock on file, from the cache (never live). `change` is a fraction of the previous close. */
+export interface TapeRow {
+  ticker: string;
+  company: string;
+  asOf: string;
+  close: number;
+  change: number | null;
+  spark: number[];
+  lastCall: { call: "BUY" | "HOLD" | "SELL"; confidence: number; decidedAt: string } | null;
+}
+
 /** GET /api/health: whether live AI runs are possible right now. */
 export interface Health {
   status: string;

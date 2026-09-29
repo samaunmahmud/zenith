@@ -55,7 +55,7 @@ export default function App() {
       ) : page === "compare" ? (
         <ComparePage agents={config?.agents ?? []} onFile={config?.demoTickers ?? []} onOpen={(t) => openTicker(t, false)} />
       ) : idle ? (
-        <Landing config={config} onConvene={openTicker} />
+        <Landing config={config} health={health} onConvene={openTicker} onPage={openPage} />
       ) : (
         <TerminalSession state={state} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} />
       )}

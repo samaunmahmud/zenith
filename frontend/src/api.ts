@@ -1,4 +1,4 @@
-import type { AppConfig, AskResult, AskTurn, CommitteeEvent, Health, ThesisResult, TrackRecord } from "./types";
+import type { AppConfig, AskResult, AskTurn, CommitteeEvent, Health, TapeRow, ThesisResult, TrackRecord } from "./types";
 
 export async function fetchConfig(): Promise<AppConfig | null> {
   try {
@@ -15,6 +15,16 @@ export async function fetchHealth(): Promise<Health | null> {
     return res.ok ? ((await res.json()) as Health) : null;
   } catch {
     return null;
+  }
+}
+
+/** The landing tape. Empty on failure: the tape is decoration, never a reason for the page to break. */
+export async function fetchTape(): Promise<TapeRow[]> {
+  try {
+    const res = await fetch("/api/tape");
+    return res.ok ? ((await res.json()) as TapeRow[]) : [];
+  } catch {
+    return [];
   }
 }
 
