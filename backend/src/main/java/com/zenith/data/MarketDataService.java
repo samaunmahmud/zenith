@@ -71,10 +71,14 @@ public class MarketDataService {
         }
     }
 
-    /** About 13 months of daily bars, cache-first (the track record scores past calls against these). */
+    /**
+     * About 13 months of completed daily bars, cache-first (the track record scores past calls against these).
+     * A bar still trading when it was fetched is left out: see {@link TradingDay}.
+     */
     public DiskCache.Result<List<PriceBar>> prices(String ticker) {
         String label = BENCHMARK.equals(ticker) ? "FMP daily prices (SPY)" : "FMP daily prices";
-        return cache.cached(ticker, "prices", label, BARS, () -> fmp.prices(ticker, 400));
+        DiskCache.Result<List<PriceBar>> raw = cache.cached(ticker, "prices", label, BARS, () -> fmp.prices(ticker, 400));
+        return new DiskCache.Result<>(TradingDay.completed(raw.data(), raw.source().fetchedAt()), raw.source());
     }
 
     private DiskCache.Result<List<NewsItem>> news(String ticker) {

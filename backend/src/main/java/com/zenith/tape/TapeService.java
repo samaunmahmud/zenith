@@ -4,6 +4,7 @@ import com.zenith.config.ZenithProperties;
 import com.zenith.data.CompanyProfile;
 import com.zenith.data.DiskCache;
 import com.zenith.data.PriceBar;
+import com.zenith.data.TradingDay;
 import com.zenith.json.Json;
 import com.zenith.track.DecisionLedger;
 import com.zenith.track.TrackedCall;
@@ -55,7 +56,9 @@ public class TapeService {
     }
 
     Optional<Row> row(String ticker, List<TrackedCall> calls) {
-        List<PriceBar> bars = cache.<List<PriceBar>>read(ticker, "prices", BARS).map(DiskCache.Entry::data).orElse(List.of());
+        List<PriceBar> bars = cache.<List<PriceBar>>read(ticker, "prices", BARS)
+                .map(e -> TradingDay.completed(e.data(), e.fetchedAt()))
+                .orElse(List.of());
         if (bars.isEmpty()) return Optional.empty();
 
         PriceBar last = bars.getLast();
