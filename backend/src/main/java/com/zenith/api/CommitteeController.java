@@ -9,6 +9,7 @@ import com.zenith.config.ZenithProperties;
 import com.zenith.data.DataException;
 import com.zenith.json.Json;
 import com.zenith.llm.LlmException;
+import com.zenith.tape.TapeService;
 import com.zenith.thesis.ThesisService;
 import com.zenith.track.TrackRecordService;
 import java.io.IOException;
@@ -47,9 +48,10 @@ public class CommitteeController {
     private final TrackRecordService trackRecord;
     private final ThesisService thesis;
     private final AskService ask;
+    private final TapeService tape;
 
     public CommitteeController(CommitteeService committee, CommitteeGate gate, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard,
-            TrackRecordService trackRecord, ThesisService thesis, AskService ask) {
+            TrackRecordService trackRecord, ThesisService thesis, AskService ask, TapeService tape) {
         this.committee = committee;
         this.gate = gate;
         this.props = props;
@@ -57,6 +59,7 @@ public class CommitteeController {
         this.trackRecord = trackRecord;
         this.thesis = thesis;
         this.ask = ask;
+        this.tape = tape;
     }
 
     public record CommitteeRequest(String ticker, Boolean rebuttals) {}
@@ -107,6 +110,12 @@ public class CommitteeController {
         body.put("demoTickers", props.demoTickerList());
         body.put("agents", committee.roster());
         return json(200, body);
+    }
+
+    /** The landing page's ticker tape: last recorded close and latest call for each stock on file. Cache only. */
+    @GetMapping("/tape")
+    public ResponseEntity<String> tape() {
+        return json(200, tape.rows());
     }
 
     /** Every decision the chair has made, scored against the market at 7, 30 and 90 days. */
