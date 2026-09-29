@@ -35,7 +35,7 @@ export function StanceBoard({ state, play, decision, id = "vot" }: { state: Comm
   const tally = (s: Stance) => shown.filter((r) => r.stance === s).length;
 
   return (
-    <Panel code="VOT" title="Analyst stances" id={id}
+    <Panel title="Analyst stances" id={id}
       meta={shown.length ? <span className="num"><b className="pos">{tally("bullish")}</b> bull · <b className="warn">{tally("neutral")}</b> neutral · <b className="neg">{tally("bearish")}</b> bear</span> : "awaiting reports"}>
       <div className="stance-grid">
         <div className="axis-legend" aria-hidden="true"><span>Bearish</span><span>Neutral</span><span>Bullish</span></div>

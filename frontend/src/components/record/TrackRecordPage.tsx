@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { fetchTrackRecord } from "../../api";
 import { money, pct, shortDate } from "../../lib/format";
 import type { HorizonSummary, TrackOutcome, TrackRecord } from "../../types";
-import { Panel } from "../terminal/Panel";
+import { Panel } from "../session/Panel";
 
 interface Props {
   onOpen: (ticker: string) => void;
@@ -21,10 +21,10 @@ function nextDue(record: TrackRecord, days: number): string | null {
 function HorizonTile({ s, record }: { s: HorizonSummary; record: TrackRecord }) {
   const due = nextDue(record, s.days);
   return (
-    <Panel code={`${s.days}D`} title={`${s.days}-day calls`} id={`h${s.days}`} meta={<span className="num">{s.scored} scored · {s.pending} pending</span>}>
+    <Panel title={`${s.days}-day calls`} id={`h${s.days}`} className="rtile" meta={<span className="num">{s.scored} scored · {s.pending} pending</span>}>
       {s.winRate === null ? (
         <>
-          <div className="rtile-value is-pending">PENDING</div>
+          <div className="rtile-value is-pending">Pending</div>
           <p className="rtile-note">{due ? <>First result on <b>{shortDate(due)}</b></> : "No calls recorded yet"}</p>
         </>
       ) : (
@@ -48,7 +48,7 @@ function OutcomeCell({ o }: { o: TrackOutcome | undefined }) {
   if (o.status === "pending") return <td className="dim">due {shortDate(o.dueDate)}</td>;
   return (
     <td>
-      <span className={`rmark ${o.correct ? "pos" : "neg"}`}>{o.correct ? "✓ RIGHT" : "✗ WRONG"}</span>
+      <span className={`rmark ${o.correct ? "pos" : "neg"}`}>{o.correct ? "✓ Right" : "✗ Wrong"}</span>
       <span className="num"> {pct(o.stockReturn, true)}</span>
       <span className="dim num"> vs {pct(o.spyReturn, true)}</span>
     </td>
@@ -71,10 +71,10 @@ export function TrackRecordPage({ onOpen }: Props) {
   return (
     <main className="tx">
       <div className="container tx-body">
-        <header className="tland-head">
-          <p className="tland-kicker"><span className="tpanel-code">REC</span> Track record · scored against the S&amp;P 500</p>
-          <h1>Every call, kept and <em>marked.</em></h1>
-          <p className="tland-lede">
+        <header className="page-head">
+          <p className="eyebrow"><i aria-hidden="true" /> Track record · scored against the S&amp;P 500</p>
+          <h1>Every call, kept and <span className="grad">marked.</span></h1>
+          <p className="lede">
             Each decision the chair makes is written down with the price at the time and checked against the market 7, 30 and
             90 days later. Nothing is deleted, re-scored or backfilled, so the record can only be earned.
           </p>
@@ -89,7 +89,7 @@ export function TrackRecordPage({ onOpen }: Props) {
               {record.summary.map((s) => <HorizonTile key={s.days} s={s} record={record} />)}
             </section>
 
-            <Panel code="LDG" title="The ledger" id="ledger" meta={<span className="num">{record.calls.length} calls · append-only</span>}>
+            <Panel title="The ledger" id="ledger" meta={<span className="num">{record.calls.length} calls · append-only</span>}>
               {record.calls.length === 0 ? (
                 <p className="dim">No calls on the record yet. Convene the committee on a stock and its decision will appear here.</p>
               ) : (
@@ -106,7 +106,7 @@ export function TrackRecordPage({ onOpen }: Props) {
                             <button type="button" className="wl-sym" onClick={() => onOpen(call.ticker)} title={`Open ${call.company}'s committee session`}>{call.ticker}</button>
                             <span className="wl-co">{call.company}</span>
                           </td>
-                          <td><span className={`wl-call call-${call.call}`}>{call.call} <span className="num">{Math.round(call.confidence * 100)}%</span></span></td>
+                          <td><span className={`call-pill call-${call.call}`}>{call.call} <span className="num">{Math.round(call.confidence * 100)}%</span></span></td>
                           <td className="num">{money(call.entryClose, "USD")}<span className="wl-co">close {shortDate(call.asOf)}</span></td>
                           {[7, 30, 90].map((d) => <OutcomeCell key={d} o={outcomes.find((o) => o.days === d)} />)}
                         </tr>
@@ -120,7 +120,7 @@ export function TrackRecordPage({ onOpen }: Props) {
               )}
             </Panel>
 
-            <Panel code="RUL" title="How calls are marked" id="marking" meta={`against ${record.benchmark} over the same window`}>
+            <Panel title="How calls are marked" id="marking" meta={`against ${record.benchmark} over the same window`}>
               <ul className="checks">
                 <li className="ok"><span className="chk">✓</span><span><b>BUY is right</b> if the stock beat {record.benchmark} over the window.</span></li>
                 <li className="ok"><span className="chk">✓</span><span><b>SELL is right</b> if the stock trailed {record.benchmark}.</span></li>

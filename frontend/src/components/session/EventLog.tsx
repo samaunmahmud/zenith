@@ -69,7 +69,7 @@ export function EventLog({ state, play }: { state: CommitteeState; play: Playbac
   }, [lines.length, play.finished]);
 
   return (
-    <Panel code="LOG" title="Session log" id="log" className="tlog"
+    <Panel title="Transcript" id="log" className="tlog"
       meta={checked ? <span><mark className="fig fig-traced">1.23</mark> traced · <mark className="fig fig-flagged">4.5</mark> not in fact sheet</span> : "figures checked when the session closes"}>
       <div className="log-box" ref={box} aria-live="polite">
         {lines.length === 0 && <p className="log-line dim">{state.status === "error" ? state.error : "Connecting to the committee…"}</p>}

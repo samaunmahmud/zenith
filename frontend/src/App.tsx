@@ -9,7 +9,7 @@ import type { AppConfig } from "./types";
 import { Landing } from "./components/landing/Landing";
 import { Footer } from "./components/layout/Footer";
 import { TopBar } from "./components/layout/TopBar";
-import { TerminalSession } from "./components/terminal/TerminalSession";
+import { SessionView } from "./components/session/SessionView";
 
 export default function App() {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -57,7 +57,7 @@ export default function App() {
       ) : idle ? (
         <Landing config={config} health={health} onConvene={openTicker} onPage={openPage} />
       ) : (
-        <TerminalSession state={state} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} />
+        <SessionView state={state} onFile={config?.demoTickers ?? []} onConvene={convenePreservingOptions} />
       )}
       <Footer />
     </>

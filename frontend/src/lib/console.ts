@@ -86,12 +86,3 @@ export function bootLines(agents: AgentModel[], health: Health | null, tape: Tap
   lines.push({ status: "ok", label: "guards", detail: "JSON schema, 1 retry · figures traced · hard spend cap" });
   return lines;
 }
-
-export const HELP: [string, string][] = [
-  ["AAPL", "convene the committee on a ticker"],
-  ["AAPL --no-rebuttals", "skip the rebuttal round for this run"],
-  ["rebuttals on|off", "set the rebuttal round for every run"],
-  ["record", "every call so far, scored against the S&P 500"],
-  ["compare", "the stocks on file, head to head"],
-  ["clear", "clear the screen"],
-];

@@ -9,17 +9,17 @@ import { PriceChart } from "../market/PriceChart";
 import { TabPanel, Tabs, type TabDef } from "../ui/Tabs";
 import { RunNotices } from "../workspace/RunNotices";
 import { ThesisTab } from "../workspace/ThesisTab";
+import { AnalystCards } from "./AnalystCards";
 import { AskPanel } from "./AskPanel";
 import { CostMeter } from "./CostMeter";
 import { FactsPanel, IntegrityPanel, NewsPanel } from "./DataPanels";
 import { EventLog } from "./EventLog";
 import { Panel } from "./Panel";
-import { ProcessMonitor } from "./ProcessMonitor";
 import { QuoteStrip } from "./QuoteStrip";
-import { StanceBoard } from "./StanceBoard";
+import { Timeline } from "./Timeline";
 import { VerdictPanel } from "./VerdictPanel";
 
-type Dossier = "memo" | "thesis" | "calls";
+type Dossier = "memo" | "log" | "thesis" | "calls";
 
 interface Props {
   state: CommitteeState;
@@ -28,11 +28,11 @@ interface Props {
 }
 
 /**
- * One committee session as a trading terminal: processes and their cost on the left, what they said in the log,
- * the stances and the ruling on the right, and every input underneath. A live run is timed as it happens; a saved
- * run is replayed from its recorded timeline.
+ * One committee session, verdict first: the chair's ruling (or the session's progress), the three analysts, then how
+ * the work was done (pipeline and cost), the follow-up chat, the market data, and the full dossier. A live run is
+ * timed as it happens; a saved run is replayed from its recorded timeline.
  */
-export function TerminalSession({ state, onFile, onConvene }: Props) {
+export function SessionView({ state, onFile, onConvene }: Props) {
   const play = usePlayback(state);
   const chair = play.tape.procs.find((p) => p.id === "chair");
   const decision = chair && statusAt(chair, play.t) === "done" ? state.decision : null;
@@ -48,9 +48,11 @@ export function TerminalSession({ state, onFile, onConvene }: Props) {
 
   const tabs: TabDef<Dossier>[] = [
     { id: "memo", label: "Investment memo" },
+    { id: "log", label: "Transcript" },
     { id: "thesis", label: "Challenge the committee" },
     { id: "calls", label: "Raw model calls", count: state.result?.costs.calls.length },
   ];
+  const canAsk = Boolean(state.result && state.decision && play.finished);
 
   return (
     <main className="tx">
@@ -58,28 +60,24 @@ export function TerminalSession({ state, onFile, onConvene }: Props) {
       <div className="container tx-body">
         <RunNotices state={state} onFile={onFile} onConvene={onConvene} />
 
+        <VerdictPanel state={state} play={play} decision={decision} />
+        <AnalystCards state={state} play={play} />
+
         <div className="tgrid">
-          <div className="tcol tcol-main">
-            <ProcessMonitor play={play} />
-            <EventLog state={state} play={play} />
-            {state.result && state.decision && play.finished && <AskPanel key={`${state.ticker}-${state.result.generatedAt}`} state={state} />}
-          </div>
-          <div className="tcol tcol-side">
-            <VerdictPanel state={state} play={play} decision={decision} />
-            <StanceBoard state={state} play={play} decision={decision} />
-            <CostMeter state={state} play={play} />
-          </div>
+          <Timeline play={play} />
+          <CostMeter state={state} play={play} />
         </div>
 
         {s && (
-          <div className="tgrid tgrid-data">
-            <div className="tcol tcol-main">
-              <Panel code="PX" title="Price · 1 year" id="px" meta="daily close · SMA50 · SMA200">
+          <div className="tgrid">
+            <div className="tcol">
+              {canAsk && <AskPanel key={`${state.ticker}-${state.result!.generatedAt}`} state={state} />}
+              <Panel title="Price · 1 year" id="px" meta="daily close with 50 and 200-day averages">
                 <PriceChart points={s.priceHistory} currency={s.currency} />
               </Panel>
               <NewsPanel state={state} />
             </div>
-            <div className="tcol tcol-side">
+            <div className="tcol">
               <IntegrityPanel state={state} play={play} />
               <FactsPanel state={state} />
             </div>
@@ -91,6 +89,7 @@ export function TerminalSession({ state, onFile, onConvene }: Props) {
             <Tabs tabs={tabs} active={dossier} onChange={setDossier} label="Dossier" />
             <TabPanel id={dossier}>
               {dossier === "memo" && <MemoPanel result={state.result} />}
+              {dossier === "log" && <EventLog state={state} play={play} />}
               {dossier === "thesis" && <ThesisTab state={state} result={thesis} onResult={setThesis} />}
               {dossier === "calls" && <CallsTable costs={state.result.costs} />}
             </TabPanel>

@@ -15,7 +15,7 @@ export function CostMeter({ state, play }: { state: CommitteeState; play: Playba
   const max = Math.max(...TIERS.map((k) => tot.byTier[k]), 1e-9);
   const pending = play.mode === "live" && !state.result;
   return (
-    <Panel code="CST" title="Committee cost" id="cst" meta={play.mode === "replay" ? "recorded when decided" : "Token Factory list prices"}>
+    <Panel title="Committee cost" id="cst" className="cost-panel" meta={play.mode === "replay" ? "recorded when decided" : "Token Factory list prices"}>
       <div className="cost-top">
         <div className="cost-big num">{pending ? "…" : usd(tot.cost)}</div>
         <div className="cost-sub num">{tot.tokens.toLocaleString("en-GB")} tokens · {tot.calls} calls</div>

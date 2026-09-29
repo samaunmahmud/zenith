@@ -19,7 +19,7 @@ export function IntegrityPanel({ state, play }: { state: CommitteeState; play: P
     <li className={ok ? "ok" : "warn"}><span className="chk" aria-hidden="true">{ok ? "✓" : "!"}</span><span>{children}</span></li>
   );
   return (
-    <Panel code="INT" title="Integrity checks" id="int" meta={ready ? (flagged ? <span className="warn">{flagged} flagged</span> : <span className="pos">all traced</span>) : "runs at close"}>
+    <Panel title="Integrity checks" id="int" meta={ready ? (flagged ? <span className="warn">{flagged} flagged</span> : <span className="pos">all traced</span>) : "runs at close"}>
       <ul className="checks">
         <Check ok={figures > 0}><b className="num">{figures}</b> figures computed in Java, none by a model</Check>
         {ready ? (
@@ -55,7 +55,7 @@ export function FactsPanel({ state }: { state: CommitteeState }) {
   const s = state.snapshot;
   const facts = s?.facts[tab] ?? {};
   return (
-    <Panel code="FCT" title="Fact sheets" id="fct" meta={s ? `as of ${s.asOf}` : undefined}>
+    <Panel title="Fact sheets" id="fct" meta={s ? `as of ${s.asOf}` : undefined}>
       <div className="tseg" role="tablist" aria-label="Fact sheet">
         {ANALYSTS.map((a) => (
           <button key={a} role="tab" aria-selected={tab === a} className={`id-${a}`} onClick={() => setTab(a)}>
@@ -75,7 +75,7 @@ export function FactsPanel({ state }: { state: CommitteeState }) {
 /** The headlines the news desk read. */
 export function NewsPanel({ state }: { state: CommitteeState }) {
   return (
-    <Panel code="NWS" title="News wire" id="nws" meta={`${state.news.length} headlines`}>
+    <Panel title="Headlines" id="nws" meta={`${state.news.length} headlines`}>
       {state.news.length === 0 ? (
         <p className="dim small">No recent headlines.</p>
       ) : (

@@ -1,29 +1,32 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { fetchTape } from "../../api";
 import type { AppConfig, Health, TapeRow } from "../../types";
-import { bootLines, HELP, parseCommand } from "../../lib/console";
-import { modelName, pct, toneOf, when } from "../../lib/format";
-import { Panel, TierTag } from "../terminal/Panel";
+import { bootLines, parseCommand } from "../../lib/console";
+import { modelName, pct, shortDate, toneOf, when } from "../../lib/format";
+import { SearchIcon } from "../ui/Icons";
+import { TierTag } from "../session/Panel";
+import { CommitteeGraph } from "./CommitteeGraph";
 import { Sparkline, Tape } from "./Tape";
 
-const PIPELINE: { code: string; title: string; text: ReactNode }[] = [
-  { code: "01", title: "Figures first", text: "Prices, fundamentals and headlines are fetched, then every indicator (RSI, MACD, moving averages, volatility, beta, P/E) is calculated in Java before any model is called." },
-  { code: "02", title: "Opening positions", text: "Fundamentals and risk on Nemotron Super, technicals on Nemotron Nano, in parallel. Each takes a side and may only cite the figures it was given." },
-  { code: "03", title: "One rebuttal", text: "If allowed, each analyst answers the colleague it disagrees with most. One round, then the floor closes." },
-  { code: "04", title: "The chair's call", text: "Nemotron Ultra weighs the arguments, calls BUY, HOLD or SELL with a confidence, and puts the strongest dissent on the record." },
+const STEPS = [
+  { title: "Figures first", text: "Prices, fundamentals and headlines are fetched, then every indicator (RSI, MACD, moving averages, volatility, beta, P/E) is calculated in Java before any model is called." },
+  { title: "Three analysts argue", text: "Fundamentals and risk on Nemotron Super, technicals on Nemotron Nano, in parallel. Each takes a side and may only cite the figures it was given." },
+  { title: "One rebuttal round", text: "If allowed, each analyst answers the colleague it disagrees with most. One round, then the floor closes." },
+  { title: "The chair decides", text: "Nemotron Ultra weighs the arguments, calls BUY, HOLD or SELL with a confidence, and puts the strongest dissent on the record." },
 ];
 
 const RULES = [
-  { title: "Models don't do arithmetic.", text: "They get a fact sheet computed in code and are told to quote from it, nothing else." },
-  { title: "Every reply has a shape.", text: "Answers must match a JSON schema generated from the Java records. A malformed reply gets one retry with the errors attached, never two." },
-  { title: "Every figure is traced.", text: "Numbers an analyst cites are matched against its input, allowing for rounding. Untraceable evidence is thrown out; untraceable prose is flagged." },
-  { title: "The budget is hard.", text: "Spend is checked before each call and kept across restarts. At the cap, the committee stops meeting and saved sessions are served instead." },
+  { title: "Models don't do arithmetic", text: "They get a fact sheet computed in code and are told to quote from it, nothing else." },
+  { title: "Every reply has a shape", text: "Answers must match a JSON schema generated from the Java records. A malformed reply gets one retry with the errors attached." },
+  { title: "Every figure is traced", text: "Numbers an analyst cites are matched against its input. Untraceable evidence is thrown out; untraceable prose is flagged on the page." },
+  { title: "The budget is hard", text: "Spend is checked before each call and kept across restarts. At the cap, saved sessions are served instead." },
 ];
 
-const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-/** One thing printed in the console after the boot checks: an echoed command and what it answered. */
-type Out = { id: number; cmd: string; lines: { text: string; tone?: "err" | "ok" | "dim" }[]; help?: boolean };
+/** "nemotron super" → "Nemotron Super": the status strip's labels, title-cased for display. */
+const STATUS_LABEL: Record<string, string> = {
+  clerk: "Clerk", "nemotron nano": "Nemotron Nano", "nemotron super": "Nemotron Super", "nemotron ultra": "Nemotron Ultra",
+  roster: "Roster", "token factory": "Token Factory", "market cache": "Market data", guards: "Guards",
+};
 
 interface Props {
   config: AppConfig | null;
@@ -33,208 +36,177 @@ interface Props {
 }
 
 /**
- * The front door as a terminal: start-up checks stated from the real config, a command line that convenes the
- * committee, and the stocks on file with their last recorded close. Nothing here pretends to be a live price.
+ * The front door: what Zenith is, one box to convene the committee, the stocks already on file with their last
+ * recorded close and latest call, and how the committee works. Nothing here pretends to be a live price.
  */
 export function Landing({ config, health, onConvene, onPage }: Props) {
   const [tape, setTape] = useState<TapeRow[] | null>(null);
   const [line, setLine] = useState("");
   const [rebuttals, setRebuttals] = useState(true);
-  const [out, setOut] = useState<Out[]>([]);
-  const [shown, setShown] = useState(() => (reducedMotion() ? 99 : 0));
-  const input = useRef<HTMLInputElement>(null);
-  const nextId = useRef(0);
+  const [error, setError] = useState<string | null>(null);
   const agents = config?.agents ?? [];
 
   useEffect(() => {
     fetchTape().then(setTape);
   }, []);
 
-  const boot = bootLines(agents, health, tape);
-  // Boot lines print one at a time; the prompt works throughout, nobody has to wait for the show.
-  useEffect(() => {
-    if (shown >= boot.length) return;
-    const id = window.setTimeout(() => setShown((n) => n + 1), shown === 0 ? 250 : 120);
-    return () => window.clearTimeout(id);
-  }, [shown, boot.length]);
-  const booted = shown >= boot.length;
-
-  const print = (cmd: string, lines: Out["lines"], help = false) =>
-    setOut((o) => [...o.slice(-5), { id: nextId.current++, cmd, lines, help }]);
-
-  const run = (raw: string) => {
-    const c = parseCommand(raw);
-    switch (c.kind) {
-      case "none":
-        return;
-      case "clear":
-        setOut([]);
-        break;
-      case "help":
-        print(raw, [], true);
-        break;
-      case "rebuttals":
-        setRebuttals(c.on);
-        print(raw, [{ text: `rebuttal round ${c.on ? "on" : "off"} for every run`, tone: "ok" }]);
-        break;
-      case "page":
-        onPage(c.page);
-        return;
-      case "error":
-        print(raw, [{ text: c.message, tone: "err" }]);
-        break;
-      case "convene":
-        onConvene(c.ticker, c.rebuttals ?? rebuttals);
-        return;
-    }
-    setLine("");
-  };
-
+  // The box takes a ticker, and quietly still understands the console's commands (record, compare, --no-rebuttals).
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    run(line);
+    const c = parseCommand(line);
+    if (c.kind === "convene") onConvene(c.ticker, c.rebuttals ?? rebuttals);
+    else if (c.kind === "page") onPage(c.page);
+    else if (c.kind === "rebuttals") {
+      setRebuttals(c.on);
+      setLine("");
+    } else if (c.kind === "error") setError(c.message);
+    else setError("Type a US ticker symbol, e.g. NVDA, or pick a stock below.");
   };
 
+  const boot = bootLines(agents, health, tape);
   const rows = tape ?? [];
-  const live = boot.find((b) => b.label === "token factory")?.status === "ok";
+  const latest = rows.map((r) => r.asOf).sort().at(-1);
 
   return (
-    <main className="tx tland">
+    <main className="home">
       <Tape rows={rows} onOpen={(t) => onConvene(t, rebuttals)} />
-      <div className="container tx-body">
-        <header className="tland-head">
-          <p className="tland-kicker"><span className="tpanel-code">ZNTH</span> AI investment committee · Nebius Token Factory · NVIDIA Nemotron</p>
-          <h1>Three analysts argue. A chair decides. <em>Every figure is checked.</em></h1>
-          <p className="tland-lede">
-            Type a ticker. Nemotron analysts take opposing sides on fundamentals, technicals and risk, a Nemotron Ultra chair
-            calls BUY, HOLD or SELL with the dissent on the record, and every call is later scored against the S&amp;P&nbsp;500.
-            Research and education, not financial advice.
+
+      <section className="container hero2">
+        <div className="hero2-copy">
+          <p className="eyebrow"><i aria-hidden="true" /> Built on NVIDIA Nemotron · Nebius Token Factory</p>
+          <h1>An AI investment committee <span className="grad">you can audit.</span></h1>
+          <p className="lede">
+            Three Nemotron analysts argue a stock from figures computed in code. A Nemotron Ultra chair calls BUY, HOLD or SELL
+            and records the dissent. Every figure they quote is checked, and every call is scored against the S&amp;P&nbsp;500.
           </p>
-        </header>
 
-        <div className="tgrid">
-          <Panel code="CMD" title="Committee console" id="console" className="tconsole"
-            meta={<span className={`q-mode ${live ? "is-live" : "is-replay"}`}><i aria-hidden="true" />{live ? "LIVE AI" : "SAVED ONLY"}</span>}>
-            <div className="con" onClick={() => input.current?.focus()}>
-              <p className="con-dim">zenith v1 · research and education, not financial advice</p>
-              <ul className="boot" aria-label="Start-up checks">
-                {boot.slice(0, shown).map((b) => (
-                  <li key={b.label} className={`boot-${b.status}`}>
-                    <span className="boot-st">{b.status === "ok" ? "[ OK ]" : b.status === "warn" ? "[WARN]" : "[ .. ]"}</span>
-                    <span className="boot-lbl">{b.label}</span>
-                    <span className="boot-detail">{b.detail}</span>
-                  </li>
-                ))}
-              </ul>
-              {booted && <p className="con-ready">ready. type a ticker and press enter, or <button type="button" className="con-link" onClick={() => run("help")}>help</button>.</p>}
-
-              {out.map((o) => (
-                <div key={o.id} className="con-out">
-                  <p className="con-echo"><span className="con-ps">❯</span> {o.cmd}</p>
-                  {o.lines.map((l, i) => <p key={i} className={`con-${l.tone ?? "line"}`}>{l.text}</p>)}
-                  {o.help && (
-                    <dl className="con-help">
-                      {HELP.map(([cmd, what]) => (
-                        <div key={cmd}><dt>{cmd}</dt><dd>{what}</dd></div>
-                      ))}
-                    </dl>
-                  )}
-                </div>
-              ))}
-
-              <form className="con-prompt" onSubmit={submit} role="search">
-                <label htmlFor="ticker" className="con-ps">❯<span className="sr-only">Ticker or command</span></label>
-                <input id="ticker" ref={input} value={line} onChange={(e) => setLine(e.target.value)} placeholder="AAPL"
-                  maxLength={40} autoComplete="off" autoCapitalize="characters" spellCheck={false} autoFocus />
-                <button className="tbtn tbtn-go" type="submit" disabled={!line.trim()}>Convene ⏎</button>
-              </form>
-            </div>
-            <div className="con-foot">
-              <label className="switch">
-                <input type="checkbox" checked={rebuttals} onChange={(e) => setRebuttals(e.target.checked)} />
-                <span className="track" aria-hidden="true" />
-                Rebuttal round
-              </label>
-              {config?.demoMode && <span className="xs dim">Demo mode: only the stocks on file work.</span>}
-              <span className="con-keys dim">try <kbd>NVDA --no-rebuttals</kbd> · <kbd>record</kbd></span>
-            </div>
-          </Panel>
-
-          <Panel code="WL" title="On file" id="onfile" meta="last recorded close · latest call">
-            {tape === null ? (
-              <p className="dim xs">Reading the cache…</p>
-            ) : rows.length === 0 ? (
-              <p className="dim xs">No stocks cached yet. Any ticker still works while live AI and market data are available.</p>
-            ) : (
-              <div className="table-scroll">
-                <table className="ptable wl">
-                  <thead>
-                    <tr><th>Sym</th><th className="num">Last</th><th className="num">Chg</th><th className="hide-sm">30d</th><th>Call</th></tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r) => (
-                      <tr key={r.ticker} onClick={() => onConvene(r.ticker, rebuttals)}>
-                        <td>
-                          <button type="button" className="wl-sym" onClick={(e) => { e.stopPropagation(); onConvene(r.ticker, rebuttals); }}
-                            title={`Open ${r.company}'s committee session`}>{r.ticker}</button>
-                          <span className="wl-co">{r.company}</span>
-                        </td>
-                        <td className="num" title={`Close on ${r.asOf}`}>{r.close.toFixed(2)}</td>
-                        <td className={`num ${toneOf(r.change) ?? ""}`}>{pct(r.change, true)}</td>
-                        <td className="hide-sm"><Sparkline values={r.spark} /></td>
-                        <td>
-                          {r.lastCall ? (
-                            <span className={`wl-call call-${r.lastCall.call}`} title={`Decided ${when(r.lastCall.decidedAt)}`}>
-                              {r.lastCall.call} <span className="num">{Math.round(r.lastCall.confidence * 100)}%</span>
-                            </span>
-                          ) : <span className="dim">—</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <form className="hero-search" onSubmit={submit} role="search">
+            <SearchIcon />
+            <label htmlFor="ticker" className="sr-only">Ticker</label>
+            <input id="ticker" value={line} onChange={(e) => { setLine(e.target.value); setError(null); }}
+              placeholder="Enter a ticker, e.g. NVDA" maxLength={40} autoComplete="off" autoCapitalize="characters" spellCheck={false} autoFocus />
+            <button className="btn btn-primary" type="submit">Convene<span className="hide-sm"> the committee</span></button>
+          </form>
+          {error && <p className="hero-error" role="alert">{error}</p>}
+          <div className="hero-opts">
+            <label className="switch">
+              <input type="checkbox" checked={rebuttals} onChange={(e) => setRebuttals(e.target.checked)} />
+              <span className="track" aria-hidden="true" />
+              Rebuttal round
+            </label>
+            {rows.length > 0 && (
+              <div className="quick">
+                <span>Try</span>
+                {rows.slice(0, 4).map((r) => <button key={r.ticker} type="button" className="chip" onClick={() => onConvene(r.ticker, rebuttals)}>{r.ticker}</button>)}
               </div>
             )}
-          </Panel>
+          </div>
+          <p className="hero-note">Research and education, not financial advice.{config?.demoMode && " Demo mode: only the stocks on file work."}</p>
         </div>
+        {agents.length > 0 && <CommitteeGraph agents={agents} />}
+      </section>
 
-        <div className="tgrid tland-docs">
-          <Panel code="SEQ" title="Order of business" id="how" meta="about a minute, end to end">
-            <ol className="seq">
-              {PIPELINE.map((p) => (
-                <li key={p.code}>
-                  <span className="seq-n num">{p.code}</span>
-                  <div><b>{p.title}</b><p>{p.text}</p></div>
-                </li>
+      <div className="container home-body">
+        <ul className="status-strip" aria-label="System status">
+          {boot.map((b) => (
+            <li key={b.label} className={`st-${b.status}`}>
+              <i aria-hidden="true" />
+              <b>{STATUS_LABEL[b.label] ?? b.label}</b>
+              <span>{b.detail}</span>
+            </li>
+          ))}
+        </ul>
+
+        <section className="home-sec" id="onfile">
+          <header className="sec-head">
+            <div>
+              <h2>On file</h2>
+              <p>Stocks the committee has already decided. Opening one replays its session at no cost.</p>
+            </div>
+            {latest && <span className="sec-meta">Last recorded close · {shortDate(latest)}</span>}
+          </header>
+          {tape === null ? (
+            <div className="scards" aria-hidden="true">{[0, 1, 2, 3].map((i) => <div key={i} className="scard skel-card" />)}</div>
+          ) : rows.length === 0 ? (
+            <p className="dim">No stocks cached yet. Any ticker still works while live AI and market data are available.</p>
+          ) : (
+            <div className="scards">
+              {rows.map((r) => (
+                <button key={r.ticker} type="button" className="scard" onClick={() => onConvene(r.ticker, rebuttals)} title={`Open ${r.company}'s committee session`}>
+                  <div className="scard-top">
+                    <span className="q-logo sm" aria-hidden="true">{r.ticker.slice(0, 4)}</span>
+                    <div className="scard-id"><b>{r.ticker}</b><span>{r.company}</span></div>
+                    {r.lastCall && (
+                      <span className={`call-pill call-${r.lastCall.call}`} title={`Decided ${when(r.lastCall.decidedAt)}`}>
+                        {r.lastCall.call} <span className="num">{Math.round(r.lastCall.confidence * 100)}%</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="scard-px">
+                    <span className="num">{r.close.toFixed(2)}</span>
+                    <span className={`num ${toneOf(r.change) ?? ""}`}>{pct(r.change, true)}</span>
+                  </div>
+                  <Sparkline values={r.spark} width={240} height={44} />
+                </button>
               ))}
-            </ol>
-          </Panel>
-          <Panel code="RUL" title="Standing rules" id="rules" meta="enforced in code, every run">
-            <ul className="checks">
-              {RULES.map((r) => (
-                <li key={r.title} className="ok"><span className="chk">✓</span><span><b>{r.title}</b> {r.text}</span></li>
-              ))}
-            </ul>
-          </Panel>
-        </div>
+            </div>
+          )}
+        </section>
+
+        <section className="home-sec" id="how">
+          <header className="sec-head">
+            <div>
+              <h2>How a session works</h2>
+              <p>From pressing Convene to reading the memo, usually about a minute.</p>
+            </div>
+          </header>
+          <ol className="steps">
+            {STEPS.map((s, i) => (
+              <li key={s.title}>
+                <span className="step-n num">0{i + 1}</span>
+                <h3>{s.title}</h3>
+                <p>{s.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="home-sec" id="rules">
+          <header className="sec-head">
+            <div>
+              <h2>Built to be checked</h2>
+              <p>An AI committee is only worth reading if you can check its working. These rules are enforced in code on every run.</p>
+            </div>
+          </header>
+          <ul className="rule-cards">
+            {RULES.map((r) => (
+              <li key={r.title}>
+                <span className="rule-ic" aria-hidden="true">✓</span>
+                <h3>{r.title}</h3>
+                <p>{r.text}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         {agents.length > 0 && (
-          <Panel code="SEAT" title="The seats" id="committee" meta="Nano for narrow reads · Super to weigh evidence · one Ultra call to judge">
-            <div className="table-scroll">
-              <table className="ptable seats">
-                <thead><tr><th>Seat</th><th>Model</th><th>Why this size</th></tr></thead>
-                <tbody>
-                  {agents.map((a) => (
-                    <tr key={a.id} className={`id-${a.id}`}>
-                      <td className="p-who"><i className="id-mark" aria-hidden="true" />{a.label}</td>
-                      <td className="p-model"><TierTag tier={a.tier} /><span>{modelName(a.model) ?? "not configured"}</span></td>
-                      <td className="seat-why">{a.why}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <section className="home-sec" id="committee">
+            <header className="sec-head">
+              <div>
+                <h2>The seats</h2>
+                <p>Reasoning is spent where it pays: Nano for narrow reads, Super for weighing evidence, one Ultra call for the judgement.</p>
+              </div>
+            </header>
+            <div className="seat-cards">
+              {agents.map((a) => (
+                <div key={a.id} className={`seat-card id-${a.id}`}>
+                  <div className="seat-top"><i className="id-mark" aria-hidden="true" /><b>{a.label}</b><TierTag tier={a.tier} /></div>
+                  <code className="seat-model">{modelName(a.model) ?? "not configured"}</code>
+                  <p>{a.why}</p>
+                </div>
+              ))}
             </div>
-          </Panel>
+          </section>
         )}
       </div>
     </main>

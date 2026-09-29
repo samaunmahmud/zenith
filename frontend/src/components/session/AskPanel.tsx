@@ -77,7 +77,7 @@ export function AskPanel({ state }: { state: CommitteeState }) {
 
   const spent = msgs.reduce((n, m) => n + (m.status === "done" ? m.result.costs.totalUsd : 0), 0);
   return (
-    <Panel code="ASK" title="Ask the committee" id="ask" className="task-panel"
+    <Panel title="Ask the committee" id="ask" className="task-panel"
       meta={<span className="ask-meta"><TierTag tier="super" /> {modelName(secretary?.model) ?? "Nemotron Super"}{spent > 0 && <> · <span className="num">{usd(spent)}</span></>}</span>}>
       <div className="ask-box" ref={box} aria-live="polite">
         {msgs.length === 0 && (
@@ -88,7 +88,7 @@ export function AskPanel({ state }: { state: CommitteeState }) {
         )}
         {msgs.map((m, i) => (
           <div key={m.id} className="ask-turn">
-            <div className="ask-q"><span className="ask-prompt" aria-hidden="true">&gt;</span>{m.question}</div>
+            <div className="ask-q">{m.question}</div>
             {m.status === "pending" && (
               <div className="ask-a is-pending"><span className="spin-dots" aria-hidden="true"><i /><i /><i /></span> Reading the session… <Elapsed since={m.since} /></div>
             )}
@@ -120,11 +120,10 @@ export function AskPanel({ state }: { state: CommitteeState }) {
         </div>
       )}
       <form className="ask-form" onSubmit={submit}>
-        <span className="ask-prompt" aria-hidden="true">&gt;</span>
         <label htmlFor="ask-q" className="sr-only">Ask the committee a question</label>
         <input id="ask-q" ref={input} value={q} onChange={(e) => setQ(e.target.value)} maxLength={MAX_CHARS} autoComplete="off"
           placeholder={busy ? "Answering…" : `Ask about ${state.ticker}: why the call, the dissent, the risks…`} disabled={busy} />
-        <button type="submit" className="tbtn tbtn-go" disabled={busy || !q.trim()}>Ask ⏎</button>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={busy || !q.trim()}>Ask</button>
       </form>
     </Panel>
   );

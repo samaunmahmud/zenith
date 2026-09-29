@@ -6,10 +6,10 @@ import { statusAt } from "../../lib/tape";
 import type { CommitteeState } from "../../state/committee";
 import type { ChairDecision } from "../../types";
 import { Term } from "../ui/Term";
-import { Panel, clock } from "../terminal/Panel";
-import { ProcessMonitor } from "../terminal/ProcessMonitor";
-import { StanceBoard } from "../terminal/StanceBoard";
-import { VerdictPanel } from "../terminal/VerdictPanel";
+import { Panel, clock } from "../session/Panel";
+import { StanceBoard } from "../session/StanceBoard";
+import { Timeline } from "../session/Timeline";
+import { VerdictPanel } from "../session/VerdictPanel";
 import { metricRows, preferred } from "./matrix";
 
 interface Props {
@@ -30,7 +30,7 @@ function ruling(s: CommitteeState, play: Playback): ChairDecision | null {
   return chair && statusAt(chair, play.t) === "done" ? s.decision : null;
 }
 
-/** One side: its security line, then the same process monitor, stances and ruling as a full session. */
+/** One side: the company, then the same ruling, stances and pipeline as a full session. */
 function Side({ s, play, side, onOpen }: { s: CommitteeState; play: Playback; side: "a" | "b"; onOpen: (t: string) => void }) {
   const decision = ruling(s, play);
   const running = !play.finished && s.status !== "error";
@@ -38,22 +38,25 @@ function Side({ s, play, side, onOpen }: { s: CommitteeState; play: Playback; si
     <section className="cside" aria-label={`${s.ticker} committee`}>
       <header className="cside-head">
         <div className="q-id">
-          <h2 className="q-sym">{s.ticker}</h2>
-          <span className="q-name">{s.snapshot?.companyName ?? (s.status === "error" ? "" : "Loading…")}</span>
+          <span className="q-logo" aria-hidden="true">{s.ticker.slice(0, 4)}</span>
+          <div className="q-names">
+            <h2 className="q-name">{s.snapshot?.companyName ?? (s.status === "error" ? s.ticker : "Loading…")}</h2>
+            <p className="q-meta"><b className="q-sym">{s.ticker}</b>{s.snapshot?.sector && <> · {s.snapshot.sector}</>}</p>
+          </div>
         </div>
         <div className="q-session">
           <span className={`q-mode ${play.mode === "live" ? "is-live" : "is-replay"} ${running ? "is-running" : ""}`}>
-            <i aria-hidden="true" />{play.mode === "live" ? "LIVE" : `REPLAY ×${play.speed.toFixed(1)}`}
+            <i aria-hidden="true" />{play.mode === "live" ? "Live" : `Replay ×${play.speed.toFixed(1)}`}
+            <span className="q-clock num" aria-hidden="true">{clock(play.t)}</span>
           </span>
-          <span className="q-clock num" aria-hidden="true">{clock(play.t)}</span>
-          {play.mode === "replay" && !play.finished && <button className="tbtn" onClick={play.skip}>Skip ▸▸</button>}
-          {decision && play.finished && <button className="tbtn" onClick={() => onOpen(s.ticker)}>Full session ▸</button>}
+          {play.mode === "replay" && !play.finished && <button className="tbtn" onClick={play.skip}>Skip</button>}
+          {decision && play.finished && <button className="tbtn" onClick={() => onOpen(s.ticker)}>Full session →</button>}
         </div>
       </header>
       {s.status === "error" && play.finished && <div className="notice error"><div>{s.error}</div></div>}
-      <ProcessMonitor play={play} id={`prc-${side}`} />
-      <StanceBoard state={s} play={play} decision={decision} id={`vot-${side}`} />
       <VerdictPanel state={s} play={play} decision={decision} id={`rul-${side}`} compact />
+      <StanceBoard state={s} play={play} decision={decision} id={`vot-${side}`} />
+      <Timeline play={play} id={`tl-${side}`} />
     </section>
   );
 }
@@ -113,37 +116,36 @@ export function ComparePage({ onFile, onOpen }: Props) {
   return (
     <main className="tx">
       <div className="container tx-body">
-        <header className="tland-head">
-          <p className="tland-kicker"><span className="tpanel-code">CMP</span> Head to head · two committees in parallel on Nebius Token Factory</p>
-          <h1>Two stocks. Two committees. <em>One screen.</em></h1>
-          <p className="tland-lede">
+        <header className="page-head">
+          <p className="eyebrow"><i aria-hidden="true" /> Head to head · two committees in parallel on Nebius Token Factory</p>
+          <h1>Two stocks. Two committees. <span className="grad">One screen.</span></h1>
+          <p className="lede">
             Each stock gets its own full committee, running at the same time. Then the calls, the key figures and the risks
             are laid side by side. Research and education, not financial advice.
           </p>
         </header>
 
-        <Panel code="VS" title="Convene both" id="versus" className="tconsole"
-          meta={<span>about 4¢ for a pair with no recent saved decision; free otherwise</span>}>
-          <form className="con-prompt con-versus" onSubmit={submit}>
-            <span className="con-ps" aria-hidden="true">❯</span>
-            <label className="sr-only" htmlFor="ta">First ticker</label>
-            <input id="ta" value={a} onChange={(e) => setA(e.target.value)} placeholder="NVDA" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
-            <span className="vs-sep" aria-hidden="true">vs</span>
-            <label className="sr-only" htmlFor="tb">Second ticker</label>
-            <input id="tb" value={b} onChange={(e) => setB(e.target.value)} placeholder="AMD" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
-            <button className="tbtn tbtn-go" type="submit" disabled={running || !clean(a) || !clean(b) || clean(a) === clean(b)}>
-              {running ? "In session…" : "Convene ⏎"}
-            </button>
-          </form>
+        <form className="versus2" onSubmit={submit}>
+          <label className="sr-only" htmlFor="ta">First ticker</label>
+          <input id="ta" value={a} onChange={(e) => setA(e.target.value)} placeholder="NVDA" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
+          <span className="vs-sep" aria-hidden="true">vs</span>
+          <label className="sr-only" htmlFor="tb">Second ticker</label>
+          <input id="tb" value={b} onChange={(e) => setB(e.target.value)} placeholder="AMD" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
+          <button className="btn btn-primary" type="submit" disabled={running || !clean(a) || !clean(b) || clean(a) === clean(b)}>
+            {running ? "In session…" : "Convene both"}
+          </button>
+        </form>
+        <div className="hero-opts">
           {pairs.length > 0 && (
-            <div className="con-foot">
-              <span className="dim">on file</span>
+            <div className="quick">
+              <span>On file</span>
               {pairs.map(([x, y]) => (
-                <button key={x + y} type="button" className="tchip" disabled={running} onClick={() => convene(x, y)}>{x} vs {y}</button>
+                <button key={x + y} type="button" className="chip" disabled={running} onClick={() => convene(x, y)}>{x} vs {y}</button>
               ))}
             </div>
           )}
-        </Panel>
+          <span className="hero-note">About 4¢ for a pair with no recent saved decision; free otherwise.</span>
+        </div>
 
         {started && (
           <div className="csides">
@@ -154,7 +156,7 @@ export function ComparePage({ onFile, onOpen }: Props) {
 
         {done && (
           <>
-            <Panel code="PRF" title="The committees' preference" id="pref" className="cpref" meta="ranked in code, not by a model">
+            <Panel title="The committees' preference" id="pref" className="cpref" meta="ranked in code, not by a model">
               {winner && loser ? (
                 <p className="cpref-line">
                   <b className="q-sym">{winner.ticker}</b>{" "}
@@ -169,7 +171,7 @@ export function ComparePage({ onFile, onOpen }: Props) {
               <p className="xs dim">The stronger call wins (BUY, then HOLD, then SELL), then the chair's confidence. Not advice.</p>
             </Panel>
 
-            <Panel code="FIG" title="Key figures side by side" id="matrix" meta="better value highlighted where one direction is better">
+            <Panel title="Key figures side by side" id="matrix" meta="better value highlighted where one direction is better">
               <div className="table-scroll">
                 <table className="ptable cmatrix">
                   <caption className="sr-only">Key figures side by side</caption>
@@ -192,7 +194,7 @@ export function ComparePage({ onFile, onOpen }: Props) {
 
             <div className="csides">
               {[left.state, right.state].map((s, i) => (
-                <Panel key={s.ticker} code="RSK" title={`${s.ticker}: what could go wrong`} id={`risk-${i}`}>
+                <Panel key={s.ticker} title={`${s.ticker}: what could go wrong`} id={`risk-${i}`}>
                   <ul className="checks">
                     {s.decision!.keyRisks.map((k) => <li key={k} className="warn"><span className="chk">!</span><span>{k}</span></li>)}
                   </ul>

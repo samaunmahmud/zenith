@@ -8,9 +8,12 @@ export function Sparkline({ values, width = 72, height = 20 }: { values: number[
   const span = Math.max(...values) - lo || 1;
   const pts = values.map((v, i) => `${((i / (values.length - 1)) * width).toFixed(1)},${(height - 1 - ((v - lo) / span) * (height - 2)).toFixed(1)}`);
   const tone = values.at(-1)! >= values[0] ? "pos" : "neg";
+  // Taller lines (the stock cards) get a soft area under them; the tape's small ones stay a bare line.
+  const area = height >= 30 ? `M0,${height} L${pts.join(" L")} L${width},${height} Z` : null;
   return (
-    <svg className={`spark ${tone}`} width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden="true">
-      <polyline points={pts.join(" ")} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+    <svg className={`spark ${tone}`} width={width} height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" aria-hidden="true">
+      {area && <path d={area} fill="currentColor" opacity="0.1" />}
+      <polyline points={pts.join(" ")} fill="none" stroke="currentColor" strokeWidth={area ? 1.8 : 1.4} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
