@@ -19,7 +19,7 @@ Built for the **Nebius x NVIDIA Global AI Hackathon** (Best Apps and Agents trac
 
 **Live demo:** _coming soon_ · **Demo video:** _coming soon_
 
-![The session screen: the Nemotron Ultra chair's BUY at 72% confidence with its reasons, each tagged with the analyst it came from, and the dissent on the record; below, the three analyst cards with traced figures highlighted](docs/screenshots/session.png)
+![The session screen: the Nemotron Ultra chair's BUY on NVDA at 72% confidence with its reasons, each tagged with the analyst it came from, the dissent on the record, and the conditions that would change the call](docs/screenshots/session.png)
 
 <details>
 <summary>The landing console, and head to head in the light theme</summary>
