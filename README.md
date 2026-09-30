@@ -97,6 +97,7 @@ The principle is to **spend reasoning where it matters**. Most calls go to Nano 
 ## Other Nebius services
 
 - **Nebius Serverless AI Endpoints** host the app: one container serving the React frontend and the Spring Boot API. See [Deploying to Nebius](#deploying-to-nebius).
+- **Nebius Container Registry** holds the image, and **SecretStash (MysteryBox)** holds the API keys the endpoint reads.
 
 ## Tech stack
 
@@ -165,37 +166,28 @@ You can link straight to a run: `/?ticker=NVDA&rebuttals=true`.
 
 ## Deploying to Nebius
 
-The Dockerfile builds the frontend, bundles it into the Spring Boot jar, and runs it on a slim JRE image as a non-root user on port 8080.
+The Dockerfile builds the frontend, bundles it into the Spring Boot jar, and runs it on a slim JRE image as a non-root user on port 8080. `scripts/deploy-nebius.sh` does the rest with the [Nebius CLI](https://docs.nebius.com/cli):
 
 ```bash
-npm run precache                                  # bake demo data into the image
-docker build --platform linux/amd64 -t <registry>/zenith:latest .
-docker push <registry>/zenith:latest
-
-nebius ai endpoint create \
-  --name zenith \
-  --image <registry>/zenith:latest \
-  --platform cpu-d3 \
-  --preset 4vcpu-16gb \
-  --container-port 8080 \
-  --public \
-  --env-secret "TOKEN_FACTORY_API_KEY=<secret>" \
-  --env-secret "FMP_API_KEY=<secret>" \
-  --env-secret "FINNHUB_API_KEY=<secret>" \
-  --env-secret "MAX_SPEND_USD=0.20" \
-  --env-secret "LIVE_RUNS_PER_HOUR=10" \
-  --env-secret "REUSE_HOURS=1000" \
-  --subnet-id <subnet_ID>
+npm run precache                 # bake demo data into the image
+scripts/deploy-nebius.sh         # registry → image → secrets → public endpoint → URL
 ```
 
-Two settings matter more on a public URL than locally:
+It takes these steps:
 
-- **`REUSE_HOURS`** decides how long a saved decision is served instead of a new paid run. The default is 6 hours, so without it every visitor who clicks a demo ticker after that window starts a live committee. Set it high so the pre-cached demo decisions keep replaying for free; typing a new ticker still convenes a live committee.
-- **Don't pass `PORT`.** The image sets `PORT=8080` to match `--container-port`. Your local `.env` sets `3001` for development, so forwarding it (for example with `docker run --env-file .env`) moves the server off the port the endpoint routes to. To test the image locally, add `-e PORT=8080` after `--env-file .env`; an explicit `-e` wins.
+1. Creates (or reuses) a **Nebius Container Registry** called `zenith`, builds the image for `linux/amd64`, tags it with the commit, and pushes it.
+2. Stores `TOKEN_FACTORY_API_KEY`, `FMP_API_KEY` and `FINNHUB_API_KEY` from `.env` in a **SecretStash (MysteryBox)** secret called `zenith-keys`. The endpoint reads them with `--env-secret KEY=zenith-keys`, so the keys never appear on a command line or in the image.
+3. Creates a public **Serverless AI endpoint** on a CPU platform (`cpu-d3`, `4vcpu-16gb`; the CLI's default is a GPU, which this app doesn't need). The public-demo settings go in as plain `--env` values: `MAX_SPEND_USD`, `REUSE_HOURS=1000`, `LIVE_RUNS_PER_HOUR=10`, `SEARCHES_PER_DAY=60`.
+4. Waits for the HTTPS URL to answer `/api/health` and prints it.
 
-Omitting `--auth` leaves the endpoint open, which is what a public demo URL needs. Get the HTTPS URL with `nebius ai endpoint get <endpoint_ID> --format json`. See the [Serverless AI endpoints docs](https://docs.nebius.com/serverless/endpoints/manage) for secret and platform options.
+Things that matter more on a public URL than locally:
 
-**Keep `MAX_SPEND_USD` well below your credit balance.** The image copies `cache/` as it is, including `cache/_spend.json`, so the endpoint starts with your local spend already counted. The ledger is only as durable as the container's disk, though: if the endpoint restarts on fresh storage, it goes back to the value baked into the image, so the cap limits spend per container lifetime, not in total.
+- **`MAX_SPEND_USD` counts what's already been spent.** The image copies `cache/` as it is, including `cache/_spend.json`, so the endpoint starts with your local spend counted. Set the cap above that total (`PUBLIC_SPEND_USD`, default `3.00`), or AI calls start switched off; the script checks this before building. The ledger is only as durable as the container's disk: if the endpoint restarts on fresh storage, it goes back to the value baked into the image, so the cap limits spend per container lifetime, not in total.
+- **`REUSE_HOURS`** decides how long a saved decision is served instead of a new paid run. The default is 6 hours, so without it every visitor who clicks a demo ticker after that window starts a live committee.
+- **Don't set `DEMO_MODE`.** It stops price updates, and "Since this ruling" and the chair's watch list are checked against new closes.
+- **Don't pass `PORT`.** The image sets `PORT=8080` to match `--container-port`. To test the image locally with your `.env`, add `-e PORT=8080` after `--env-file .env`; an explicit `-e` wins.
+
+See the [Serverless AI endpoints docs](https://docs.nebius.com/serverless/endpoints/manage) for platform and secret options.
 
 ## API
 
