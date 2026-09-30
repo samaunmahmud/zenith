@@ -66,7 +66,7 @@ class TriggersTest {
     @Test
     void saysSoBeforeAnyCloseAndIgnoresUnknownIds() {
         List<PriceBar> stock = flatThen(30, 100);
-        assertThat(Triggers.check("up-15", AS_OF, 100, null, stock, stock).orElseThrow().now()).isEqualTo("no close since the ruling yet");
+        assertThat(Triggers.check("up-15", AS_OF, 100, null, stock, stock).orElseThrow()).isEqualTo(new Triggers.Check(null, null));
         assertThat(Triggers.check("moon", AS_OF, 100, null, flatThen(30, 100, 101), stock)).isEmpty();
     }
 }

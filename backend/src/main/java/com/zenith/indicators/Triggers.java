@@ -25,7 +25,7 @@ public final class Triggers {
     /** One option: an id the chair copies, and the condition in words, with its reference figures. */
     public record Trigger(String id, String condition) {}
 
-    /** How a trigger stands now: the first close it was met on (null if not yet), and the current reading. */
+    /** How a trigger stands: the first close it was met on (null if not yet), and the latest reading (null before any close). */
     public record Check(String metOn, String now) {}
 
     private Triggers() {}
@@ -68,7 +68,7 @@ public final class Triggers {
         double[] closes = Technicals.closes(stock);
         int first = 0;
         while (first < stock.size() && stock.get(first).date().compareTo(asOf) <= 0) first++;
-        if (first >= stock.size() || entryClose <= 0) return Optional.of(new Check(null, "no close since the ruling yet"));
+        if (first >= stock.size() || entryClose <= 0) return Optional.of(new Check(null, null));
         int last = stock.size() - 1;
 
         return switch (id) {

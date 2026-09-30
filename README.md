@@ -8,7 +8,8 @@ Beyond a single decision:
 
 - **Track record.** Every decision is recorded with its price and scored against the S&P 500 at 7, 30 and 90 days: BUY is right if the stock beat SPY, SELL if it trailed, HOLD if it stayed within 5 points. Calls stay pending until their window closes; nothing is backfilled. See `/?page=record`.
   The record is kept locally in `cache/_track-record.json` (like the rest of the cache, it isn't committed).
-- **Since this ruling.** A saved decision says how it has aged: the stock and the S&P 500 since the close the committee saw, whether the call is on track so far, and the technical figures then and now (with a note if the price has crossed its 50 or 200-day average). It's arithmetic on daily closes, with no model call.
+- **What would change the call.** The chair names two or three conditions that would change its decision, and what the call would become (for example "The price closes above its 200-day average ($394.69 at the ruling) → HOLD"). It picks them from a menu of price conditions that code builds, with fixed thresholds, so the chair never invents a number and every condition can be checked.
+- **Since this ruling.** A saved decision says how it has aged: the stock and the S&P 500 since the close the committee saw, whether the call is on track so far, the technical figures then and now, and which of the chair's conditions have been met. It's arithmetic on daily closes, with no model call.
 - **Test your thesis.** Write your own case for or against the stock. The chair (Nemotron Ultra) cross-examines each claim against the analysts' fact sheets, marks it supported, contradicted or unverifiable, argues the strongest case against you, and writes a Counter-Thesis Memo. About 1¢.
 - **Head to head.** Put two stocks on trial: two full committees sit in parallel, then the calls, key figures and risks are laid side by side. See `/?page=compare&a=NVDA&b=AMD`.
 
@@ -58,7 +59,7 @@ flowchart LR
 3. **News desk (Nano)** condenses the headlines into themes and events.
 4. **Three analysts run in parallel** (Java virtual threads). Each has its own personality and remit, and returns strict JSON: stance, confidence, key points, evidence and concerns.
 5. **Rebuttal round (optional).** Each analyst gets exactly one short reply to a colleague. There are no open-ended debate loops.
-6. **The chair (Ultra)** decides. It must name the analyst behind each part of its reasoning, and it must record the strongest dissent.
+6. **The chair (Ultra)** decides. It must name the analyst behind each part of its reasoning, record the strongest dissent, and pick the conditions that would change its call from a menu computed in code.
 7. **Memo.** The memo is assembled **in code** from the structured outputs, so its tables and disclaimer can't be hallucinated. You can download it as Markdown.
 
 The session screen leads with the verdict. While the committee works, a progress banner shows each stage; three analyst cards fill in as each report lands (stance, confidence, headline, key points, rebuttal); and a pipeline chart draws every Nemotron call on one time axis, coloured by tier, with its time, tokens and cost. Then the chair's ruling lands with its confidence, the reasons (each tagged with the analyst it came from) and the dissent. Live runs stream over Server-Sent Events; a saved session is replayed from its recorded per-call timings, labelled as a replay.
@@ -84,6 +85,7 @@ The principle is to **spend reasoning where it matters**. Most calls go to Nano 
 - **Structured output.** Each agent's JSON schema is generated from its Java record and sent using Token Factory's `json_schema` response format (it falls back to `json_object` if a model rejects it).
 - **Validate and retry once.** Every reply is checked with Bean Validation plus agent-specific rules. If a check fails, the errors are fed back to the model for **one** retry. If it fails again, the UI shows a clean error instead of crashing, and the chair decides on the reports that did arrive.
 - **Number tracing.** Every figure an analyst cites as evidence must match (allowing for rounding) a figure in its input, or the reply is rejected and retried. Free text is also scanned, and any number that can't be traced is flagged in the UI.
+- **Checkable triggers.** The chair's "what would change the call" list must use ids from a menu of price conditions built in Java (crossing the 50 or 200-day average, RSI above 70 or below 30, a 15% move, 10 points against the S&P 500, a new 52-week high or low). An unknown id, a duplicate, or a "change" to the same call is sent back for a retry. Because every condition is price-based, code checks it against each new close.
 
 ## Where Token Factory accelerated the work
 
@@ -205,7 +207,7 @@ Omitting `--auth` leaves the endpoint open, which is what a public demo URL need
 | `POST` | `/api/thesis` | `{ "ticker": "NVDA", "thesis": "..." }` → the chair cross-examines the thesis against the latest session on that stock (one Nemotron Ultra call) and returns the review and a Counter-Thesis Memo |
 | `POST` | `/api/ask` | `{ "ticker": "NVDA", "question": "...", "history": [] }` → the secretary (one Nemotron Super call) answers from the latest session on that stock, with the figures it relied on |
 | `GET` | `/api/track-record` | Every recorded decision, scored against SPY at 7, 30 and 90 days, with a win rate per window |
-| `GET` | `/api/since?ticker=TSLA` | How the latest saved decision has aged: stock and SPY return since, on track or not, figures then and now. `204` if there's no saved decision |
+| `GET` | `/api/since?ticker=TSLA` | How the latest saved decision has aged: stock and SPY return since, on track or not, figures then and now, and the chair's watch list checked against every close since. `204` if there's no saved decision |
 | `GET` | `/api/search?q=sandisk` | US-listed stocks matching a ticker or company name, for the search suggestions |
 | `GET` | `/api/tape` | Last recorded close, daily change and latest call for each stock on file (cache only) |
 

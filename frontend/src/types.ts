@@ -196,7 +196,8 @@ export interface WatchStatus {
   wouldMoveTo: "BUY" | "HOLD" | "SELL";
   reason: string;
   metOn: string | null;
-  now: string;
+  /** The latest reading, e.g. "-2.1% since the ruling"; null before any close since the ruling. */
+  now: string | null;
 }
 
 /** GET /api/health: whether live AI runs are possible right now. */

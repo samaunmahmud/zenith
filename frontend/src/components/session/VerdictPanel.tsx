@@ -75,7 +75,7 @@ function WatchList({ decision, triggers, checked }: { decision: ChairDecision; t
             {w.status && (
               <p className="vw-status">
                 {w.status.metOn ? <span className="warn">Met on {shortDate(w.status.metOn)}</span> : <span className="dim">Not met yet</span>}
-                <span className="dim"> · now {w.status.now}</span>
+                {w.status.now && <span className="dim"> · now {w.status.now}</span>}
               </p>
             )}
           </li>
