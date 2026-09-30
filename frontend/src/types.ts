@@ -154,6 +154,25 @@ export interface TapeRow {
   lastCall: { call: "BUY" | "HOLD" | "SELL"; confidence: number; decidedAt: string } | null;
 }
 
+/** GET /api/since: how a saved ruling has aged. Returns are fractions; they're null before the first close after the ruling. */
+export interface Since {
+  ticker: string;
+  call: "BUY" | "HOLD" | "SELL";
+  asOf: string;
+  entryClose: number;
+  latestDate: string;
+  latestClose: number;
+  tradingDays: number;
+  stockReturn: number | null;
+  spyReturn: number | null;
+  excess: number | null;
+  onTrack: boolean | null;
+  benchmark: string;
+  holdBandPct: number;
+  drift: { label: string; then: string; now: string }[];
+  notes: string[];
+}
+
 /** GET /api/health: whether live AI runs are possible right now. */
 export interface Health {
   status: string;

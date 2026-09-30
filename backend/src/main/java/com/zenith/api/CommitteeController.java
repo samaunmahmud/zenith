@@ -12,6 +12,7 @@ import com.zenith.json.Json;
 import com.zenith.llm.LlmException;
 import com.zenith.tape.TapeService;
 import com.zenith.thesis.ThesisService;
+import com.zenith.track.SinceService;
 import com.zenith.track.TrackRecordService;
 import java.io.IOException;
 import java.util.List;
@@ -51,9 +52,10 @@ public class CommitteeController {
     private final AskService ask;
     private final TapeService tape;
     private final SymbolSearch symbols;
+    private final SinceService since;
 
     public CommitteeController(CommitteeService committee, CommitteeGate gate, ZenithProperties props, com.zenith.llm.SpendGuard spendGuard,
-            TrackRecordService trackRecord, ThesisService thesis, AskService ask, TapeService tape, SymbolSearch symbols) {
+            TrackRecordService trackRecord, ThesisService thesis, AskService ask, TapeService tape, SymbolSearch symbols, SinceService since) {
         this.committee = committee;
         this.gate = gate;
         this.props = props;
@@ -63,6 +65,7 @@ public class CommitteeController {
         this.ask = ask;
         this.tape = tape;
         this.symbols = symbols;
+        this.since = since;
     }
 
     public record CommitteeRequest(String ticker, Boolean rebuttals) {}
@@ -136,6 +139,14 @@ public class CommitteeController {
             log.error("Track record failed", e);
             return json(500, Map.of("error", String.valueOf(e.getMessage())));
         }
+    }
+
+    /** How the latest saved decision on a stock has aged: price and benchmark since, and what has moved. No model call. */
+    @GetMapping("/since")
+    public ResponseEntity<String> since(@RequestParam(required = false) String ticker) {
+        Optional<String> t = parseTicker(ticker);
+        if (t.isEmpty()) return json(400, Map.of("error", BAD_TICKER));
+        return since.since(t.get()).map(s -> json(200, s)).orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     /** Devil's advocate: the chair cross-examines the investor's own thesis against the latest session on that stock. */

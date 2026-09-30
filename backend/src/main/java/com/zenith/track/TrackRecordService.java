@@ -130,12 +130,16 @@ public class TrackRecordService {
         double stockReturn = stockExit.get().close() / c.entryClose() - 1;
         double spyReturn = spyExit.get().close() / spyEntry.get().close() - 1;
         double excess = stockReturn - spyReturn;
-        boolean correct = switch (c.call()) {
+        return new Outcome(days, "scored", due, stockExit.get().date(), stockReturn, spyReturn, excess, right(c.call(), excess));
+    }
+
+    /** The marking rule: was this call right, given the stock's return minus the benchmark's over the same window? */
+    static boolean right(String call, double excess) {
+        return switch (call) {
             case "BUY" -> excess > 0;
             case "SELL" -> excess < 0;
             default -> Math.abs(excess) <= HOLD_BAND;
         };
-        return new Outcome(days, "scored", due, stockExit.get().date(), stockReturn, spyReturn, excess, correct);
     }
 
     static List<HorizonSummary> summarise(List<ScoredCall> calls) {
@@ -164,7 +168,7 @@ public class TrackRecordService {
         return bars.stream().filter(b -> b.date().compareTo(date) >= 0).min(Comparator.comparing(PriceBar::date));
     }
 
-    private static Optional<PriceBar> onOrBefore(List<PriceBar> bars, String date) {
+    static Optional<PriceBar> onOrBefore(List<PriceBar> bars, String date) {
         return bars.stream().filter(b -> b.date().compareTo(date) <= 0).max(Comparator.comparing(PriceBar::date));
     }
 }

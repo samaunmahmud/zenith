@@ -17,6 +17,7 @@ import { NoMarketData } from "./NoMarketData";
 import { EventLog } from "./EventLog";
 import { Panel } from "./Panel";
 import { QuoteStrip } from "./QuoteStrip";
+import { SincePanel } from "./SincePanel";
 import { Timeline } from "./Timeline";
 import { VerdictPanel } from "./VerdictPanel";
 
@@ -29,7 +30,8 @@ interface Props {
 }
 
 /**
- * One committee session, verdict first: the chair's ruling (or the session's progress), the three analysts, then how
+ * One committee session, verdict first: the chair's ruling (or the session's progress), how a saved ruling has aged,
+ * the three analysts, then how
  * the work was done (pipeline and cost), the follow-up chat, the market data, and the full dossier. A live run is
  * timed as it happens; a saved run is replayed from its recorded timeline.
  */
@@ -65,6 +67,7 @@ export function SessionView({ state, onFile, onConvene }: Props) {
         <RunNotices state={state} onFile={onFile} onConvene={onConvene} />
 
         <VerdictPanel state={state} play={play} decision={decision} />
+        {state.result?.replayed && decision && play.finished && <SincePanel ticker={state.ticker} session={state.result.generatedAt} />}
         <AnalystCards state={state} play={play} />
 
         <div className="tgrid">

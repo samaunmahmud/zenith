@@ -8,6 +8,7 @@ Beyond a single decision:
 
 - **Track record.** Every decision is recorded with its price and scored against the S&P 500 at 7, 30 and 90 days: BUY is right if the stock beat SPY, SELL if it trailed, HOLD if it stayed within 5 points. Calls stay pending until their window closes; nothing is backfilled. See `/?page=record`.
   The record is kept locally in `cache/_track-record.json` (like the rest of the cache, it isn't committed).
+- **Since this ruling.** A saved decision says how it has aged: the stock and the S&P 500 since the close the committee saw, whether the call is on track so far, and the technical figures then and now (with a note if the price has crossed its 50 or 200-day average). It's arithmetic on daily closes, with no model call.
 - **Test your thesis.** Write your own case for or against the stock. The chair (Nemotron Ultra) cross-examines each claim against the analysts' fact sheets, marks it supported, contradicted or unverifiable, argues the strongest case against you, and writes a Counter-Thesis Memo. About 1¢.
 - **Head to head.** Put two stocks on trial: two full committees sit in parallel, then the calls, key figures and risks are laid side by side. See `/?page=compare&a=NVDA&b=AMD`.
 
@@ -204,6 +205,7 @@ Omitting `--auth` leaves the endpoint open, which is what a public demo URL need
 | `POST` | `/api/thesis` | `{ "ticker": "NVDA", "thesis": "..." }` → the chair cross-examines the thesis against the latest session on that stock (one Nemotron Ultra call) and returns the review and a Counter-Thesis Memo |
 | `POST` | `/api/ask` | `{ "ticker": "NVDA", "question": "...", "history": [] }` → the secretary (one Nemotron Super call) answers from the latest session on that stock, with the figures it relied on |
 | `GET` | `/api/track-record` | Every recorded decision, scored against SPY at 7, 30 and 90 days, with a win rate per window |
+| `GET` | `/api/since?ticker=TSLA` | How the latest saved decision has aged: stock and SPY return since, on track or not, figures then and now. `204` if there's no saved decision |
 | `GET` | `/api/search?q=sandisk` | US-listed stocks matching a ticker or company name, for the search suggestions |
 | `GET` | `/api/tape` | Last recorded close, daily change and latest call for each stock on file (cache only) |
 
@@ -221,7 +223,7 @@ backend/src/main/java/com/zenith/
 ├── memo/         Markdown memo builder
 ├── ask/          "Ask the committee" follow-up questions
 ├── thesis/       thesis review and Counter-Thesis Memo
-├── track/        decision ledger and scoring against SPY
+├── track/        decision ledger, scoring against SPY, and how a saved ruling has aged
 ├── tape/         the landing page's stocks on file
 └── cli/          --smoke and --precache tasks
 backend/src/main/resources/prompts/   one Markdown system prompt per agent

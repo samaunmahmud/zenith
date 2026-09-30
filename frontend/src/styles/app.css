@@ -497,3 +497,21 @@
 .nodata-matches span:nth-child(2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nodata-go { color: var(--accent); font-weight: 700; }
 @media (max-width: 640px) { .nodata { padding-top: 24px; } .nodata-card { padding: 22px 18px; } }
+
+/* Since this ruling: how a saved decision has aged */
+.since-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px 28px; }
+@media (min-width: 900px) { .since-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); } }
+.since-stats { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.since-stats > div { padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r); background: var(--panel-2); min-width: 0; }
+.since-stats dt { font-family: var(--font); font-size: 12px; color: var(--text-3); letter-spacing: 0; }
+.since-stats dd { margin: 4px 0 0; font-size: 20px; font-weight: 650; }
+.since-mark { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 14px 0 0; font-size: 13px; color: var(--text-2); }
+.since-mark > span:last-child { flex: 1 1 240px; }
+.since-drift { width: 100%; border-collapse: collapse; font-size: 13px; }
+.since-drift th, .since-drift td { padding: 7px 2px; border-bottom: 1px solid var(--line); text-align: right; }
+.since-drift thead th { font-family: var(--font); font-size: 12px; font-weight: 550; color: var(--text-3); letter-spacing: 0; }
+.since-drift th:first-child { text-align: left; }
+.since-drift tbody th { font-family: var(--font); font-weight: 400; color: var(--text-3); letter-spacing: 0; }
+.since-drift tbody td { font-weight: 650; }
+.since-drift tbody tr:last-child > * { border-bottom: 0; }
+.since-notes { list-style: none; margin: 12px 0 0; padding: 10px 12px; display: grid; gap: 6px; font-size: 13px; color: var(--text-2); border-radius: var(--r-sm); background: var(--warn-soft); }

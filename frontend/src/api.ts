@@ -1,4 +1,4 @@
-import type { AppConfig, AskResult, AskTurn, CommitteeEvent, Health, SymbolMatch, TapeRow, ThesisResult, TrackRecord } from "./types";
+import type { AppConfig, AskResult, AskTurn, CommitteeEvent, Health, Since, SymbolMatch, TapeRow, ThesisResult, TrackRecord } from "./types";
 
 export async function fetchConfig(): Promise<AppConfig | null> {
   try {
@@ -35,6 +35,16 @@ export async function fetchTape(): Promise<TapeRow[]> {
     return res.ok ? ((await res.json()) as TapeRow[]) : [];
   } catch {
     return [];
+  }
+}
+
+/** How the saved ruling on a stock has aged. Null when there's nothing to say (no saved ruling, no prices, or a failure). */
+export async function fetchSince(ticker: string): Promise<Since | null> {
+  try {
+    const res = await fetch(`/api/since?ticker=${encodeURIComponent(ticker)}`);
+    return res.status === 200 ? ((await res.json()) as Since) : null;
+  } catch {
+    return null;
   }
 }
 
