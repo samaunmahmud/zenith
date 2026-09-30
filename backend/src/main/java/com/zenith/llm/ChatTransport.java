@@ -16,7 +16,9 @@ public interface ChatTransport {
             List<Message> messages,
             double temperature,
             int maxTokens,
-            Map<String, Object> responseFormat) {}
+            Map<String, Object> responseFormat,
+            // false = ask the model to skip its reasoning pass; true = leave it on (the model's default)
+            boolean reasoning) {}
 
     record Response(String content, int promptTokens, int completionTokens) {}
 

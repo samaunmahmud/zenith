@@ -67,7 +67,8 @@ export type CommitteeAction =
 /** Which agents begin work when a stage starts. */
 const STAGE_AGENTS: Partial<Record<Stage, string[]>> = {
   data: ["clerk"],
-  news: ["news"],
+  // Technicals works from prices alone, so the backend starts it alongside the news desk.
+  news: ["news", "technicals"],
   analysts: ANALYSTS,
   rebuttals: ANALYSTS.map((a) => `${a}-rebuttal`),
   chair: ["chair"],

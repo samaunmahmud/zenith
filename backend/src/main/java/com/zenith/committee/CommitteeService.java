@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
@@ -45,7 +46,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * Runs one committee meeting:
- * data → indicators → news digest (Nano) → 3 analysts in parallel → optional rebuttal round → chair (Ultra) → memo.
+ * data → indicators → news digest (Nano) alongside the technicals analyst → fundamentals and risk → optional rebuttal
+ * round → chair (Ultra) → memo.
  *
  * <p>Analyst failures are isolated: the chair still decides on the reports that did arrive, and is told
  * which are missing. Progress is emitted as events so the UI can stream it.
@@ -83,7 +85,8 @@ public class CommitteeService implements CommitteeRunner {
     }
 
     public List<AgentModel> roster() {
-        return Roster.all().stream().map(a -> new AgentModel(a.id(), a.label(), a.tier(), llm.modelFor(a.tier()), a.why())).toList();
+        return Roster.all().stream().map(a -> new AgentModel(a.id(), a.label(), a.tier(), llm.modelFor(a.tier()), a.why(),
+                llm.reasons(a.id()))).toList();
     }
 
     @Override
@@ -104,23 +107,13 @@ public class CommitteeService implements CommitteeRunner {
         }
         llm.spendGuard().checkAvailable();
 
-        // News digest (Nano). Optional: a failure just means the analysts see "no news".
-        emit.accept(new CommitteeEvent.Stage("news", "News desk is summarising headlines"));
-        NewsDigest digest = null;
-        try {
-            digest = newsAgent.summarise(ticker, md.news(), tracker);
-        } catch (RuntimeException e) {
-            log.warn("News digest failed: {}", message(e));
-        }
-        emit.accept(new CommitteeEvent.News(digest));
-
-        // 3. Analyst round, in parallel
-        emit.accept(new CommitteeEvent.Stage("analysts", "Analysts are preparing their reports"));
+        // 3. News desk (Nano) and the analyst round. Each analyst starts as soon as its inputs exist: technicals works
+        // from prices alone, so it starts alongside the news desk; fundamentals and risk read the news digest, so they
+        // start when it's ready. The slowest Nano call is no longer queued behind another one.
         List<AnalystReport> reports = Collections.synchronizedList(new ArrayList<>());
         List<CommitteeResult.AnalystError> errors = Collections.synchronizedList(new ArrayList<>());
         List<RuntimeException> failures = Collections.synchronizedList(new ArrayList<>());
-        final NewsDigest news = digest;
-        runInParallel(Roster.ORDER, analyst -> {
+        BiConsumer<AnalystName, NewsDigest> analyse = (analyst, news) -> {
             try {
                 AnalystReport report = analystAgent.run(analyst, snapshot, news, tracker);
                 reports.add(report);
@@ -132,7 +125,34 @@ public class CommitteeService implements CommitteeRunner {
                 failures.add(e);
                 emit.accept(new CommitteeEvent.AnalystFailed(analyst, message(e)));
             }
-        });
+        };
+
+        NewsDigest digest = null;
+        try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
+            List<Future<?>> analysts = new ArrayList<>();
+            try {
+                emit.accept(new CommitteeEvent.Stage("news", "News desk is summarising headlines; the technicals analyst reads the charts"));
+                analysts.add(pool.submit(() -> analyse.accept(AnalystName.TECHNICALS, null)));
+                try {
+                    digest = newsAgent.summarise(ticker, md.news(), tracker);
+                } catch (CancellationException e) {
+                    throw e;
+                } catch (RuntimeException e) {
+                    log.warn("News digest failed: {}", message(e)); // optional: the analysts are told there's no news
+                }
+                emit.accept(new CommitteeEvent.News(digest));
+
+                emit.accept(new CommitteeEvent.Stage("analysts", "Analysts are preparing their reports"));
+                final NewsDigest news = digest;
+                for (AnalystName a : Roster.ORDER) {
+                    if (a != AnalystName.TECHNICALS) analysts.add(pool.submit(() -> analyse.accept(a, news)));
+                }
+            } catch (CancellationException e) {
+                pool.shutdownNow(); // the visitor left: stop the calls already under way rather than wait for them
+                throw e;
+            }
+            awaitAll(analysts);
+        }
         List<AnalystReport> sortedReports = sortByAnalyst(reports, AnalystReport::analyst);
         if (sortedReports.isEmpty()) {
             // Keep the first failure as the cause, so a spent budget still maps to "budget" (503), not a model error.
@@ -215,21 +235,25 @@ public class CommitteeService implements CommitteeRunner {
 
     private static <T> void runInParallel(List<T> items, Consumer<T> task) {
         try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
-            List<Future<?>> futures = items.stream().<Future<?>>map(item -> pool.submit(() -> task.accept(item))).toList();
-            CancellationException cancelled = null;
-            for (Future<?> f : futures) {
-                try {
-                    f.get();
-                } catch (ExecutionException e) {
-                    if (e.getCause() instanceof CancellationException c) cancelled = c;
-                    else log.error("Parallel task failed unexpectedly", e.getCause());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new CancellationException("Interrupted");
-                }
-            }
-            if (cancelled != null) throw cancelled; // the visitor left mid-stage: don't start the next one
+            awaitAll(items.stream().<Future<?>>map(item -> pool.submit(() -> task.accept(item))).toList());
         }
+    }
+
+    /** Waits for every task; if any stopped because the visitor left, rethrows that once all are done. */
+    private static void awaitAll(List<Future<?>> futures) {
+        CancellationException cancelled = null;
+        for (Future<?> f : futures) {
+            try {
+                f.get();
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof CancellationException c) cancelled = c;
+                else log.error("Parallel task failed unexpectedly", e.getCause());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new CancellationException("Interrupted");
+            }
+        }
+        if (cancelled != null) throw cancelled; // the visitor left mid-stage: don't start the next one
     }
 
     private static <T> List<T> sortByAnalyst(List<T> items, java.util.function.Function<T, AnalystName> key) {

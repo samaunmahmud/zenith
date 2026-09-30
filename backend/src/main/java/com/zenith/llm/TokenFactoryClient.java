@@ -57,6 +57,11 @@ public class TokenFactoryClient {
         return props.tokenFactory().pricing().get(tier);
     }
 
+    /** Whether this agent's calls keep the model's reasoning pass (see ZenithProperties.TokenFactory#reasoningOff). */
+    public boolean reasons(String agent) {
+        return props.tokenFactory().reasons(agent);
+    }
+
     public String modelFor(ModelTier tier) {
         return props.tokenFactory().models().get(tier);
     }
@@ -100,7 +105,8 @@ public class TokenFactoryClient {
         long started = System.currentTimeMillis();
         ChatTransport.Response res;
         try {
-            res = transport.send(new ChatTransport.Request(model, messages, temperature, maxTokens, responseFormat));
+            res = transport.send(new ChatTransport.Request(model, messages, temperature, maxTokens, responseFormat,
+                    props.tokenFactory().reasons(agent)));
         } catch (ChatTransport.HttpError e) {
             if (useSchema && e.status() == 400 && e.getMessage().matches("(?is).*(response_format|json_schema|schema).*")) {
                 log.warn("{} rejected json_schema, falling back to json_object", model);
@@ -116,7 +122,7 @@ public class TokenFactoryClient {
             spendGuard.record(worst);
             if (tracker != null) {
                 tracker.record(new CallCost(agent, model, tier, promptEstimate, maxTokens,
-                        System.currentTimeMillis() - started, worst, attempt, false));
+                        System.currentTimeMillis() - started, worst, attempt, false, tracker.offset(started)));
             }
             log.warn("{} got no reply; charged a worst-case ${} against the cap", agent, String.format(java.util.Locale.ROOT, "%.4f", worst));
             throw new LlmException(agent + " call failed: " + e.getMessage(), agent, e);
@@ -127,7 +133,8 @@ public class TokenFactoryClient {
         long latency = System.currentTimeMillis() - started;
         double cost = CostTracker.estimateCostUsd(res.promptTokens(), res.completionTokens(), price.input(), price.output());
         spendGuard.record(cost);
-        CallCost call = new CallCost(agent, model, tier, res.promptTokens(), res.completionTokens(), latency, cost, attempt, true);
+        CallCost call = new CallCost(agent, model, tier, res.promptTokens(), res.completionTokens(), latency, cost, attempt, true,
+                tracker == null ? null : tracker.offset(started));
         int index = tracker == null ? -1 : tracker.record(call);
         return new ChatResult(res.content(), index);
     }

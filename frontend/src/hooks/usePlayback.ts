@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CommitteeState } from "../state/committee";
 import { liveTape, replayTape, type Tape } from "../lib/tape";
 
-/** A replay is compressed to about this long, so a 60-90s session plays in under half a minute. */
-const REPLAY_TARGET_MS = 24_000;
-const MAX_SPEED = 8;
+/** A replay is compressed to about this long: long enough to watch the committee work, short enough not to wait on it. */
+const REPLAY_TARGET_MS = 12_000;
+const MAX_SPEED = 12;
 
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 

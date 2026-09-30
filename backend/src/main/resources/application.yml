@@ -25,6 +25,10 @@ zenith:
   token-factory:
     api-key: ${TOKEN_FACTORY_API_KEY:}
     base-url: ${TOKEN_FACTORY_BASE_URL:https://api.tokenfactory.nebius.com/v1/}
+    # Agents that answer without a reasoning pass (chat_template_kwargs.enable_thinking=false): the narrow Nano jobs,
+    # and the secretary, which explains a decision already made. The Super analysts and the Ultra chair keep reasoning
+    # on: that's where the judgement is.
+    reasoning-off: ${REASONING_OFF:news,technicals,technicals-rebuttal,secretary}
     models:
       nano: ${NEMOTRON_NANO_MODEL:nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B}
       super: ${NEMOTRON_SUPER_MODEL:nvidia/nemotron-3-super-120b-a12b}

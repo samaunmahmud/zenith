@@ -21,9 +21,20 @@ public record ZenithProperties(
 
     public record Price(double input, double output) {}
 
-    public record TokenFactory(String apiKey, String baseUrl, Map<ModelTier, String> models, Map<ModelTier, Price> pricing) {
+    /**
+     * {@code reasoningOff}: agent ids (e.g. "news,technicals,technicals-rebuttal") whose calls ask the model to answer
+     * without a reasoning pass. Nemotron reasons by default; for narrow jobs that costs time and tokens for little gain.
+     */
+    public record TokenFactory(String apiKey, String baseUrl, Map<ModelTier, String> models, Map<ModelTier, Price> pricing,
+            String reasoningOff) {
         public boolean configured() {
             return !isBlank(apiKey) && !isBlank(baseUrl);
+        }
+
+        /** Whether this agent's calls keep the model's reasoning on (the default for every agent not listed). */
+        public boolean reasons(String agent) {
+            if (isBlank(reasoningOff)) return true;
+            return Arrays.stream(reasoningOff.split(",")).map(String::trim).noneMatch(agent::equals);
         }
 
         /** Base URL without a trailing slash, so we can append "/chat/completions". */

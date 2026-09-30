@@ -48,6 +48,8 @@ class CommitteeServiceTest {
 
     private final List<String[]> calls = Collections.synchronizedList(new ArrayList<>()); // [model, system]
     private final AtomicInteger technicalsAttempts = new AtomicInteger();
+    private volatile java.util.concurrent.CountDownLatch technicalsStarted;
+    private volatile boolean newsSawTechnicals;
     private final List<String> events = Collections.synchronizedList(new ArrayList<>());
     private CommitteeResult result;
     private CommitteeService service;
@@ -81,7 +83,16 @@ class CommitteeServiceTest {
     private ChatTransport.Response fakeNemotron(ChatTransport.Request req) {
         String system = req.messages().get(0).content();
         String user = req.messages().get(1).content();
-        calls.add(new String[] {req.model(), system});
+        calls.add(new String[] {req.model(), system, String.valueOf(req.reasoning())});
+        if (system.contains("analyst id is \"technicals\"") && technicalsStarted != null) technicalsStarted.countDown();
+        if (system.startsWith("You are a news desk") && technicalsStarted != null) {
+            // Holds the news desk until the technicals analyst has started: only possible if they run side by side.
+            try {
+                newsSawTechnicals = technicalsStarted.await(5, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
         Matcher close = LAST_CLOSE.matcher(user);
         String lastClose = close.find() ? close.group(1) : "$1.00";
         Object body;
@@ -185,6 +196,40 @@ class CommitteeServiceTest {
         synchronized (calls) {
             return calls.stream().filter(c -> c[1].contains(needle)).map(c -> c[0]).findFirst().orElse(null);
         }
+    }
+
+    @Test
+    void startsTheTechnicalsAnalystAlongsideTheNewsDeskNotAfterIt(@TempDir Path dir) {
+        technicalsStarted = new java.util.concurrent.CountDownLatch(1);
+        try {
+            CommitteeResult r = serviceWith(TestProps.create(dir, false, 12)).run("TEST", false, e -> {});
+            assertThat(newsSawTechnicals).isTrue();
+            assertThat(r.reports()).hasSize(3);
+            // Every call carries its start on the run's clock, so a replay can draw the overlap.
+            assertThat(r.costs().calls()).allSatisfy(c -> assertThat(c.startMs()).isNotNull().isNotNegative());
+            var news = r.costs().calls().stream().filter(c -> c.agent().equals("news")).findFirst().orElseThrow();
+            var technicals = r.costs().calls().stream().filter(c -> c.agent().equals("technicals")).findFirst().orElseThrow();
+            assertThat(technicals.startMs()).isLessThanOrEqualTo(news.startMs() + news.latencyMs());
+        } finally {
+            technicalsStarted = null;
+        }
+    }
+
+    private String reasoningFor(String needle) {
+        synchronized (calls) {
+            return calls.stream().filter(c -> c[1].contains(needle)).map(c -> c[2]).findFirst().orElse(null);
+        }
+    }
+
+    @Test
+    void turnsReasoningOffOnlyForTheNarrowNanoJobs() {
+        assertThat(reasoningFor("news desk")).isEqualTo("false");
+        assertThat(reasoningFor("analyst id is \"technicals\"")).isEqualTo("false");
+        assertThat(reasoningFor("analyst id is \"fundamentals\"")).isEqualTo("true");
+        assertThat(reasoningFor("analyst id is \"risk\"")).isEqualTo("true");
+        assertThat(reasoningFor("You are the technicals analyst")).isEqualTo("false");
+        assertThat(reasoningFor("You are the risk analyst")).isEqualTo("true");
+        assertThat(reasoningFor("Chair of an investment committee")).isEqualTo("true");
     }
 
     @Test

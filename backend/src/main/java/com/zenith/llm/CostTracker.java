@@ -22,6 +22,12 @@ public class CostTracker {
             Double allUltraUsd) {}
 
     private final List<CallCost> calls = new ArrayList<>();
+    private final long startedAt = System.currentTimeMillis();
+
+    /** ms from the start of this run (when the tracker was made) to {@code epochMs}. */
+    public long offset(long epochMs) {
+        return epochMs - startedAt;
+    }
 
     public static double estimateCostUsd(int promptTokens, int completionTokens, double inputPerMillion, double outputPerMillion) {
         return (promptTokens * inputPerMillion + completionTokens * outputPerMillion) / 1_000_000;

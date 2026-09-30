@@ -62,6 +62,8 @@ export interface CallCost {
   estimatedCostUsd: number;
   attempt: number;
   ok: boolean;
+  /** ms from the start of the run when this call began; missing in sessions saved before it was recorded. */
+  startMs?: number | null;
 }
 
 export interface CostSummary {
@@ -80,6 +82,8 @@ export interface AgentModel {
   tier: Tier;
   model: string | null;
   why: string;
+  /** false: answers without a reasoning pass (the narrow Nano jobs). Missing in older sessions. */
+  reasoning?: boolean | null;
 }
 
 export interface Snapshot {

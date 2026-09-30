@@ -214,7 +214,7 @@ export function Landing({ config, health, onConvene, onPage }: Props) {
               {agents.map((a) => (
                 <div key={a.id} className={`seat-card id-${a.id}`}>
                   <div className="seat-top"><i className="id-mark" aria-hidden="true" /><b>{a.label}</b><TierTag tier={a.tier} /></div>
-                  <code className="seat-model">{modelName(a.model) ?? "not configured"}</code>
+                  <code className="seat-model">{modelName(a.model) ?? "not configured"}{a.reasoning === false && " · reasoning off"}</code>
                   <p>{a.why}</p>
                 </div>
               ))}

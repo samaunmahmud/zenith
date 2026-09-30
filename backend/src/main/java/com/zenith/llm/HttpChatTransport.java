@@ -45,6 +45,8 @@ public class HttpChatTransport implements ChatTransport {
         body.put("temperature", request.temperature());
         body.put("max_tokens", request.maxTokens());
         if (request.responseFormat() != null) body.put("response_format", request.responseFormat());
+        // Nemotron's chat template reasons by default; this is Token Factory's switch for turning it off per request.
+        if (!request.reasoning()) body.put("chat_template_kwargs", Map.of("enable_thinking", false));
 
         HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(tf.normalisedBaseUrl() + "/chat/completions"))
                 .timeout(Duration.ofSeconds(180))

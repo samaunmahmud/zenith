@@ -6,9 +6,10 @@ import { ANALYSTS, ANALYST_TITLE } from "./format";
  * The session tape: every process the committee ran, with when it started and finished on one clock.
  *
  * A live run is timed by this browser as events arrive. A saved run carries no progress events, only its
- * per-call latencies and token counts, so its tape is rebuilt from those in the order the backend runs
- * stages (data → news → analysts in parallel → rebuttals in parallel → chair). Every duration and token
- * count on a replayed tape is a recorded one; only the Clerk's time (Java, not logged) is nominal.
+ * recorded calls. Newer sessions record when each call started, so the tape is drawn exactly as it ran
+ * (technicals alongside the news desk, for example). Older ones only have latencies, so their tape is rebuilt
+ * in stage order (data → news → analysts in parallel → rebuttals in parallel → chair), and the Clerk's time
+ * (Java, not logged) is nominal. Every duration and token count on a replayed tape is a recorded one.
  */
 
 export type Phase = "clerk" | "news" | "analysts" | "rebuttals" | "chair";
@@ -83,6 +84,8 @@ const PHASES: Phase[] = ["clerk", "news", "analysts", "rebuttals", "chair"];
 export function replayTape(result: CommitteeResult): Tape {
   const byAgent = new Map<string, CallCost[]>();
   for (const c of result.costs.calls) byAgent.set(c.agent, [...(byAgent.get(c.agent) ?? []), c]);
+  const calls = result.costs.calls;
+  if (calls.length > 0 && calls.every((c) => typeof c.startMs === "number")) return timedTape(byAgent, result);
 
   const procs: Proc[] = [{ id: "clerk", ...describe("clerk"), tier: null, model: null, start: 0, end: CLERK_MS, tokensIn: 0, tokensOut: 0, cost: 0, attempts: 1, ok: true }];
   let cursor = CLERK_MS;
@@ -104,6 +107,29 @@ export function replayTape(result: CommitteeResult): Tape {
     cursor = phaseEnd;
   }
   return { procs, total: cursor };
+}
+
+/** A session that recorded each call's start: every process sits exactly where it ran. The Clerk runs until the first call. */
+function timedTape(byAgent: Map<string, CallCost[]>, result: CommitteeResult): Tape {
+  const first = Math.min(...result.costs.calls.map((c) => c.startMs!));
+  const procs: Proc[] = [{ id: "clerk", ...describe("clerk"), tier: null, model: null, start: 0, end: first, tokensIn: 0, tokensOut: 0, cost: 0, attempts: 1, ok: true }];
+  const ids = order([...byAgent.keys()]).sort((a, b) => PHASES.indexOf(describe(a).phase) - PHASES.indexOf(describe(b).phase));
+  let total = first;
+  for (const id of ids) {
+    const cs = byAgent.get(id)!;
+    const f = fold(cs);
+    const known = tierOf(id, result.agents);
+    const start = Math.min(...cs.map((c) => c.startMs!));
+    const end = Math.max(...cs.map((c) => c.startMs! + c.latencyMs));
+    procs.push({
+      id, ...describe(id),
+      tier: f.tier ?? known.tier, model: f.model ?? known.model,
+      start, end,
+      tokensIn: f.tokensIn, tokensOut: f.tokensOut, cost: f.cost, attempts: f.attempts, ok: f.ok,
+    });
+    total = Math.max(total, end);
+  }
+  return { procs, total };
 }
 
 /** Analysts in their fixed order (fundamentals, technicals, risk), anything else after. */

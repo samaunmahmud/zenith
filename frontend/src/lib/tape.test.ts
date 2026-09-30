@@ -84,3 +84,28 @@ describe("liveTape", () => {
     expect(statusAt(tape.procs.find((p) => p.id === "chair")!, 5000)).toBe("queued");
   });
 });
+
+describe("replayTape with recorded start times", () => {
+  const t = replayTape(result([
+    call("news", "nano", 3000, 100, 0.001, { startMs: 800 }),
+    call("technicals", "nano", 4000, 100, 0.001, { startMs: 810 }),
+    call("fundamentals", "super", 6000, 100, 0.001, { startMs: 3900 }),
+    call("fundamentals", "super", 2000, 100, 0.001, { startMs: 9950, attempt: 2 }),
+    call("risk", "super", 5000, 100, 0.001, { startMs: 3905 }),
+    call("chair", "ultra", 7000, 100, 0.001, { startMs: 12000 }),
+  ]));
+  const at = (id: string) => t.procs.find((p) => p.id === id)!;
+
+  it("draws each process where it actually ran, overlaps included", () => {
+    expect(at("clerk")).toMatchObject({ start: 0, end: 800 });
+    expect(at("technicals")).toMatchObject({ start: 810, end: 4810 }); // alongside the news desk
+    expect(at("fundamentals")).toMatchObject({ start: 3900, end: 11950, attempts: 2 }); // a retry extends it
+    expect(t.total).toBe(19000);
+    expect(t.procs.map((p) => p.id)).toEqual(["clerk", "news", "fundamentals", "technicals", "risk", "chair"]);
+  });
+
+  it("falls back to stage order when any call lacks a start time", () => {
+    const old = replayTape(result([call("news", "nano", 3000, 100, 0.001, { startMs: 800 }), call("chair", "ultra", 1000)]));
+    expect(old.procs.find((p) => p.id === "news")!.start).toBe(CLERK_MS);
+  });
+});

@@ -75,9 +75,13 @@ The session screen leads with the verdict. While the committee works, a progress
 | Fundamentals analyst | **Nemotron Super** (`nvidia/nemotron-3-super-120b-a12b`) | Weighing valuation against growth, margins and leverage needs mid-weight reasoning. |
 | Risk analyst | **Nemotron Super** | Combining volatility, drawdown, beta, leverage and news risk into one view. |
 | Chair | **Nemotron Ultra** (`nvidia/Nemotron-3-Ultra-550b-a55b`) | The final judgement weighs conflicting arguments and records the dissent, so it gets the strongest reasoning model. |
-| Secretary ("Ask the committee") | **Nemotron Super** | Answers follow-up questions about a finished session from its fact sheets, reports and ruling. It explains a decision already made, so it needs clear reasoning over evidence, not Ultra's final judgement. About 0.3¢ a question. |
+| Secretary ("Ask the committee") | **Nemotron Super** | Answers follow-up questions about a finished session from its fact sheets, reports and ruling. It explains a decision already made, so it answers without a reasoning pass (about 2.5s) and needs clear reading of evidence, not Ultra's final judgement. About 0.2¢ a question. |
 
-The principle is to **spend reasoning where it matters**. Most calls go to Nano and Super, and there is exactly one Ultra call per decision. The in-app cost readout shows this split for every run, and compares it with what the same calls (same tokens) would have cost on Ultra alone. The session's **pipeline chart** draws every call on one time axis, coloured by tier, with its measured latency, tokens and cost. Model IDs are set in `.env`, so you can swap tiers without changing code.
+The principle is to **spend reasoning where it matters**. Most calls go to Nano and Super, and there is exactly one Ultra call per decision.
+
+Model size isn't the only dial. Nemotron reasons before it answers by default, and Token Factory lets each request switch that off (`chat_template_kwargs: {"enable_thinking": false}`). The narrow jobs (news desk, technicals, the technicals rebuttal, and the secretary, which explains a decision already made) answer directly; the fundamentals and risk analysts and the chair keep reasoning on. On a measured AMD session this cut the technicals analyst from 20.2s and 2,666 output tokens to 6.5s and 732, and the news desk from 9.8s to 1.6s, with every reply still valid first time. The list is `REASONING_OFF` in `.env`.
+
+The committee also starts each agent as soon as its inputs exist. Technicals reads prices only, so it runs alongside the news desk instead of after it; fundamentals and risk wait for the news digest. With both changes, a full session with rebuttals went from about 50 seconds of model time to 24 seconds. The in-app cost readout shows this split for every run, and compares it with what the same calls (same tokens) would have cost on Ultra alone. The session's **pipeline chart** draws every call on one time axis, coloured by tier, with its measured latency, tokens and cost. Model IDs are set in `.env`, so you can swap tiers without changing code.
 
 ### Guardrails around the models
 
@@ -92,6 +96,7 @@ The principle is to **spend reasoning where it matters**. Most calls go to Nano 
 - **One OpenAI-compatible API for three model sizes.** Switching an agent from Nano to Super to Ultra is a one-word change (the model ID). That made it quick to test which tier each role actually needs.
 - **No infrastructure to run.** No GPUs to provision and no model servers to operate. The backend makes a plain HTTPS `POST /v1/chat/completions` using Java's built-in `HttpClient`, with no vendor SDK.
 - **Structured output built in.** `response_format: json_schema` constrains the models to our schemas, so most validation work happens before a reply even reaches our code.
+- **A per-request reasoning switch.** Turning Nemotron's reasoning pass off for the narrow jobs halved a session's wall-clock time without changing model or provider.
 - **Per-token pricing** makes the per-decision cost readout straightforward: tokens × list price, per call. The same numbers drive a hard spending cap.
 
 ## Other Nebius services
