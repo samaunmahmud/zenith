@@ -12,6 +12,10 @@ import com.zenith.schema.WatchItem;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +76,18 @@ public class SinceService {
         if (saved.isEmpty()) return Optional.empty();
         try {
             Snapshot s = saved.get().snapshot();
-            List<PriceBar> stock = prices.daily(ticker), spy = prices.daily(MarketDataService.BENCHMARK);
+            List<PriceBar> stock, spy;
+            // The stock and the benchmark are independent reads: load them side by side.
+            try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
+                Future<List<PriceBar>> benchmark = pool.submit(() -> prices.daily(MarketDataService.BENCHMARK));
+                stock = prices.daily(ticker);
+                spy = benchmark.get();
+            } catch (ExecutionException e) {
+                throw e.getCause() instanceof RuntimeException re ? re : new IllegalStateException(e.getCause());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return Optional.empty();
+            }
             return Optional.of(compute(ticker, saved.get().decision().recommendation().name(), s.asOf(), s.lastClose(), s.technicals(),
                     s.currency(), stock, spy).withWatch(watch(s, saved.get().decision().watchFor(), stock, spy)));
         } catch (RuntimeException e) {

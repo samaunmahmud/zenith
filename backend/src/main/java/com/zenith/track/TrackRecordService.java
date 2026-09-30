@@ -7,12 +7,16 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,32 +95,40 @@ public class TrackRecordService {
             return cached;
         }
 
-        Map<String, List<PriceBar>> series = new HashMap<>();
-        List<String> unavailable = new ArrayList<>();
-        List<PriceBar> spy = fetch(MarketDataService.BENCHMARK, series, unavailable);
+        Map<String, List<PriceBar>> series = new ConcurrentHashMap<>();
+        List<String> unavailable = Collections.synchronizedList(new ArrayList<>());
+        // Each stock's prices are an independent (cached, sometimes fetched) read, so they load side by side
+        // instead of one after another: a stale cache for seven stocks and SPY no longer means eight waits in a row.
+        List<String> tickers = Stream.concat(Stream.of(MarketDataService.BENCHMARK),
+                calls.stream().map(TrackedCall::ticker)).distinct().toList();
+        try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
+            tickers.forEach(t -> pool.submit(() -> fetch(t, series, unavailable)));
+        }
+        List<PriceBar> spy = series.get(MarketDataService.BENCHMARK);
 
         List<ScoredCall> scored = new ArrayList<>();
         for (TrackedCall c : calls) {
-            List<PriceBar> bars = fetch(c.ticker(), series, unavailable);
+            List<PriceBar> bars = series.getOrDefault(c.ticker(), List.of());
             scored.add(new ScoredCall(c, HORIZONS.stream().map(d -> score(c, bars, spy, d)).toList()));
         }
         scored.sort(Comparator.comparing((ScoredCall s) -> s.call().decidedAt()).reversed());
 
-        cached = new Report(now.toString(), MarketDataService.BENCHMARK, HOLD_BAND_PCT, summarise(scored), scored, unavailable);
+        cached = new Report(now.toString(), MarketDataService.BENCHMARK, HOLD_BAND_PCT, summarise(scored), scored, unavailable.stream().sorted().toList());
         cachedAt = now;
         return cached;
     }
 
     private List<PriceBar> fetch(String ticker, Map<String, List<PriceBar>> series, List<String> unavailable) {
-        return series.computeIfAbsent(ticker, t -> {
-            try {
-                return prices.daily(t);
-            } catch (RuntimeException e) {
-                log.warn("Track record: no prices for {}: {}", t, e.getMessage());
-                unavailable.add(t);
-                return List.of();
-            }
-        });
+        List<PriceBar> bars;
+        try {
+            bars = prices.daily(ticker);
+        } catch (RuntimeException e) {
+            log.warn("Track record: no prices for {}: {}", ticker, e.getMessage());
+            unavailable.add(ticker);
+            bars = List.of();
+        }
+        series.put(ticker, bars);
+        return bars;
     }
 
     /** Scores one call over one window. Pure: same inputs, same answer. */
