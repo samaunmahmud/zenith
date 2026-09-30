@@ -122,7 +122,7 @@ python -m voice_assistant
 18:02:19 INFO    Ready for the next command.
 ```
 
-Hold **Right Option (⌥)** while you speak and release when you're done. To write text, click into a text field first (Notes, Mail, a browser, VS Code), then say "type …" or "write …".
+Hold **Right Option (⌥)** while you speak and release when you're done. Press **Esc** before releasing to throw the recording away. On startup, the assistant checks your API key and model and stops with a clear message if either is wrong. To write text, click into a text field first (Notes, Mail, a browser, VS Code), then say "type …" or "write …".
 
 Useful flags:
 
@@ -179,7 +179,7 @@ Pydantic validates the reply again. If an action is missing its payload (say, `O
 | Unintelligible speech | "Sorry, I didn't catch that." |
 | App not installed | "I couldn't find an app called Notez. Did you mean Notes?" |
 | Rate limit / quota (429), server errors (5xx), network drop | Retried up to `MAX_RETRIES` times with exponential backoff. If it still fails: "I've hit the Gemini rate limit or quota…" |
-| Bad API key | "Gemini rejected the API key. Check GEMINI_API_KEY…" |
+| Bad API key or model name | Caught at startup by a free metadata request, which exits with the fix. Mid-session: "Gemini rejected the API key…" |
 | Missing macOS permission | Checked at startup (Input Monitoring, Accessibility) and when a step fails; tells you which Privacy & Security setting to enable |
 | Anything unexpected | Full traceback in the log; the loop keeps running |
 

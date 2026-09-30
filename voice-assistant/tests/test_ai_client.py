@@ -141,3 +141,22 @@ def test_decide_audio_sends_wav_and_remembers_the_transcript():
 def test_downgrade_to_unclear_keeps_the_transcript():
     action = parse_action('{"transcript":"open the","intent":"OPEN_APP","app_name":null,"confidence":0.4}')
     assert action.intent is Intent.UNCLEAR and action.transcript == "open the"
+
+
+def test_connection_check_flags_bad_keys_as_config_problems():
+    class Models:
+        def get(self, model):
+            raise api_error(403)
+
+    brain = GeminiBrain(make_config(), client=SimpleNamespace(models=Models()))
+    with pytest.raises(AIServiceError) as info:
+        brain.check_connection()
+    assert info.value.is_config_problem
+
+
+def test_rate_limits_are_not_config_problems(monkeypatch):
+    monkeypatch.setattr("voice_assistant.retry.time.sleep", lambda _s: None)
+    brain, _ = fake_brain([api_error(429)] * 3)
+    with pytest.raises(AIServiceError) as info:
+        brain.decide("hi")
+    assert not info.value.is_config_problem

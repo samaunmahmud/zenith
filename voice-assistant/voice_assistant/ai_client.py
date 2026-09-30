@@ -36,9 +36,15 @@ class AIServiceError(Exception):
     ``user_message`` is short and suitable for reading aloud.
     """
 
-    def __init__(self, user_message: str, *, detail: str = "") -> None:
+    def __init__(self, user_message: str, *, detail: str = "", code: int | None = None) -> None:
         super().__init__(detail or user_message)
         self.user_message = user_message
+        self.code = code  # HTTP status, when there was one
+
+    @property
+    def is_config_problem(self) -> bool:
+        """True for errors that retrying can't fix: a bad API key or an unknown model."""
+        return self.code in (401, 403, 404)
 
 
 class IntentParseError(AIServiceError):
@@ -189,7 +195,7 @@ def friendly_gemini_error(exc: BaseException) -> AIServiceError:
         message = "I couldn't reach Gemini. Check your internet connection."
     else:
         message = "Gemini is having trouble right now. Please try again shortly."
-    return AIServiceError(message, detail=f"{type(exc).__name__}: {exc}")
+    return AIServiceError(message, detail=f"{type(exc).__name__}: {exc}", code=code)
 
 
 _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.IGNORECASE)
@@ -317,6 +323,26 @@ class GeminiBrain:
         if heard:
             self._history.append((heard, raw))
         return action
+
+    def check_connection(self) -> None:
+        """Validate the API key and model with a free metadata request.
+
+        Called at start-up so a typo in ``.env`` fails immediately instead of on the first
+        command. It also opens the HTTPS connection ahead of time, which takes the TLS
+        handshake off the first command's latency.
+
+        Raises:
+            AIServiceError: With ``is_config_problem`` set for a bad key or model.
+        """
+        try:
+            call_with_retries(
+                lambda: self.client.models.get(model=self._config.gemini_model),
+                retries=1,
+                is_retryable=is_retryable_gemini_error,
+                what="Gemini connection check",
+            )
+        except Exception as exc:
+            raise friendly_gemini_error(exc) from exc
 
     def clear_history(self) -> None:
         """Forget previous exchanges (e.g. when the user says "start over")."""

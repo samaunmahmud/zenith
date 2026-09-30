@@ -6,7 +6,8 @@ How the listening loop works:
 2. When the hotkey goes down (or is tapped, in toggle mode) it starts :class:`Recorder`,
    which streams 16 kHz mono audio from the default input device via ``sounddevice``.
 3. When the hotkey is released (or tapped again) recording stops and the finished
-   :class:`AudioClip` is put on a queue.
+   :class:`AudioClip` is put on a queue. Pressing Esc while recording throws the
+   recording away instead.
 4. The main thread blocks on :meth:`PushToTalk.next_clip` and processes one clip at a
    time. While it is busy, new presses are ignored so commands never overlap.
 
@@ -155,8 +156,9 @@ class PushToTalk:
         hotkey: Key name, see :func:`parse_hotkey`.
         mode: ``"hold"`` records while the key is held down; ``"toggle"`` starts on one
             tap and stops on the next.
-        on_start / on_stop: Optional callbacks (sound cues, stopping speech...). They run
-            on the listener thread, so they must return quickly.
+        on_start / on_stop / on_cancel: Optional callbacks (sound cues, stopping speech...).
+            They run on the listener thread, so they must return quickly.
+        cancel_key: Key that discards the recording in progress (default Esc).
     """
 
     def __init__(
@@ -166,9 +168,13 @@ class PushToTalk:
         mode: str = "hold",
         on_start: Callable[[], None] | None = None,
         on_stop: Callable[[], None] | None = None,
+        on_cancel: Callable[[], None] | None = None,
+        cancel_key: str = "esc",
     ) -> None:
         self._recorder = recorder
         self._key = parse_hotkey(hotkey)
+        self._cancel_key = parse_hotkey(cancel_key)
+        self._on_cancel = on_cancel
         self._hotkey_name = hotkey
         self._mode = mode
         self._on_start = on_start
@@ -245,7 +251,16 @@ class PushToTalk:
         log.debug("Recorded %.2fs in %.2fs wall time", clip.duration, time.monotonic() - self._started_at)
         self._clips.put(clip)
 
+    def _cancel(self) -> None:
+        clip = self._recorder.stop()
+        log.info("[1/4] ✋ Recording cancelled (%.1fs discarded).", clip.duration)
+        if self._on_cancel:
+            self._on_cancel()
+
     def _on_press(self, key: Any) -> None:
+        if key == self._cancel_key and self._recorder.is_recording:
+            self._cancel()
+            return
         if not self._matches(key):
             return
         if self._mode == "hold":

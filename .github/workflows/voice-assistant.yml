@@ -1,8 +1,8 @@
 name: Voice assistant
 
 on:
+  workflow_dispatch:
   push:
-    branches: [main]
     paths:
       - 'voice-assistant/**'
       - '.github/workflows/voice-assistant.yml'

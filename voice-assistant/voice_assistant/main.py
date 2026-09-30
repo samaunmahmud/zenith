@@ -197,11 +197,13 @@ class Assistant:
 
         ptt = PushToTalk(
             recorder, self.config.hotkey, self.config.ptt_mode,
-            on_start=on_start, on_stop=lambda: self.mac.play_cue("stop"),
+            on_start=on_start,
+            on_stop=lambda: self.mac.play_cue("stop"),
+            on_cancel=lambda: self.mac.play_cue("error"),
         )
         ptt.start()
         verb = "Hold" if self.config.ptt_mode == "hold" else "Tap"
-        print(f"\n✨ Ready. {verb} [{ptt.hotkey_name}] and speak. Press Ctrl+C to quit.\n", flush=True)
+        print(f"\n✨ Ready. {verb} [{ptt.hotkey_name}] and speak (Esc cancels). Press Ctrl+C to quit.\n", flush=True)
         try:
             while True:
                 try:
@@ -303,6 +305,15 @@ def main(argv: list[str] | None = None) -> int:
         raise KeyboardInterrupt
 
     signal.signal(signal.SIGTERM, _terminate)
+
+    log.info("Checking the Gemini API key and model...")
+    try:
+        brain.check_connection()
+    except AIServiceError as exc:
+        if exc.is_config_problem:
+            print(f"❌ {exc.user_message}\n   ({exc})", file=sys.stderr)
+            return 2
+        log.warning("Gemini connection check failed (%s); continuing anyway.", exc.user_message)
 
     try:
         if args.text:
