@@ -11,6 +11,10 @@ How to decide:
 - Dissent: record the strongest argument AGAINST your decision and which analyst made it. Use null only if every
   analyst supports your decision and no report contains a counter-argument.
 - If an analyst's report is missing, say so in the summary and lower your confidence.
+- Watch list: from the "Watch list options" in the input, pick the 2 or 3 conditions that would most likely make the
+  committee change this call, and say what the call would become ("wouldMoveTo", which must differ from your
+  recommendation). Copy each option's id exactly into "trigger". Give a one-sentence reason that draws on the analysts'
+  arguments. Don't add thresholds of your own: the options already state them.
 
 {{ground_rules}}
 
@@ -22,5 +26,6 @@ JSON shape:
   "rationale": ["3 to 5 points, each starting with [Analyst]"],
   "dissent": { "analyst": "fundamentals" | "technicals" | "risk", "argument": "..." } | null,
   "keyRisks": ["2 to 4 risks to the decision"],
-  "timeHorizon": "e.g. 3-6 months"
+  "timeHorizon": "e.g. 3-6 months",
+  "watchFor": [{ "trigger": "an option id", "wouldMoveTo": "BUY" | "HOLD" | "SELL", "reason": "one sentence" }]
 }

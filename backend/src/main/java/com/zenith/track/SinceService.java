@@ -7,6 +7,8 @@ import com.zenith.data.PriceBar;
 import com.zenith.indicators.Format;
 import com.zenith.indicators.Snapshot;
 import com.zenith.indicators.Technicals;
+import com.zenith.indicators.Triggers;
+import com.zenith.schema.WatchItem;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,8 +29,6 @@ import org.springframework.stereotype.Service;
 public class SinceService {
 
     private static final Logger log = LoggerFactory.getLogger(SinceService.class);
-    static final double OVERBOUGHT = 70;
-    static final double OVERSOLD = 30;
 
     /** One figure the committee saw, next to the same figure on the latest close. Both are formatted here. */
     public record Drift(String label, String then, String now) {}
@@ -39,7 +39,19 @@ public class SinceService {
      */
     public record Since(String ticker, String call, String asOf, double entryClose, String latestDate, double latestClose,
             int tradingDays, Double stockReturn, Double spyReturn, Double excess, Boolean onTrack, String benchmark, int holdBandPct,
-            List<Drift> drift, List<String> notes) {}
+            List<Drift> drift, List<String> notes, List<Watch> watch) {
+
+        Since withWatch(List<Watch> w) {
+            return new Since(ticker, call, asOf, entryClose, latestDate, latestClose, tradingDays, stockReturn, spyReturn, excess,
+                    onTrack, benchmark, holdBandPct, drift, notes, w);
+        }
+    }
+
+    /**
+     * One item on the chair's watch list, checked: {@code metOn} is the first close that met the condition (null if
+     * none has yet), and {@code now} is the current reading, e.g. "-10.6% against the 200-day average".
+     */
+    public record Watch(String trigger, String condition, String wouldMoveTo, String reason, String metOn, String now) {}
 
     private final CommitteeRunner committee;
     private final TrackRecordService.Prices prices;
@@ -60,8 +72,9 @@ public class SinceService {
         if (saved.isEmpty()) return Optional.empty();
         try {
             Snapshot s = saved.get().snapshot();
+            List<PriceBar> stock = prices.daily(ticker), spy = prices.daily(MarketDataService.BENCHMARK);
             return Optional.of(compute(ticker, saved.get().decision().recommendation().name(), s.asOf(), s.lastClose(), s.technicals(),
-                    s.currency(), prices.daily(ticker), prices.daily(MarketDataService.BENCHMARK)));
+                    s.currency(), stock, spy).withWatch(watch(s, saved.get().decision().watchFor(), stock, spy)));
         } catch (RuntimeException e) {
             log.warn("Since the ruling: no prices for {}: {}", ticker, e.getMessage());
             return Optional.empty();
@@ -74,7 +87,7 @@ public class SinceService {
         List<PriceBar> after = stock.stream().filter(b -> b.date().compareTo(asOf) > 0).toList();
         if (after.isEmpty() || entryClose <= 0) {
             return new Since(ticker, call, asOf, entryClose, asOf, entryClose, 0, null, null, null, null, MarketDataService.BENCHMARK,
-                    TrackRecordService.HOLD_BAND_PCT, List.of(), List.of());
+                    TrackRecordService.HOLD_BAND_PCT, List.of(), List.of(), List.of());
         }
         PriceBar latest = after.getLast();
         double stockReturn = latest.close() / entryClose - 1;
@@ -105,12 +118,25 @@ public class SinceService {
             crossed(entryClose, then.sma50(), latest.close(), sma50, "50-day").ifPresent(notes::add);
             crossed(entryClose, then.sma200(), latest.close(), sma200, "200-day").ifPresent(notes::add);
             if (then.rsi14() != null && rsi != null) {
-                if (then.rsi14() < OVERBOUGHT && rsi >= OVERBOUGHT) notes.add("RSI has risen above 70, the usual overbought level.");
-                if (then.rsi14() > OVERSOLD && rsi <= OVERSOLD) notes.add("RSI has fallen below 30, the usual oversold level.");
+                if (then.rsi14() < Triggers.OVERBOUGHT && rsi >= Triggers.OVERBOUGHT) notes.add("RSI has risen above 70, the usual overbought level.");
+                if (then.rsi14() > Triggers.OVERSOLD && rsi <= Triggers.OVERSOLD) notes.add("RSI has fallen below 30, the usual oversold level.");
             }
         }
         return new Since(ticker, call, asOf, entryClose, latest.date(), latest.close(), after.size(), stockReturn, spyReturn, excess,
-                onTrack, MarketDataService.BENCHMARK, TrackRecordService.HOLD_BAND_PCT, drift, notes);
+                onTrack, MarketDataService.BENCHMARK, TrackRecordService.HOLD_BAND_PCT, drift, notes, List.of());
+    }
+
+    /** Checks each item on the chair's watch list against the closes since the ruling. Empty for older decisions. */
+    static List<Watch> watch(Snapshot s, List<WatchItem> items, List<PriceBar> stock, List<PriceBar> spy) {
+        if (items == null || s.triggers() == null) return List.of();
+        List<Watch> out = new ArrayList<>();
+        for (WatchItem w : items) {
+            Optional<Triggers.Trigger> t = s.triggers().stream().filter(x -> x.id().equals(w.trigger())).findFirst();
+            Optional<Triggers.Check> c = Triggers.check(w.trigger(), s.asOf(), s.lastClose(), s.technicals(), stock, spy);
+            if (t.isEmpty() || c.isEmpty()) continue;
+            out.add(new Watch(w.trigger(), t.get().condition(), w.wouldMoveTo().name(), w.reason(), c.get().metOn(), c.get().now()));
+        }
+        return out;
     }
 
     /** How far a close sits from an average, e.g. "+6.9%". */

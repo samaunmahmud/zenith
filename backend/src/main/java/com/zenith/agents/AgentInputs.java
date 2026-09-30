@@ -87,6 +87,10 @@ public final class AgentInputs {
             rebuttals.forEach(r -> parts.add("- " + r.analyst().id() + " → " + r.respondingTo().id()
                     + (r.stanceChanged() ? " (STANCE CHANGED)" : "") + ": " + r.response()));
         }
+        if (s.triggers() != null && !s.triggers().isEmpty()) {
+            parts.addAll(List.of("", "Watch list options (pick 2 or 3 for watchFor, using the id exactly):"));
+            s.triggers().forEach(t -> parts.add("- " + t.id() + ": " + t.condition()));
+        }
         parts.addAll(List.of("", "Make the committee's decision as JSON."));
         return String.join("\n", parts);
     }

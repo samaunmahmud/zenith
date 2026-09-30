@@ -96,7 +96,10 @@ class CommitteeServiceTest {
                     "rationale", List.of("[Fundamentals] margins are strong", "[Technicals] trend is up", "[Risk] volatility is manageable"),
                     "dissent", Map.of("analyst", "fundamentals", "argument", "Valuation at a P/E of 31.42 is rich."),
                     "keyRisks", List.of("Valuation", "Momentum fading"),
-                    "timeHorizon", "3-6 months");
+                    "timeHorizon", "3-6 months",
+                    "watchFor", List.of(
+                            Map.of("trigger", "up-15", "wouldMoveTo", "BUY", "reason", "A breakout would confirm the trend."),
+                            Map.of("trigger", "down-15", "wouldMoveTo", "SELL", "reason", "A slide would confirm the valuation worry.")));
         } else if (system.contains("rebuttal")) {
             Matcher m = REBUTTAL_ID.matcher(system);
             m.find();
@@ -174,6 +177,8 @@ class CommitteeServiceTest {
         assertThat(result.rebuttals()).hasSize(3);
         assertThat(result.decision().recommendation()).isEqualTo(Recommendation.HOLD);
         assertThat(result.decision().dissent().analyst()).isEqualTo(AnalystName.FUNDAMENTALS);
+        assertThat(result.decision().watchFor()).extracting(w -> w.trigger()).containsExactly("up-15", "down-15");
+        assertThat(result.snapshot().triggers()).extracting(t -> t.id()).contains("up-15", "down-15", "beats-spy-10");
     }
 
     private String modelFor(String needle) {
@@ -213,6 +218,8 @@ class CommitteeServiceTest {
         assertThat(result.memoMarkdown())
                 .contains("## Decision: HOLD")
                 .contains("Fundamentals analyst:** Valuation at a P/E of 31.42 is rich.")
+                .contains("### What would change the call")
+                .containsPattern("- \\*\\*The price rises 15% from the ruling's close, to \\$[0-9.]+ or more\\*\\* → BUY\\. A breakout")
                 .contains("## Committee cost")
                 .contains("not financial advice");
     }

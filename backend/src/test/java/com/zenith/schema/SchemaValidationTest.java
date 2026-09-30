@@ -50,10 +50,16 @@ class SchemaValidationTest {
     void chairDecisionAllowsNullDissentButNotUnknownRecommendations() {
         String json = """
                 {"recommendation":"hold","confidence":0.55,"summary":"Mixed.","rationale":["[Fundamentals] a","[Technicals] b","[Risk] c"],
-                 "dissent":null,"keyRisks":["x","y"],"timeHorizon":"3-6 months"}""";
+                 "dissent":null,"keyRisks":["x","y"],"timeHorizon":"3-6 months",
+                 "watchFor":[{"trigger":"up-15","wouldMoveTo":"BUY","reason":"r"},{"trigger":"down-15","wouldMoveTo":"SELL","reason":"r"}]}""";
         ChairDecision d = Json.MAPPER.readValue(json, ChairDecision.class);
         assertThat(d.recommendation()).isEqualTo(Recommendation.HOLD);
         assertThat(validator.validate(d)).isEmpty();
+
+        // The watch list is required of the chair, with two or three conditions.
+        ChairDecision noWatch = Json.MAPPER.readValue(json.replaceFirst(",\\s*\"watchFor\":\\[.*\\]", ""), ChairDecision.class);
+        assertThat(noWatch.watchFor()).isNull();
+        assertThat(validator.validate(noWatch)).extracting(v -> v.getPropertyPath().toString()).containsExactly("watchFor");
 
         assertThatThrownBy(() -> Json.MAPPER.readValue(json.replace("\"hold\"", "\"STRONG BUY\""), ChairDecision.class))
                 .isInstanceOf(RuntimeException.class);

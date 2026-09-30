@@ -84,6 +84,13 @@ public class SecretaryAgent {
             d.rationale().forEach(x -> parts.add("- " + x));
             if (d.dissent() != null) parts.add("Dissent recorded (" + d.dissent().analyst().id() + "): " + d.dissent().argument());
             if (!d.keyRisks().isEmpty()) parts.add("Key risks: " + String.join("; ", d.keyRisks()));
+            if (d.watchFor() != null && session.snapshot() != null && session.snapshot().triggers() != null) {
+                parts.add("What would change the call (the chair's watch list):");
+                for (var w : d.watchFor()) {
+                    session.snapshot().triggers().stream().filter(t -> t.id().equals(w.trigger())).findFirst()
+                            .ifPresent(t -> parts.add("- If " + t.condition() + ": " + w.wouldMoveTo() + ". " + w.reason()));
+                }
+            }
         }
         return String.join("\n", parts);
     }

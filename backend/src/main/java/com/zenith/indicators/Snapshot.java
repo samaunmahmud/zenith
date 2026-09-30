@@ -20,7 +20,9 @@ public record Snapshot(
         RiskView risk,
         Fundamentals.Metrics fundamentals,
         Facts facts,
-        List<PricePoint> priceHistory) {
+        List<PricePoint> priceHistory,
+        // What the chair may put on its watch list; see Triggers. Null in sessions saved before it existed.
+        List<Triggers.Trigger> triggers) {
 
     public record TechnicalsView(
             Double return1w,

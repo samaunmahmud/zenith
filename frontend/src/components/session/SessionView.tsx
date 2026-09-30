@@ -3,6 +3,7 @@ import type { CommitteeState } from "../../state/committee";
 import type { ThesisResult } from "../../types";
 import { statusAt } from "../../lib/tape";
 import { usePlayback } from "../../hooks/usePlayback";
+import { useSince } from "../../hooks/useSince";
 import { CallsTable } from "../committee/CostPanel";
 import { MemoPanel } from "../committee/MemoPanel";
 import { PriceChart } from "../market/PriceChart";
@@ -40,6 +41,8 @@ export function SessionView({ state, onFile, onConvene }: Props) {
   const chair = play.tape.procs.find((p) => p.id === "chair");
   const decision = chair && statusAt(chair, play.t) === "done" ? state.decision : null;
   const s = state.snapshot;
+  // A saved ruling can be weeks old: once it has replayed, show how it has aged and check its watch list.
+  const since = useSince(state.ticker, state.result?.generatedAt, Boolean(state.result?.replayed && decision && play.finished));
 
   const [dossier, setDossier] = useState<Dossier>("memo");
   const [thesis, setThesis] = useState<ThesisResult | null>(null);
@@ -66,8 +69,8 @@ export function SessionView({ state, onFile, onConvene }: Props) {
       <div className="container tx-body">
         <RunNotices state={state} onFile={onFile} onConvene={onConvene} />
 
-        <VerdictPanel state={state} play={play} decision={decision} />
-        {state.result?.replayed && decision && play.finished && <SincePanel ticker={state.ticker} session={state.result.generatedAt} />}
+        <VerdictPanel state={state} play={play} decision={decision} watch={since?.watch} />
+        <SincePanel since={since} />
         <AnalystCards state={state} play={play} />
 
         <div className="tgrid">

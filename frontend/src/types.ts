@@ -30,6 +30,20 @@ export interface ChairDecision {
   dissent: { analyst: AnalystName; argument: string } | null;
   keyRisks: string[];
   timeHorizon: string;
+  /** What would change the call: trigger ids from the snapshot's menu. Missing on decisions saved before it existed. */
+  watchFor?: WatchItem[] | null;
+}
+
+export interface WatchItem {
+  trigger: string;
+  wouldMoveTo: "BUY" | "HOLD" | "SELL";
+  reason: string;
+}
+
+/** A watch-list option, worded and computed in code. */
+export interface Trigger {
+  id: string;
+  condition: string;
 }
 
 export interface NewsDigest {
@@ -81,6 +95,7 @@ export interface Snapshot {
   risk: { volatility1y: number | null; betaVsSpy: number | null };
   facts: Record<AnalystName, Record<string, string>>;
   priceHistory: { date: string; close: number; sma50: number | null; sma200: number | null }[];
+  triggers?: Trigger[] | null;
 }
 
 export interface SourceInfo {
@@ -171,6 +186,17 @@ export interface Since {
   holdBandPct: number;
   drift: { label: string; then: string; now: string }[];
   notes: string[];
+  watch: WatchStatus[];
+}
+
+/** One watch-list item checked against the closes since the ruling. metOn is null until a close meets it. */
+export interface WatchStatus {
+  trigger: string;
+  condition: string;
+  wouldMoveTo: "BUY" | "HOLD" | "SELL";
+  reason: string;
+  metOn: string | null;
+  now: string;
 }
 
 /** GET /api/health: whether live AI runs are possible right now. */

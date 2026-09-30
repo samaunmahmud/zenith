@@ -15,4 +15,6 @@ public record ChairDecision(
         @NotNull @Size(min = 3, max = 5) List<@NotBlank String> rationale,
         @Valid Dissent dissent, // null = unanimous
         @NotNull @Size(min = 2, max = 4) List<@NotBlank String> keyRisks,
-        @NotBlank String timeHorizon) {}
+        @NotBlank String timeHorizon,
+        // What would change the call. Required of the chair; null in decisions saved before it existed.
+        @NotNull @Size(min = 2, max = 3) List<@Valid WatchItem> watchFor) {}

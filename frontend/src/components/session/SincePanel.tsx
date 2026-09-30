@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import { fetchSince } from "../../api";
 import type { Since } from "../../types";
 import { pct, shortDate, toneOf } from "../../lib/format";
 import { Panel } from "./Panel";
@@ -15,18 +13,7 @@ export function ruleFor(call: Since["call"], holdBandPct: number): string {
  * How a saved ruling has aged: the stock and the S&P 500 since the close the committee saw, whether the call is on
  * track so far, and the technical figures then and now. All arithmetic on daily closes; nothing here is a model's view.
  */
-export function SincePanel({ ticker, session }: { ticker: string; session: string }) {
-  const [since, setSince] = useState<Since | null>(null);
-
-  useEffect(() => {
-    let live = true;
-    setSince(null);
-    fetchSince(ticker).then((s) => live && setSince(s));
-    return () => {
-      live = false;
-    };
-  }, [ticker, session]);
-
+export function SincePanel({ since }: { since: Since | null }) {
   if (!since) return null;
   if (since.tradingDays === 0) {
     return (

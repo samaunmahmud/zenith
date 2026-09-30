@@ -515,3 +515,13 @@
 .since-drift tbody td { font-weight: 650; }
 .since-drift tbody tr:last-child > * { border-bottom: 0; }
 .since-notes { list-style: none; margin: 12px 0 0; padding: 10px 12px; display: grid; gap: 6px; font-size: 13px; color: var(--text-2); border-radius: var(--r-sm); background: var(--warn-soft); }
+
+/* What would change the call: the chair's watch list, checked in code */
+.vh-watch { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); display: grid; gap: 10px; }
+.vh-watch ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.vh-watch li { padding: 11px 13px; border-radius: var(--r); border: 1px solid var(--line); background: var(--panel-2); }
+.vh-watch li.is-met { border-color: color-mix(in srgb, var(--warn) 45%, transparent); background: var(--warn-soft); }
+.vw-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.vw-head b { font-size: 13.5px; font-weight: 600; color: var(--text); line-height: 1.45; }
+.vh-watch li p { margin: 5px 0 0; font-size: 13px; line-height: 1.5; color: var(--text-2); }
+.vh-watch .vw-status { font-size: 12.5px; }

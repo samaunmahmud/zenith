@@ -67,6 +67,10 @@ public final class MemoBuilder {
                     : "_No dissent recorded: the committee was unanimous._");
             lines.addAll(List.of("", "### Key risks"));
             d.keyRisks().forEach(r -> lines.add("- " + r));
+            if (d.watchFor() != null && !d.watchFor().isEmpty()) {
+                lines.addAll(List.of("", "### What would change the call"));
+                d.watchFor().forEach(w -> lines.add("- **" + condition(s, w.trigger()) + "** → " + w.wouldMoveTo() + ". " + w.reason()));
+            }
         } else {
             lines.addAll(List.of("## Decision: not available", "",
                     "The chair could not reach a valid decision: " + (result.chairError() != null ? result.chairError() : "unknown error") + "."));
@@ -110,5 +114,11 @@ public final class MemoBuilder {
                         + "All figures are computed in code from market data; the models only interpret them. "
                         + "**This is a research and education tool, not financial advice.**_"));
         return String.join("\n", lines);
+    }
+
+    /** A watch-list trigger in words, from the snapshot's menu (falls back to the id). */
+    private static String condition(com.zenith.indicators.Snapshot s, String id) {
+        return s.triggers() == null ? id
+                : s.triggers().stream().filter(t -> t.id().equals(id)).map(com.zenith.indicators.Triggers.Trigger::condition).findFirst().orElse(id);
     }
 }

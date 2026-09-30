@@ -1,6 +1,6 @@
 import type { CommitteeState } from "../../state/committee";
-import type { ChairDecision } from "../../types";
-import { ANALYSTS, ANALYST_TITLE, modelName } from "../../lib/format";
+import type { ChairDecision, Trigger, WatchStatus } from "../../types";
+import { ANALYSTS, ANALYST_TITLE, modelName, shortDate } from "../../lib/format";
 import { statusAt, type Phase, type ProcStatus } from "../../lib/tape";
 import { firstAnalyst, splitSource } from "../../lib/rationale";
 import type { Playback } from "../../hooks/usePlayback";
@@ -49,6 +49,42 @@ function Stepper({ play }: { play: Playback }) {
   );
 }
 
+/** The chair's watch list in words: each trigger's condition comes from the snapshot's menu, computed in code. */
+export function watchItems(decision: ChairDecision, triggers: Trigger[] | null | undefined, checked?: WatchStatus[]) {
+  return (decision.watchFor ?? []).flatMap((w) => {
+    const t = triggers?.find((x) => x.id === w.trigger);
+    return t ? [{ ...w, condition: t.condition, status: checked?.find((c) => c.trigger === w.trigger) }] : [];
+  });
+}
+
+/** "What would change the call": each condition, what the call would become, and (for a saved ruling) whether it has happened. */
+function WatchList({ decision, triggers, checked }: { decision: ChairDecision; triggers: Trigger[] | null | undefined; checked?: WatchStatus[] }) {
+  const items = watchItems(decision, triggers, checked);
+  if (!items.length) return null;
+  return (
+    <div className="vh-watch">
+      <h3 className="vh-side-h">What would change the call</h3>
+      <ul>
+        {items.map((w) => (
+          <li key={w.trigger} className={w.status?.metOn ? "is-met" : undefined}>
+            <div className="vw-head">
+              <b>{w.condition}</b>
+              <span className={`call-pill call-${w.wouldMoveTo}`}>→ {w.wouldMoveTo}</span>
+            </div>
+            <p>{w.reason}</p>
+            {w.status && (
+              <p className="vw-status">
+                {w.status.metOn ? <span className="warn">Met on {shortDate(w.status.metOn)}</span> : <span className="dim">Not met yet</span>}
+                <span className="dim"> · now {w.status.now}</span>
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 interface Props {
   state: CommitteeState;
   play: Playback;
@@ -56,10 +92,12 @@ interface Props {
   id?: string;
   /** Leave out the numbered reasons (a side of a head-to-head has room for the call, summary and dissent only). */
   compact?: boolean;
+  /** The watch list checked against closes since the ruling (saved rulings only). */
+  watch?: WatchStatus[];
 }
 
 /** The chair's ruling as the page's headline: the session's progress until then, then the call and why. */
-export function VerdictPanel({ state, play, decision, id = "ruling", compact = false }: Props) {
+export function VerdictPanel({ state, play, decision, id = "ruling", compact = false, watch }: Props) {
   const chair = play.tape.procs.find((p) => p.id === "chair");
   const st = chair ? statusAt(chair, play.t) : "queued";
   const model = modelName(chair?.model ?? state.agents.find((a) => a.id === "chair")?.model) ?? "Nemotron Ultra";
@@ -87,7 +125,7 @@ export function VerdictPanel({ state, play, decision, id = "ruling", compact = f
               <Gauge value={decision.confidence} call={decision.recommendation} />
             </div>
             <p className="vh-summary">{decision.summary}</p>
-            {compact && dissent}
+            {compact ? dissent : play.finished && <WatchList decision={decision} triggers={state.snapshot?.triggers} checked={watch} />}
           </div>
         ) : noDecision ? (
           <div className="vh-wait"><h2 className="neg">No ruling</h2><p>{state.result?.chairError ?? state.error ?? "The chair didn't return a valid decision."}</p></div>

@@ -119,7 +119,8 @@ public final class SnapshotBuilder {
                 r,
                 f,
                 new Snapshot.Facts(fundamentals, technicals, risk),
-                priceHistory(bars, closes, yearBars.size()));
+                priceHistory(bars, closes, yearBars.size()),
+                Triggers.menu(last.close(), t, cur));
     }
 
     /** The last {@code days} points, each with its SMA50 and SMA200 (computed over the full history). */
