@@ -75,7 +75,7 @@ The session screen leads with the verdict. While the committee works, a progress
 | Chair | **Nemotron Ultra** (`nvidia/Nemotron-3-Ultra-550b-a55b`) | The final judgement weighs conflicting arguments and records the dissent, so it gets the strongest reasoning model. |
 | Secretary ("Ask the committee") | **Nemotron Super** | Answers follow-up questions about a finished session from its fact sheets, reports and ruling. It explains a decision already made, so it needs clear reasoning over evidence, not Ultra's final judgement. About 0.3¢ a question. |
 
-The principle is to **spend reasoning where it matters**. Most calls go to Nano and Super, and there is exactly one Ultra call per decision. The in-app cost readout shows this split for every run, and compares it with what the same calls (same tokens) would have cost on Ultra alone. The live **committee floor** shows each agent's tier, status and measured latency while the committee works. Model IDs are set in `.env`, so you can swap tiers without changing code.
+The principle is to **spend reasoning where it matters**. Most calls go to Nano and Super, and there is exactly one Ultra call per decision. The in-app cost readout shows this split for every run, and compares it with what the same calls (same tokens) would have cost on Ultra alone. The session's **pipeline chart** draws every call on one time axis, coloured by tier, with its measured latency, tokens and cost. Model IDs are set in `.env`, so you can swap tiers without changing code.
 
 ### Guardrails around the models
 
@@ -140,7 +140,7 @@ When a live run isn't allowed or fails, the last saved decision for that ticker 
 npm run dev          # Spring Boot on :3001 + Vite on :5173 → open http://localhost:5173
 npm test             # frontend tests (Vitest) + backend unit and end-to-end tests (JUnit)
 npm run smoke        # call Nano, Super and Ultra once each and print tokens, latency, cost
-npm run precache     # cache market data for the demo tickers (AAPL, NVDA, JPM, TSLA)
+npm run precache     # cache market data for the demo tickers (DEMO_TICKERS in .env)
 ```
 
 To also save a full committee run per demo ticker, which the app replays if Token Factory is unreachable during a live demo:
@@ -202,35 +202,45 @@ Omitting `--auth` leaves the endpoint open, which is what a public demo URL need
 | `POST` | `/api/committee` | `{ "ticker": "AAPL", "rebuttals": false }` → full result as JSON |
 | `GET` | `/api/committee/stream?ticker=AAPL&rebuttals=true` | The same run as Server-Sent Events (`stage`, `snapshot`, `news`, `report`, `analystError`, `rebuttal`, `decision`, `done`, `error`) |
 | `POST` | `/api/thesis` | `{ "ticker": "NVDA", "thesis": "..." }` → the chair cross-examines the thesis against the latest session on that stock (one Nemotron Ultra call) and returns the review and a Counter-Thesis Memo |
+| `POST` | `/api/ask` | `{ "ticker": "NVDA", "question": "...", "history": [] }` → the secretary (one Nemotron Super call) answers from the latest session on that stock, with the figures it relied on |
 | `GET` | `/api/track-record` | Every recorded decision, scored against SPY at 7, 30 and 90 days, with a win rate per window |
+| `GET` | `/api/search?q=sandisk` | US-listed stocks matching a ticker or company name, for the search suggestions |
+| `GET` | `/api/tape` | Last recorded close, daily change and latest call for each stock on file (cache only) |
 
 ## Project structure
 
 ```
 backend/src/main/java/com/zenith/
 ├── api/          REST + SSE controller
-├── committee/    orchestrator, result and event types
-├── agents/       analysts, news desk, rebuttal, chair, number checker
-├── llm/          Token Factory client, JSON schema generation, cost tracking
-├── data/         FMP + Finnhub clients, disk cache
+├── committee/    orchestrator, budget gate, result and event types
+├── agents/       analysts, news desk, rebuttal, chair, secretary, devil's advocate, number checker
+├── llm/          Token Factory client, JSON schema generation, cost tracking, spending cap
+├── data/         FMP + Finnhub clients, symbol search, disk cache
 ├── indicators/   pure indicator functions and the snapshot builder
 ├── schema/       agent output records (validated)
 ├── memo/         Markdown memo builder
+├── ask/          "Ask the committee" follow-up questions
+├── thesis/       thesis review and Counter-Thesis Memo
+├── track/        decision ledger and scoring against SPY
+├── tape/         the landing page's stocks on file
 └── cli/          --smoke and --precache tasks
 backend/src/main/resources/prompts/   one Markdown system prompt per agent
 
 frontend/src/
 ├── state/        committee reducer (pure, unit-tested)
-├── hooks/        SSE session + URL sync, live clock, AI status
-├── lib/          formatting helpers
+├── hooks/        SSE session + URL sync, replay playback, search suggestions, AI status, theme
+├── lib/          session timeline, figure tracing, formatting, glossary
 ├── components/
-│   ├── workspace/  security header + tabs: Overview, Analysts, Debate, Memo, Models & cost
-│   ├── committee/  committee floor, verdict + vote track, analyst cards, cost, memo
-│   ├── market/     price chart, key metrics, news desk
-│   ├── landing/    landing page and model roster
-│   ├── layout/     top bar (search, AI status), footer
-│   └── ui/         badges, cards, tabs, icons
-└── styles/       tokens, base, layout, components
+│   ├── session/    verdict, analyst cards, pipeline chart, cost meter, ask panel, integrity and fact panels
+│   ├── landing/    hero search, committee diagram, stocks on file
+│   ├── compare/    head to head
+│   ├── record/     track record
+│   ├── committee/  memo and the per-call cost table
+│   ├── workspace/  run notices, thesis review
+│   ├── market/     price chart
+│   ├── layout/     top bar, footer
+│   └── ui/         cards, tabs, icons, suggestion list
+└── styles/       tokens, base, layout, components, app
 ```
 
 ## Limitations
