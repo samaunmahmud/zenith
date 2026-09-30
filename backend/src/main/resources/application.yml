@@ -49,6 +49,7 @@ zenith:
     reuse-hours: ${REUSE_HOURS:6} # serve a ticker's saved decision if younger than this; 0 = always run live
     live-runs-per-hour: ${LIVE_RUNS_PER_HOUR:20} # paid committee runs per rolling hour; 0 = no hourly limit
     max-concurrent-runs: ${MAX_CONCURRENT_RUNS:2}
+    searches-per-day: ${SEARCHES_PER_DAY:60} # live symbol searches per rolling day, 2 FMP calls each; 0 = no limit
   cache:
     dir: ${CACHE_DIR:}
     ttl-hours: ${CACHE_TTL_HOURS:12}

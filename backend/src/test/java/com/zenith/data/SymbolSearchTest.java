@@ -4,6 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.zenith.support.TestProps;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -79,5 +84,55 @@ class SymbolSearchTest {
         SymbolSearch offline = new SymbolSearch(q -> { throw new AssertionError("must not call FMP"); }, q -> List.of(), cache, true);
         assertThat(offline.search("jp")).extracting(SymbolMatch::symbol).containsExactly("JPM");
         assertThat(offline.search("tesla")).isEmpty();
+    }
+
+    @Test
+    void capsLiveSearchesPerRollingDayThenSearchesTheCache() {
+        DiskCache cache = new DiskCache(TestProps.create(dir, false, 12));
+        cache.write("NVDA", "profile", new CompanyProfile("NVDA", "NVIDIA Corporation", null, null, null, "USD", "NASDAQ", null, null));
+        AtomicInteger calls = new AtomicInteger();
+        MutableClock clock = new MutableClock(Instant.parse("2026-10-01T09:00:00Z"));
+        SymbolSearch search = new SymbolSearch(q -> { calls.incrementAndGet(); return List.of(); }, q -> SANDISK, cache, false, 2, clock);
+
+        search.search("sandisk");
+        search.search("apple");
+        assertThat(calls.get()).isEqualTo(2);
+        // The day's allowance is used: the cache answers, and FMP isn't asked.
+        assertThat(search.search("nvidia")).extracting(SymbolMatch::symbol).containsExactly("NVDA");
+        assertThat(calls.get()).isEqualTo(2);
+        // A day later the window has moved on, and a query the cache answered is asked live again.
+        clock.now = clock.now.plus(Duration.ofDays(1)).plusSeconds(1);
+        search.search("nvidia");
+        assertThat(calls.get()).isEqualTo(3);
+    }
+
+    @Test
+    void doesNotSearchASingleCharacter() {
+        SymbolSearch search = new SymbolSearch(q -> { throw new AssertionError("must not call FMP"); }, q -> List.of(),
+                new DiskCache(TestProps.create(dir, false, 12)), false);
+        assertThat(search.search("f")).isEmpty();
+    }
+
+    private static final class MutableClock extends Clock {
+        Instant now;
+
+        MutableClock(Instant now) {
+            this.now = now;
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public Instant instant() {
+            return now;
+        }
     }
 }

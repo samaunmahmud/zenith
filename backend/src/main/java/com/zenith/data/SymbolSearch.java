@@ -2,10 +2,13 @@ package com.zenith.data;
 
 import com.zenith.config.ZenithProperties;
 import com.zenith.json.Json;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -30,7 +33,10 @@ import tools.jackson.databind.JavaType;
  * query, then company names.
  *
  * <p>Results are kept in memory for a day: the search runs on every keystroke, and FMP's free plan is 250 calls a
- * day. When FMP can't be asked (demo mode, no key, an outage), the stocks already cached on disk are searched instead.
+ * day. On top of that, live searches are capped per rolling day ({@code SEARCHES_PER_DAY}), so a public visitor typing
+ * company names can't use up the quota the committee needs for market data. When FMP can't be asked (demo mode, no
+ * key, an outage, the daily cap), the stocks already cached on disk are searched instead. A single character isn't
+ * searched at all: it matches too much to be useful, and a one-letter ticker still works when submitted.
  */
 @Service
 public class SymbolSearch {
@@ -44,6 +50,7 @@ public class SymbolSearch {
     private static final Pattern MUTUAL_FUND = Pattern.compile("^[A-Z]{4}X$");
     private static final Duration TTL = Duration.ofHours(24);
     private static final int MAX_ENTRIES = 1000;
+    static final int MIN_QUERY = 2;
     private static final JavaType PROFILE = Json.MAPPER.constructType(CompanyProfile.class);
 
     private record Cached(List<SymbolMatch> matches, Instant at) {}
@@ -53,30 +60,44 @@ public class SymbolSearch {
     private final DiskCache cache;
     private final boolean offline;
     private final Map<String, Cached> memo = new ConcurrentHashMap<>();
+    private final int perDay;
+    private final Clock clock;
+    private final Deque<Instant> liveSearches = new ArrayDeque<>();
+    private boolean capLogged;
 
     @Autowired
     public SymbolSearch(FmpClient fmp, DiskCache cache, ZenithProperties props) {
-        this(fmp::searchSymbol, fmp::searchName, cache, props.demoMode() || ZenithProperties.isBlank(props.marketData().fmpApiKey()));
+        this(fmp::searchSymbol, fmp::searchName, cache, props.demoMode() || ZenithProperties.isBlank(props.marketData().fmpApiKey()),
+                props.limits() == null ? 0 : props.limits().searchesPerDay(), Clock.systemUTC());
     }
 
     SymbolSearch(Function<String, List<SymbolMatch>> bySymbol, Function<String, List<SymbolMatch>> byName, DiskCache cache, boolean offline) {
+        this(bySymbol, byName, cache, offline, 0, Clock.systemUTC());
+    }
+
+    SymbolSearch(Function<String, List<SymbolMatch>> bySymbol, Function<String, List<SymbolMatch>> byName, DiskCache cache, boolean offline,
+            int perDay, Clock clock) {
         this.bySymbol = bySymbol;
         this.byName = byName;
         this.cache = cache;
         this.offline = offline;
+        this.perDay = perDay;
+        this.clock = clock;
     }
 
     /** Up to {@value #LIMIT} US-listed matches for {@code raw}, best first; empty for a blank or oversized query. */
     public List<SymbolMatch> search(String raw) {
         String q = raw == null ? "" : raw.trim();
-        if (q.isEmpty() || q.length() > MAX_QUERY) return List.of();
+        if (q.length() < MIN_QUERY || q.length() > MAX_QUERY) return List.of();
         String key = q.toLowerCase(Locale.ROOT);
         Cached hit = memo.get(key);
-        if (hit != null && hit.at().plus(TTL).isAfter(Instant.now())) return hit.matches();
+        if (hit != null && hit.at().plus(TTL).isAfter(clock.instant())) return hit.matches();
 
         List<SymbolMatch> found;
         if (offline) {
             found = fromDisk(q);
+        } else if (!takeSlot()) {
+            return fromDisk(q); // not memoised: live search comes back when the day's window moves on
         } else {
             try {
                 var symbols = CompletableFuture.supplyAsync(() -> bySymbol.apply(q));
@@ -90,8 +111,23 @@ public class SymbolSearch {
             }
         }
         if (memo.size() >= MAX_ENTRIES) memo.clear();
-        memo.put(key, new Cached(found, Instant.now()));
+        memo.put(key, new Cached(found, clock.instant()));
         return found;
+    }
+
+    /** One live search from the rolling day's allowance, or false if it's used up. */
+    private synchronized boolean takeSlot() {
+        if (perDay <= 0) return true;
+        Instant now = clock.instant();
+        while (!liveSearches.isEmpty() && !liveSearches.peekFirst().isAfter(now.minus(Duration.ofDays(1)))) liveSearches.pollFirst();
+        if (liveSearches.size() >= perDay) {
+            if (!capLogged) log.warn("Live symbol search capped at {} a day; searching the cache until the window moves on", perDay);
+            capLogged = true;
+            return false;
+        }
+        capLogged = false;
+        liveSearches.addLast(now);
+        return true;
     }
 
     /** Filters to plain US listings, drops when-issued duplicates, ranks, dedupes and trims. Package-private for tests. */

@@ -134,6 +134,7 @@ The Token Factory base URL and Nemotron model IDs are already filled in `.env.ex
 | `REUSE_HOURS` | `6` | A ticker decided within this window is served again, labelled with its time, at no cost. `0` = always run live. |
 | `LIVE_RUNS_PER_HOUR` | `20` | Paid committee runs per rolling hour. `0` = no hourly limit. |
 | `MAX_CONCURRENT_RUNS` | `2` | Paid runs allowed at the same time. |
+| `SEARCHES_PER_DAY` | `60` | Live company-name searches per rolling day (2 FMP calls each), so typing in the search box can't use up the market data quota the committee needs. After that, the stocks on file are searched. `0` = no limit. |
 
 When a live run isn't allowed or fails, the last saved decision for that ticker is shown instead, and the UI says why.
 

@@ -70,7 +70,7 @@ class CommitteeGateTest {
     private final TestClock clock = new TestClock();
 
     private CommitteeGate gate(double reuseHours, int perHour, int concurrent) {
-        return new CommitteeGate(committee, new Limits(reuseHours, perHour, concurrent), clock);
+        return new CommitteeGate(committee, new Limits(reuseHours, perHour, concurrent, 0), clock);
     }
 
     @Test

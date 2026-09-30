@@ -44,9 +44,11 @@ public record ZenithProperties(
      * reuseHours: serve a ticker's saved decision if it is younger than this (0 = always run live).
      * liveRunsPerHour: live (paid) committee runs allowed per rolling hour (0 = no hourly limit).
      * maxConcurrentRuns: live runs allowed at the same time (at least 1).
+     * searchesPerDay: live symbol searches per rolling day (each is 2 FMP calls; 0 = no limit). FMP's free plan is
+     * 250 calls a day, shared with the committee's own data, so typing in the search box mustn't be able to use it all.
      */
-    public record Limits(double reuseHours, int liveRunsPerHour, int maxConcurrentRuns) {
-        public static final Limits NONE = new Limits(0, 0, Integer.MAX_VALUE);
+    public record Limits(double reuseHours, int liveRunsPerHour, int maxConcurrentRuns, int searchesPerDay) {
+        public static final Limits NONE = new Limits(0, 0, Integer.MAX_VALUE, 0);
     }
 
     public List<String> demoTickerList() {
