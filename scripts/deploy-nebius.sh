@@ -3,7 +3,7 @@
 # API keys in SecretStash (MysteryBox), and create a public CPU endpoint.
 #
 # Prerequisites: the nebius CLI, logged in to your project (`nebius profile create`), plus docker and jq.
-# Keys are read from .env and sent only to SecretStash; they're never printed or put on the command line.
+# Keys are read from .env and sent only to SecretStash: never printed, typed, or baked into the image.
 #
 #   scripts/deploy-nebius.sh               first deploy
 #   REGION_ID=eu-west1 scripts/deploy-nebius.sh

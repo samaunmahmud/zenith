@@ -176,7 +176,7 @@ scripts/deploy-nebius.sh         # registry → image → secrets → public end
 It takes these steps:
 
 1. Creates (or reuses) a **Nebius Container Registry** called `zenith`, builds the image for `linux/amd64`, tags it with the commit, and pushes it.
-2. Stores `TOKEN_FACTORY_API_KEY`, `FMP_API_KEY` and `FINNHUB_API_KEY` from `.env` in a **SecretStash (MysteryBox)** secret called `zenith-keys`. The endpoint reads them with `--env-secret KEY=zenith-keys`, so the keys never appear on a command line or in the image.
+2. Stores `TOKEN_FACTORY_API_KEY`, `FMP_API_KEY` and `FINNHUB_API_KEY` from `.env` in a **SecretStash (MysteryBox)** secret called `zenith-keys`. The endpoint reads them with `--env-secret KEY=zenith-keys`, so the keys stay out of the image, the endpoint settings and your shell history.
 3. Creates a public **Serverless AI endpoint** on a CPU platform (`cpu-d3`, `4vcpu-16gb`; the CLI's default is a GPU, which this app doesn't need). The public-demo settings go in as plain `--env` values: `MAX_SPEND_USD`, `REUSE_HOURS=1000`, `LIVE_RUNS_PER_HOUR=10`, `SEARCHES_PER_DAY=60`.
 4. Waits for the HTTPS URL to answer `/api/health` and prints it.
 
