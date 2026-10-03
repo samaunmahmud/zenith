@@ -172,10 +172,16 @@ class CommitteeServiceTest {
 
     @Test
     void aBudgetThatRunsOutMidRunSurfacesAsABudgetError(@TempDir Path dir) {
-        // $0.0001 passes the up-front check; the news call (~$0.000108 on Nano) then uses it up, so every analyst
-        // is refused. The error must say "budget" (503, quota refunded), not look like a model failure (502).
-        CommitteeService broke = serviceWith(TestProps.create(dir, false, 12, 0.0001));
-        assertThatThrownBy(() -> broke.run("TEST", false, e -> {}))
+        // The run passes its up-front budget check; then, as the "news" stage begins (before the news desk and
+        // technicals start, which run side by side), other spending uses the budget up, as concurrent visitors could.
+        // Every agent is then refused. Spending it at that event, not via the news call's own cost, keeps the test
+        // deterministic: technicals' check no longer races the news desk's. The error must say "budget" (503, quota
+        // refunded), not look like a model failure (502).
+        var props = TestProps.create(dir, false, 12, 0.01);
+        CommitteeService broke = serviceWith(props);
+        assertThatThrownBy(() -> broke.run("TEST", false, e -> {
+            if (e instanceof CommitteeEvent.Stage s && s.stage().equals("news")) new com.zenith.llm.SpendGuard(props).record(1.0);
+        }))
                 .hasMessageContaining("All analysts failed")
                 .hasCauseInstanceOf(com.zenith.llm.SpendGuard.BudgetExceededException.class)
                 .satisfies(e -> assertThat(CommitteeGate.costNothing(e)).isTrue());
