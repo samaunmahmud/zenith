@@ -4,7 +4,7 @@
 #         (-e wins over --env-file: .env sets PORT=3001 for dev, and MAX_SPEND_USD=0 keeps a local test free)
 
 # 1) Build the React frontend
-FROM node:22-alpine AS frontend
+FROM node:26-alpine AS frontend
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/
