@@ -21,16 +21,16 @@ Built for the **Nebius x NVIDIA Global AI Hackathon** (Best Apps and Agents trac
 
 **Live demo:** _coming soon_ · **Demo video:** _coming soon_
 
-![The session screen: the Nemotron Ultra chair's BUY on NVDA at 80% confidence with its reasons, each tagged with the analyst it came from, the Risk analyst's dissent on the record, and the conditions that would change the call](docs/screenshots/session.png)
+![The session screen: the Nemotron Ultra chair's BUY on NVDA at 80% confidence with its reasons, each tagged with the analyst it came from, the Risk analyst's dissent on the record, and the conditions that would change the call (dark theme)](docs/screenshots/session.png)
 
-![Integrity checks for the same session: 55 figures computed in Java, 20 cited evidence values each matched to a fact sheet, 2 figures in the prose flagged because they weren't in the input, the decision receipt with its Verify button, and the source and age of every piece of data](docs/screenshots/trust.png)
+![Integrity checks for the same session: 55 figures computed in Java, 20 cited evidence values each matched to a fact sheet, 2 figures in the prose flagged because they weren't in the input, the decision receipt with its Verify button, and the source and age of every piece of data (light theme)](docs/screenshots/trust.png)
 
 <details>
-<summary>The landing page, head to head (light theme) and the track record</summary>
+<summary>More screens: the landing page (light), head to head (dark) and the track record (light)</summary>
 
 ![The landing page: one search box to convene the committee, a live diagram of which Nemotron model holds each seat, and a status strip checked from the real config](docs/screenshots/landing.png)
 
-![Two committees in parallel: JPM ruled BUY at 65%, TSLA ruled SELL at 72%, each with its dissent, analyst stances and the pipeline of Nemotron calls](docs/screenshots/head-to-head.png)
+![Two committees in parallel, with the rebuttal round on: JPM ruled HOLD at 62% (two analysts revised their view after the rebuttals), TSLA ruled SELL at 72%, each with its dissent and analyst stances](docs/screenshots/head-to-head.png)
 
 ![The track record: every call kept with its entry price and scored against the S&P 500 at 7, 30 and 90 days, 9 of the first 10 seven-day calls right](docs/screenshots/track-record.png)
 
