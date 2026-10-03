@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { verifyReceipt } from "../../api";
 import type { CommitteeState } from "../../state/committee";
-import type { AnalystName } from "../../types";
+import type { AnalystName, Receipt, ReceiptCheck } from "../../types";
 import { ANALYSTS, ANALYST_TITLE, ago, safeUrl, when } from "../../lib/format";
 import type { Playback } from "../../hooks/usePlayback";
 import { Term } from "../ui/Term";
@@ -35,6 +36,7 @@ export function IntegrityPanel({ state, play }: { state: CommitteeState; play: P
           <li className="dim"><span className="chk" aria-hidden="true">·</span><span>Evidence and prose are checked when the session closes.</span></li>
         )}
       </ul>
+      {ready && r!.receipt && <ReceiptRow ticker={r!.ticker} receipt={r!.receipt} />}
       {state.sources.length > 0 && (
         <div className="sources">
           <span className="lbl">Data sources</span>
@@ -46,6 +48,34 @@ export function IntegrityPanel({ state, play }: { state: CommitteeState; play: P
         </div>
       )}
     </Panel>
+  );
+}
+
+/**
+ * The decision receipt: SHA-256 fingerprints of the fact sheets, prompts, models and ruling. "Verify" asks the server
+ * to re-hash the saved decision, so a visitor can see the ruling on file is exactly the one the committee made.
+ */
+function ReceiptRow({ ticker, receipt }: { ticker: string; receipt: Receipt }) {
+  const [check, setCheck] = useState<ReceiptCheck | null | "loading" | "none">(null);
+  const verify = async () => {
+    setCheck("loading");
+    setCheck((await verifyReceipt(ticker)) ?? "none");
+  };
+  const result = typeof check === "object" && check !== null ? check : null;
+  const sameRun = result?.receipt.id === receipt.id;
+  return (
+    <div className="receipt">
+      <span className="lbl">Decision receipt</span>
+      <code className="num" title={`Fact sheets ${receipt.factSheets}\nRuling ${receipt.ruling}`}>{receipt.id}</code>
+      <span className="dim">{receipt.algorithm} of the fact sheets, prompts, models and ruling</span>
+      {check === null && <button type="button" className="receipt-btn" onClick={verify}>Verify</button>}
+      {check === "loading" && <span className="dim">Checking…</span>}
+      {check === "none" && <span className="warn">No receipt on file to check against</span>}
+      {result && !sameRun && <span className="dim">A newer ruling ({result.receipt.id}) is on file now</span>}
+      {result && sameRun && (result.intact
+        ? <span className="pos">✓ Intact: fact sheets and ruling re-hash to this receipt{result.check.changedPrompts.length > 0 && `; prompts changed since: ${result.check.changedPrompts.join(", ")}`}</span>
+        : <span className="warn">! Doesn't match: the saved {result.check.factSheetsMatch ? "ruling" : "fact sheets"} changed after the meeting</span>)}
+    </div>
   );
 }
 

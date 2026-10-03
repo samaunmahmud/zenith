@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,7 +16,21 @@ public final class Prompts {
 
     private static final Map<String, String> CACHE = new ConcurrentHashMap<>();
 
+    /** Every prompt file, for the decision receipt's fingerprints. */
+    public static final List<String> NAMES = List.of("_analyst-json", "_ground-rules", "chair", "devils-advocate",
+            "fundamentals", "news", "rebuttal", "risk", "secretary", "technicals");
+
     private Prompts() {}
+
+    /** SHA-256 of the prompt file exactly as stored, matching {@code shasum -a 256 prompts/<name>.md}. */
+    public static String sha256(String name) {
+        try (InputStream in = Prompts.class.getResourceAsStream("/prompts/" + name + ".md")) {
+            if (in == null) throw new IllegalStateException("Missing prompt file: prompts/" + name + ".md");
+            return com.zenith.committee.Receipt.sha256(in.readAllBytes());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 
     private static String raw(String name) {
         return CACHE.computeIfAbsent(name, n -> {

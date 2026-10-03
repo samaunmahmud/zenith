@@ -93,6 +93,18 @@ public class CommitteeController {
         return 500;
     }
 
+    /**
+     * The message a visitor sees for a failure. Our own errors (bad ticker, budget, data plan, model failures) are
+     * written for visitors; an unexpected 500 could carry internals (paths, library messages), so it gets a reference
+     * the operator can find in the log instead.
+     */
+    static String publicMessage(Throwable e, int status) {
+        if (status < 500 || status == 502 || status == 503) return String.valueOf(e.getMessage());
+        String ref = Long.toString(System.nanoTime() & 0xffffffL, 36).toUpperCase();
+        log.error("Unexpected error, ref {}", ref, e);
+        return "Something went wrong on our side (ref " + ref + "). Please try again.";
+    }
+
     private static ResponseEntity<String> json(int status, Object body) {
         return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON).body(Json.MAPPER.writeValueAsString(body));
     }
@@ -106,7 +118,8 @@ public class CommitteeController {
                 "keys", Map.of(
                         "tokenFactory", props.tokenFactory().configured(),
                         "fmp", !ZenithProperties.isBlank(props.marketData().fmpApiKey()),
-                        "finnhub", !ZenithProperties.isBlank(props.marketData().finnhubApiKey()))));
+                        "finnhub", !ZenithProperties.isBlank(props.marketData().finnhubApiKey()),
+                        "tiingo", !ZenithProperties.isBlank(props.marketData().tiingoApiKey()))));
     }
 
     @GetMapping("/config")
@@ -137,7 +150,7 @@ public class CommitteeController {
             return json(200, trackRecord.report());
         } catch (RuntimeException e) {
             log.error("Track record failed", e);
-            return json(500, Map.of("error", String.valueOf(e.getMessage())));
+            return json(500, Map.of("error", publicMessage(e, 500)));
         }
     }
 
@@ -147,6 +160,28 @@ public class CommitteeController {
         Optional<String> t = parseTicker(ticker);
         if (t.isEmpty()) return json(400, Map.of("error", BAD_TICKER));
         return since.since(t.get()).map(s -> json(200, s)).orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /**
+     * Re-hashes the latest saved decision on a stock and compares it with the receipt issued at the meeting: whether
+     * its fact sheets and ruling are exactly as decided, and which prompt files have changed since. No model call.
+     */
+    @GetMapping("/receipt")
+    public ResponseEntity<String> receipt(@RequestParam(required = false) String ticker) {
+        Optional<String> t = parseTicker(ticker);
+        if (t.isEmpty()) return json(400, Map.of("error", BAD_TICKER));
+        var saved = committee.lastSavedRun(t.get()).filter(r -> r.receipt() != null);
+        if (saved.isEmpty()) return json(404, Map.of("error", "No receipted decision on file for " + t.get()));
+        var r = saved.get();
+        var check = com.zenith.committee.Receipt.verify(r);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("ticker", r.ticker());
+        body.put("decidedAt", r.generatedAt());
+        body.put("call", r.decision() == null ? null : r.decision().recommendation());
+        body.put("receipt", r.receipt());
+        body.put("intact", check.intact());
+        body.put("check", check);
+        return json(200, body);
     }
 
     /** Devil's advocate: the chair cross-examines the investor's own thesis against the latest session on that stock. */
@@ -159,7 +194,7 @@ public class CommitteeController {
         } catch (RuntimeException e) {
             int status = statusFor(e);
             if (status >= 500) log.error("Thesis review failed for {}", ticker.get(), e);
-            return json(status, Map.of("error", String.valueOf(e.getMessage())));
+            return json(status, Map.of("error", publicMessage(e, status)));
         }
     }
 
@@ -173,7 +208,7 @@ public class CommitteeController {
         } catch (RuntimeException e) {
             int status = statusFor(e);
             if (status >= 500) log.error("Question failed for {}", ticker.get(), e);
-            return json(status, Map.of("error", String.valueOf(e.getMessage())));
+            return json(status, Map.of("error", publicMessage(e, status)));
         }
     }
 
@@ -186,7 +221,7 @@ public class CommitteeController {
             return json(200, gate.run(ticker.get(), Boolean.TRUE.equals(req.rebuttals()), e -> {}));
         } catch (RuntimeException e) {
             log.error("Committee failed for {}", ticker.get(), e);
-            return json(statusFor(e), Map.of("error", String.valueOf(e.getMessage())));
+            return json(statusFor(e), Map.of("error", publicMessage(e, statusFor(e))));
         }
     }
 
@@ -221,11 +256,11 @@ public class CommitteeController {
                 }
                 send.accept(new CommitteeEvent.Done(gate.run(parsed.get(), rebuttals, send)));
             } catch (CancellationException e) {
-                log.info("Committee run for {} stopped: the visitor left ({})", ticker, e.getMessage());
+                log.info("Committee run for {} stopped: the visitor left ({})", parsed.orElse("(invalid ticker)"), e.getMessage());
             } catch (RuntimeException e) {
-                log.error("Committee stream failed for {}", ticker, e);
+                log.error("Committee stream failed for {}", parsed.orElse("(invalid ticker)"), e);
                 try {
-                    send.accept(new CommitteeEvent.Error(String.valueOf(e.getMessage()), statusFor(e)));
+                    send.accept(new CommitteeEvent.Error(publicMessage(e, statusFor(e)), statusFor(e)));
                 } catch (CancellationException ignored) {
                     // nobody left to tell
                 }

@@ -30,7 +30,9 @@ public record CommitteeResult(
         List<AgentModel> agents,
         boolean replayed,
         // Why a saved decision was served instead of a live run: "recent", "busy" or "fallback". Null for live runs.
-        String replayReason) {
+        String replayReason,
+        // SHA-256 fingerprints of the fact sheets, prompts, models and ruling. Null on runs saved before receipts.
+        Receipt receipt) {
 
     public record AnalystError(AnalystName analyst, String message) {}
 
@@ -39,12 +41,17 @@ public record CommitteeResult(
 
     public CommitteeResult withMemo(String memo) {
         return new CommitteeResult(ticker, generatedAt, snapshot, sources, news, newsDigest, reports, analystErrors,
-                rebuttals, decision, chairError, memo, costs, integrity, agents, replayed, replayReason);
+                rebuttals, decision, chairError, memo, costs, integrity, agents, replayed, replayReason, receipt);
     }
 
     /** Served from the last saved run instead of a live one; see CommitteeGate for the reasons. */
     public CommitteeResult asReplay(String reason) {
         return new CommitteeResult(ticker, generatedAt, snapshot, sources, news, newsDigest, reports, analystErrors,
-                rebuttals, decision, chairError, memoMarkdown, costs, integrity, agents, true, reason);
+                rebuttals, decision, chairError, memoMarkdown, costs, integrity, agents, true, reason, receipt);
+    }
+
+    public CommitteeResult withReceipt(Receipt r) {
+        return new CommitteeResult(ticker, generatedAt, snapshot, sources, news, newsDigest, reports, analystErrors,
+                rebuttals, decision, chairError, memoMarkdown, costs, integrity, agents, replayed, replayReason, r);
     }
 }

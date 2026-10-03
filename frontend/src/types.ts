@@ -134,6 +134,26 @@ export interface CommitteeResult {
   replayed?: boolean;
   /** Why a saved decision was served: reused while recent, committee busy, or the live run failed. */
   replayReason?: "recent" | "busy" | "fallback" | null;
+  /** SHA-256 fingerprints of what the ruling was made from. Absent on runs saved before receipts. */
+  receipt?: Receipt | null;
+}
+
+export interface Receipt {
+  id: string;
+  algorithm: string;
+  factSheets: string;
+  ruling: string;
+  prompts: Record<string, string>;
+  models: Record<string, string>;
+}
+
+export interface ReceiptCheck {
+  ticker: string;
+  decidedAt: string;
+  call: ChairDecision["recommendation"] | null;
+  receipt: Receipt;
+  intact: boolean;
+  check: { factSheetsMatch: boolean; rulingMatches: boolean; idMatches: boolean; changedPrompts: string[] };
 }
 
 export type Stage = "data" | "news" | "analysts" | "rebuttals" | "chair" | "memo";
@@ -209,7 +229,7 @@ export interface Health {
   status: string;
   demoMode: boolean;
   budget: { maxUsd: number; spentUsd: number };
-  keys: { tokenFactory: boolean; fmp: boolean; finnhub: boolean };
+  keys: { tokenFactory: boolean; fmp: boolean; finnhub: boolean; tiingo?: boolean };
 }
 
 export interface TrackedCall {

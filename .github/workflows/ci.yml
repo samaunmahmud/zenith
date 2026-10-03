@@ -33,6 +33,11 @@ jobs:
 
       - run: npm ci
 
+      # Fails the build on a known high or critical vulnerability in anything that ships (dev tools are covered by
+      # Dependabot alerts instead, since they never reach the image).
+      - name: Dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
       # No API keys needed: the tests use a fake Nemotron transport, so CI never spends Token Factory credit.
       - name: Backend tests
         run: npm test

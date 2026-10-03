@@ -113,7 +113,9 @@ public class TokenFactoryClient {
                 noSchemaSupport.add(model);
                 return chat(agent, tier, messages, temperature, maxTokens, schemaType, tracker, attempt);
             }
-            throw new LlmException(agent + " call failed: " + e.getMessage(), agent, e);
+            // The upstream body stays in the server log: it isn't ours to show visitors and may echo request details.
+            log.warn("{} call to {} failed with HTTP {}: {}", agent, model, e.status(), e.getMessage());
+            throw new LlmException(agent + " call failed: Token Factory answered HTTP " + e.status(), agent, e);
         } catch (ChatTransport.MaybeBilledException e) {
             // No usage came back, but the call may have been billed: charge the worst case against the cap
             // (the whole prompt plus max_tokens of output). Over-counting is the safe error for a hard cap.

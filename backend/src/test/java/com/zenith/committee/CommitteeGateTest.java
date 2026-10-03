@@ -63,7 +63,7 @@ class CommitteeGateTest {
                 ? List.of(new Rebuttal(AnalystName.RISK, AnalystName.FUNDAMENTALS, "Too volatile.", false))
                 : List.of();
         return new CommitteeResult(ticker, at.toString(), null, List.of(), List.of(), null, List.of(), List.of(),
-                rebuttals, null, null, "", null, List.of(), List.of(), false, null);
+                rebuttals, null, null, "", null, List.of(), List.of(), false, null, null);
     }
 
     private final FakeCommittee committee = new FakeCommittee();

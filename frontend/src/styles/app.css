@@ -236,6 +236,12 @@
 .sources .lbl { font-size: 12px; font-weight: 600; color: var(--text-3); margin-right: 4px; }
 .src { padding: 3px 9px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); font-size: 11.5px; }
 .src.is-stale { border-color: var(--warn); }
+.receipt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; }
+.receipt .lbl { font-size: 12px; font-weight: 600; color: var(--text-3); }
+.receipt code { padding: 2px 8px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--line); font-size: 12px; }
+.receipt-btn { height: 26px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel-2); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
+.receipt-btn:hover { border-color: var(--accent); }
+.receipt-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .tseg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; margin-bottom: 12px; padding: 3px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--line); }
 .tseg button { min-width: 0; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: none; color: var(--text-3); font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }

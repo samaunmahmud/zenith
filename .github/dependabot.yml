@@ -1,0 +1,18 @@
+# Weekly update PRs for every dependency ecosystem in the repo; security fixes arrive as soon as they're published.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly }
+    groups:
+      frontend-tooling:
+        patterns: ["vite", "vitest", "@vitejs/*", "typescript", "@types/*"]
+  - package-ecosystem: maven
+    directory: /backend
+    schedule: { interval: weekly }
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly }

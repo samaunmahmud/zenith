@@ -210,7 +210,10 @@ public class CommitteeService implements CommitteeRunner {
                 integrityFlags(snapshot, digest, sortedReports, sortedRebuttals, decision),
                 agents,
                 false,
+                null,
                 null);
+        // The receipt fingerprints what the ruling was made from; the memo prints it, so it's computed first.
+        partial = partial.withReceipt(Receipt.issue(partial));
         CommitteeResult result = partial.withMemo(MemoBuilder.build(partial));
 
         // Keep the last complete run per ticker: the demo safety net if Token Factory is unreachable on stage.

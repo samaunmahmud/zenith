@@ -1,4 +1,4 @@
-import type { AppConfig, AskResult, AskTurn, CommitteeEvent, Health, Since, SymbolMatch, TapeRow, ThesisResult, TrackRecord } from "./types";
+import type { AppConfig, AskResult, AskTurn, CommitteeEvent, Health, ReceiptCheck, Since, SymbolMatch, TapeRow, ThesisResult, TrackRecord } from "./types";
 
 export async function fetchConfig(): Promise<AppConfig | null> {
   try {
@@ -43,6 +43,16 @@ export async function fetchSince(ticker: string): Promise<Since | null> {
   try {
     const res = await fetch(`/api/since?ticker=${encodeURIComponent(ticker)}`);
     return res.status === 200 ? ((await res.json()) as Since) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Re-hashes the saved decision on the server and compares it with its receipt. Null if there's none on file. */
+export async function verifyReceipt(ticker: string): Promise<ReceiptCheck | null> {
+  try {
+    const res = await fetch(`/api/receipt?ticker=${encodeURIComponent(ticker)}`);
+    return res.ok ? ((await res.json()) as ReceiptCheck) : null;
   } catch {
     return null;
   }
