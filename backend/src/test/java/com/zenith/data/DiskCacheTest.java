@@ -40,6 +40,46 @@ class DiskCacheTest {
         assertThat(result.source().stale()).isTrue();
     }
 
+    private static DiskCache.Provider<List<String>> provider(String label, java.util.function.Supplier<List<String>> fetch) {
+        return new DiskCache.Provider<>(label, fetch);
+    }
+
+    @Test
+    void fallsBackToTheNextProviderWhenThePlanDoesNotCoverTheSymbol() {
+        DiskCache cache = new DiskCache(TestProps.create(dir, false, 12));
+        var result = cache.<List<String>>cachedFrom("RDDT", "x", STRINGS, List.of(
+                provider("FMP", () -> { throw new PlanLimitException("FMP: not covered"); }),
+                provider("Tiingo", () -> List.of("bars"))));
+        assertThat(result.data()).containsExactly("bars");
+        assertThat(result.source().name()).isEqualTo("Tiingo");
+
+        // A later cache hit still credits the provider that actually answered.
+        var hit = cache.<List<String>>cachedFrom("RDDT", "x", STRINGS, List.of(
+                provider("FMP", () -> { throw new AssertionError("must not fetch"); }),
+                provider("Tiingo", () -> { throw new AssertionError("must not fetch"); })));
+        assertThat(hit.source().name()).isEqualTo("Tiingo");
+    }
+
+    @Test
+    void aRealFailureOfTheFirstProviderDoesNotFallBack() {
+        DiskCache cache = new DiskCache(TestProps.create(dir, false, 12));
+        assertThatThrownBy(() -> cache.<List<String>>cachedFrom("ZZZZQ", "x", STRINGS, List.of(
+                provider("FMP", () -> { throw new DataException("Unknown ticker: ZZZZQ", 404); }),
+                provider("Tiingo", () -> { throw new AssertionError("must not spend a fallback call on a typo"); }))))
+                .isInstanceOf(DataException.class)
+                .hasMessageContaining("Unknown ticker");
+    }
+
+    @Test
+    void reportsThePlanLimitWhenEveryFallbackFails() {
+        DiskCache cache = new DiskCache(TestProps.create(dir, false, 12));
+        assertThatThrownBy(() -> cache.<List<String>>cachedFrom("QQQ", "x", STRINGS, List.of(
+                provider("FMP", () -> { throw new PlanLimitException("FMP: not covered"); }),
+                provider("Finnhub", () -> { throw new DataException("Unknown ticker: QQQ", 404); }),
+                provider("Tiingo", () -> { throw new DataException("Tiingo is not configured", 503); }))))
+                .isInstanceOf(PlanLimitException.class);
+    }
+
     @Test
     void demoModeNeverFetchesAndServesEvenExpiredCache() {
         new DiskCache(TestProps.create(dir, false, 12)).write("AAPL", "x", List.of("cached"));

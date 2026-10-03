@@ -72,7 +72,9 @@ else
     --arg tf "$(env_value TOKEN_FACTORY_API_KEY)" \
     --arg fmp "$(env_value FMP_API_KEY)" \
     --arg fh "$(env_value FINNHUB_API_KEY)" \
-    '[{key: "TOKEN_FACTORY_API_KEY", string_value: $tf}, {key: "FMP_API_KEY", string_value: $fmp}, {key: "FINNHUB_API_KEY", string_value: $fh}]
+    --arg ti "$(env_value TIINGO_API_KEY)" \
+    '[{key: "TOKEN_FACTORY_API_KEY", string_value: $tf}, {key: "FMP_API_KEY", string_value: $fmp}, {key: "FINNHUB_API_KEY", string_value: $fh},
+      {key: "TIINGO_API_KEY", string_value: $ti}]
      | map(select(.string_value != ""))')"
   [ "$(echo "$payload" | jq 'map(.key) | index("TOKEN_FACTORY_API_KEY") != null and index("FMP_API_KEY") != null')" = true ] \
     || { echo "TOKEN_FACTORY_API_KEY and FMP_API_KEY must both be set in .env." >&2; exit 1; }
@@ -89,6 +91,7 @@ fi
 
 env_secrets=(--env-secret "TOKEN_FACTORY_API_KEY=$SECRET" --env-secret "FMP_API_KEY=$SECRET")
 [ -n "$(env_value FINNHUB_API_KEY)" ] && env_secrets+=(--env-secret "FINNHUB_API_KEY=$SECRET")
+[ -n "$(env_value TIINGO_API_KEY)" ] && env_secrets+=(--env-secret "TIINGO_API_KEY=$SECRET")
 
 # PORT is left alone: the image sets 8080 to match --container-port. DEMO_MODE stays off so prices keep updating
 # (the "Since this ruling" panel and the chair's watch list are checked against new closes).

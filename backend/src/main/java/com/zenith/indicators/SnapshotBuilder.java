@@ -43,7 +43,7 @@ public final class SnapshotBuilder {
                 Risk.maxDrawdown(yearBars),
                 Risk.beta(bars, md.benchmark()),
                 Risk.liquidity(bars, 20));
-        var f = Fundamentals.metrics(md.ratios(), md.keyMetrics(), md.growth());
+        var f = Fundamentals.metrics(md.ratios(), md.keyMetrics(), md.growth(), md.finnhubMetrics());
         Double marketCap = md.profile().marketCap();
 
         Map<String, String> priceFacts = new LinkedHashMap<>();
@@ -69,9 +69,10 @@ public final class SnapshotBuilder {
         fundamentals.put("Current ratio (TTM)", fixed(f.currentRatio()));
         fundamentals.put("Free cash flow yield (TTM)", pct(f.freeCashFlowYield()));
         fundamentals.put("Dividend yield (TTM)", pct(f.dividendYield(), false, 2));
-        fundamentals.put("Revenue growth (last fiscal year)", signedPct(f.revenueGrowth()));
-        fundamentals.put("EPS growth (last fiscal year)", signedPct(f.epsGrowth()));
-        fundamentals.put("Forward P/E", NA); // not on the free data plan; stated explicitly so the model doesn't guess
+        String basis = f.growthTtm() ? "(TTM, year on year)" : "(last fiscal year)";
+        fundamentals.put("Revenue growth " + basis, signedPct(f.revenueGrowth()));
+        fundamentals.put("EPS growth " + basis, signedPct(f.epsGrowth()));
+        fundamentals.put("Forward P/E", fixed(f.forwardPe())); // N/A when missing, stated so the model doesn't guess
 
         Map<String, String> technicals = new LinkedHashMap<>(priceFacts);
         technicals.put("1-week return", signedPct(t.return1w()));

@@ -72,6 +72,7 @@ class CommitteeServiceTest {
             Map.of("priceToEarningsRatioTTM", 31.42, "grossProfitMarginTTM", 0.462),
             Map.of(),
             Map.of("revenueGrowth", 0.08),
+            Map.of("forwardPE", 27.5),
             List.of(new NewsItem("Test Corp launches product", "Wire", "2026-09-20T00:00:00Z", "", "")),
             List.of(new SourceInfo("fake", "2026-09-26T00:00:00Z", false)));
 
@@ -140,7 +141,7 @@ class CommitteeServiceTest {
     private CommitteeService serviceWith(ZenithProperties props) {
         var llm = new TokenFactoryClient(this::fakeNemotron, props, Validation.buildDefaultValidatorFactory().getValidator(),
                 new com.zenith.llm.SpendGuard(props));
-        var market = new MarketDataService(null, null, null, props) {
+        var market = new MarketDataService(null, null, null, null, props) {
             @Override
             public MarketData get(String ticker) {
                 return MARKET;

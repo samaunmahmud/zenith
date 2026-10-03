@@ -35,6 +35,11 @@ public class FmpClient {
         Map<String, String> all = new HashMap<>(params);
         all.put("apikey", key);
         HttpJson.Reply reply = http.get(BASE + endpoint, all);
+        // The free plan covers only some symbols: the rest get HTTP 402 ("Special Endpoint ... not available under
+        // your current subscription"). That's a plan limit, not a bad ticker, so callers can try another provider.
+        if (reply.status() == 402 || reply.body().path("Error Message").asString("").contains("subscription")) {
+            throw new PlanLimitException("FMP " + endpoint + ": not covered by the free plan");
+        }
         // FMP reports errors as { "Error Message": "..." }, sometimes with a 200 status.
         if (reply.body().has("Error Message")) {
             throw new DataException("FMP " + endpoint + ": " + reply.body().path("Error Message").asString());

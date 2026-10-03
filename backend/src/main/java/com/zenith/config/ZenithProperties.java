@@ -43,7 +43,7 @@ public record ZenithProperties(
         }
     }
 
-    public record MarketData(String fmpApiKey, String finnhubApiKey) {}
+    public record MarketData(String fmpApiKey, String finnhubApiKey, String tiingoApiKey) {}
 
     public record Cache(String dir, double ttlHours) {}
 

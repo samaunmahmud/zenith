@@ -36,7 +36,7 @@ const FACT_ROWS: [Section, string, Better][] = [
   ["fundamentals", "P/E (TTM)", "lower"],
   ["fundamentals", "PEG ratio (TTM)", "lower"],
   ["fundamentals", "EV/EBITDA (TTM)", "lower"],
-  ["fundamentals", "Revenue growth (last fiscal year)", "higher"],
+  ["fundamentals", "Revenue growth", "higher"], // "(last fiscal year)" or "(TTM, year on year)", whichever the data had
   ["fundamentals", "Net margin (TTM)", "higher"],
   ["fundamentals", "Return on equity (TTM)", "higher"],
   ["fundamentals", "Debt/Equity (TTM)", "lower"],
@@ -50,7 +50,10 @@ const FACT_ROWS: [Section, string, Better][] = [
 
 /** The metric rows of the matrix, straight from the fact sheets both committees were given. */
 export function metricRows(a: CommitteeState, b: CommitteeState): Row[] {
-  const fact = (s: CommitteeState, sec: Section, key: string) => s.snapshot?.facts[sec]?.[key] ?? "n/a";
+  const fact = (s: CommitteeState, sec: Section, key: string) => {
+    const facts = s.snapshot?.facts[sec] ?? {};
+    return facts[key] ?? Object.entries(facts).find(([k]) => k.startsWith(key + " ("))?.[1] ?? "n/a";
+  };
   return FACT_ROWS.map(([sec, key, better]) => {
     const x = fact(a, sec, key);
     const y = fact(b, sec, key);

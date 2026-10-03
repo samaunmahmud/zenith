@@ -47,6 +47,7 @@ zenith:
   market-data:
     fmp-api-key: ${FMP_API_KEY:}
     finnhub-api-key: ${FINNHUB_API_KEY:}
+    tiingo-api-key: ${TIINGO_API_KEY:} # fallback prices for symbols FMP's free plan doesn't cover
   budget:
     max-usd: ${MAX_SPEND_USD:0} # hard cap on total Token Factory spend; 0 (the default) switches AI calls off
   limits:
@@ -54,6 +55,12 @@ zenith:
     live-runs-per-hour: ${LIVE_RUNS_PER_HOUR:20} # paid committee runs per rolling hour; 0 = no hourly limit
     max-concurrent-runs: ${MAX_CONCURRENT_RUNS:2}
     searches-per-day: ${SEARCHES_PER_DAY:60} # live symbol searches per rolling day, 2 FMP calls each; 0 = no limit
+  # Per-visitor limits (ApiSecurityFilter), on top of the global ones above: requests that can call Nemotron
+  # (committee, ask, thesis) and live searches, per visitor per rolling window. 0 = no per-visitor limit.
+  rate-limit:
+    paid-per-window: ${RATE_LIMIT_PAID:12}
+    search-per-window: ${RATE_LIMIT_SEARCH:60}
+    window-minutes: ${RATE_LIMIT_WINDOW_MINUTES:10}
   cache:
     dir: ${CACHE_DIR:}
     ttl-hours: ${CACHE_TTL_HOURS:12}

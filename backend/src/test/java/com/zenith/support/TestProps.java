@@ -22,7 +22,7 @@ public final class TestProps {
                                 ModelTier.SUPER, new ZenithProperties.Price(0.30, 0.90),
                                 ModelTier.ULTRA, new ZenithProperties.Price(1.00, 3.00)),
                         "news,technicals,technicals-rebuttal,secretary"),
-                new ZenithProperties.MarketData("", ""),
+                new ZenithProperties.MarketData("", "", ""),
                 new ZenithProperties.Cache(cacheDir.toString(), ttlHours),
                 new ZenithProperties.Budget(budgetUsd),
                 ZenithProperties.Limits.NONE,
