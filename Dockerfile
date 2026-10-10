@@ -22,7 +22,7 @@ COPY --from=frontend /app/frontend/dist src/main/resources/static
 RUN mvn -q -B package -DskipTests
 
 # 3) Small runtime image: JRE only, non-root user
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 RUN useradd --system --create-home zenith
 COPY --from=backend /app/target/zenith.jar zenith.jar
