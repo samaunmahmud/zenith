@@ -13,7 +13,7 @@ COPY frontend/ frontend/
 RUN npm run build --workspace frontend
 
 # 2) Build the Spring Boot jar, with the frontend bundled in as static files
-FROM maven:3.9-eclipse-temurin-21 AS backend
+FROM maven:3.9-eclipse-temurin-26 AS backend
 WORKDIR /app
 COPY backend/pom.xml .
 RUN mvn -q -B dependency:go-offline
