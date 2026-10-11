@@ -89,11 +89,11 @@ Measured on real committee runs over the demo stocks (AAPL, NVDA, JPM, TSLA, GOO
 | | |
 |---|---|
 | **Cost of a full committee** (news desk, 3 analysts, 3 rebuttals, chair) | **$0.017 – $0.022** |
-| **Saving from the Nano / Super / Ultra split** vs sending the same calls to Ultra alone | **about 2.5 – 3x cheaper** |
+| **Saving from the Nano / Super / Ultra split** vs sending the same calls to Ultra alone | **about 2 – 3x cheaper** |
 | **Model time for a full session**, after the reasoning switch and smarter scheduling | **about 50s → 24s** |
 | **Schema-valid JSON on the first attempt** | **every call measured (100+)** |
 | **Ultra calls per decision** | **exactly one** |
-| **Tests** | **147 backend (JUnit) + 52 frontend (Vitest)**, CI and CodeQL on every push |
+| **Tests** | **148 backend (JUnit) + 52 frontend (Vitest)**, CI and CodeQL on every push |
 
 ## Features
 
