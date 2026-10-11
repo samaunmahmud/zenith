@@ -3,8 +3,10 @@
 # Run:    docker run -p 8080:8080 --env-file .env -e PORT=8080 -e MAX_SPEND_USD=0 zenith
 #         (-e wins over --env-file: .env sets PORT=3001 for dev, and MAX_SPEND_USD=0 keeps a local test free)
 
-# 1) Build the React frontend
-FROM node:22-alpine AS frontend
+# 1) Build the React frontend. The build stages run on the build machine's own architecture (BUILDPLATFORM): their
+#    outputs (a JS bundle and a jar) are the same on any CPU, so cross-building for linux/amd64 from an ARM Mac only
+#    emulates the final stage.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY frontend/package.json frontend/
@@ -13,7 +15,7 @@ COPY frontend/ frontend/
 RUN npm run build --workspace frontend
 
 # 2) Build the Spring Boot jar, with the frontend bundled in as static files
-FROM maven:3.9-eclipse-temurin-21 AS backend
+FROM --platform=$BUILDPLATFORM maven:3.9-eclipse-temurin-21 AS backend
 WORKDIR /app
 COPY backend/pom.xml .
 RUN mvn -q -B dependency:go-offline
