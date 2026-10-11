@@ -14,6 +14,8 @@
 #                      cap on the running total including what was spent locally, not an extra allowance.
 #   PLATFORM, PRESET   compute for the endpoint (default cpu-d3, 4vcpu-16gb). Never leave these to the CLI: its
 #                      default is a GPU platform, which this app doesn't need.
+#   DISK_SIZE          endpoint disk (default 30Gi; the CLI's default is 250Gi, far more than a ~0.5GB image needs)
+#   DRY_RUN=1          validate the endpoint request without creating it (the image is still built and pushed)
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -22,6 +24,8 @@ REGION_ID="${REGION_ID:-eu-north1}"
 PUBLIC_SPEND_USD="${PUBLIC_SPEND_USD:-3.00}"
 PLATFORM="${PLATFORM:-cpu-d3}"
 PRESET="${PRESET:-4vcpu-16gb}"
+DISK_SIZE="${DISK_SIZE:-30Gi}"
+DRY_RUN="${DRY_RUN:-0}"
 NAME=zenith
 SECRET=zenith-keys
 TAG="$(git rev-parse --short HEAD)"
@@ -95,21 +99,30 @@ env_secrets=(--env-secret "TOKEN_FACTORY_API_KEY=$SECRET" --env-secret "FMP_API_
 
 # PORT is left alone: the image sets 8080 to match --container-port. DEMO_MODE stays off so prices keep updating
 # (the "Since this ruling" panel and the chair's watch list are checked against new closes).
-endpoint_id="$(nebius ai endpoint create \
+# No --public: that flag only adds a public IP to the workload. The managed https:// URL is created either way, and
+# --auth defaults to none, so visitors can open it without a token.
+create_args=(ai endpoint create \
   --name "$NAME" \
   --image "$image" \
   --container-port 8080 \
   --platform "$PLATFORM" \
   --preset "$PRESET" \
-  --public \
+  --disk-size "$DISK_SIZE" \
   "${env_secrets[@]}" \
   --env "MAX_SPEND_USD=$PUBLIC_SPEND_USD" \
   --env "REUSE_HOURS=1000" \
   --env "LIVE_RUNS_PER_HOUR=10" \
   --env "MAX_CONCURRENT_RUNS=2" \
   --env "SEARCHES_PER_DAY=60" \
-  --env "DEMO_TICKERS=$(env_value DEMO_TICKERS)" \
-  --format json | jq -r '.metadata.id')"
+  --env "DEMO_TICKERS=$(env_value DEMO_TICKERS)")
+
+if [ "$DRY_RUN" = 1 ]; then
+  nebius "${create_args[@]}" --dry-run
+  echo "    dry run only: nothing was created"
+  exit 0
+fi
+
+endpoint_id="$(nebius "${create_args[@]}" --format json | jq -r '.metadata.id')"
 echo "    created $endpoint_id (it takes about five minutes to start)"
 
 echo "==> Waiting for the public URL"
