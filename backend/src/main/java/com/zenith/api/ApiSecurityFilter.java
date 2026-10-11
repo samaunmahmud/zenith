@@ -10,6 +10,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * The public demo's front door, in one place:
  * <ul>
  *   <li><b>Security headers</b> on every response: a strict Content Security Policy (scripts only from this origin,
- *       plus the one inline theme script by its hash), no framing, no MIME sniffing, no referrer.</li>
+ *       plus the one inline theme script by its hash), no framing (unless FRAME_ANCESTORS names the sites that may
+ *       embed the app, e.g. a Hugging Face Space page), no MIME sniffing, no referrer.</li>
  *   <li><b>No caching</b> of API responses by browsers or proxies.</li>
  *   <li><b>A body size cap</b> on API requests: the largest legitimate body is a 1,200-character thesis.</li>
  *   <li><b>A per-visitor rate limit</b> on the endpoints that can call Nemotron (and on search, which spends the FMP
@@ -36,7 +38,8 @@ public class ApiSecurityFilter extends OncePerRequestFilter {
     /** SHA-256 of the inline script in frontend/index.html (ApiSecurityFilterTest fails if they drift apart). */
     static final String THEME_SCRIPT_HASH = "sha256-AwIOtA17lQLU3xNEAE1wsFGqec8UxZo7ortXDD4REAw=";
 
-    static final String CSP = String.join("; ",
+    static String csp(String frameAncestors) {
+        return String.join("; ",
             "default-src 'self'",
             "script-src 'self' '" + THEME_SCRIPT_HASH + "'",
             "style-src 'self' 'unsafe-inline'", // React style props; no stylesheets from anywhere else
@@ -46,27 +49,46 @@ public class ApiSecurityFilter extends OncePerRequestFilter {
             "object-src 'none'",
             "base-uri 'self'",
             "form-action 'self'",
-            "frame-ancestors 'none'");
+            "frame-ancestors " + frameAncestors);
+    }
+
+    /** Space-separated https origins, nothing else: the value goes straight into a response header. */
+    private static final Pattern ORIGINS =
+            Pattern.compile("https://[A-Za-z0-9.*-]+(:\\d+)?( https://[A-Za-z0-9.*-]+(:\\d+)?)*");
 
     static final long MAX_BODY_BYTES = 16 * 1024;
 
     private final int paidPerWindow;
     private final int searchPerWindow;
     private final long windowMillis;
+    private final String frameAncestors;
+    private final String csp;
     private final Clock clock;
     private final Map<String, Deque<Long>> hits = new ConcurrentHashMap<>();
 
     @Autowired
     public ApiSecurityFilter(@Value("${zenith.rate-limit.paid-per-window:12}") int paidPerWindow,
             @Value("${zenith.rate-limit.search-per-window:60}") int searchPerWindow,
-            @Value("${zenith.rate-limit.window-minutes:10}") int windowMinutes) {
-        this(paidPerWindow, searchPerWindow, windowMinutes, Clock.systemUTC());
+            @Value("${zenith.rate-limit.window-minutes:10}") int windowMinutes,
+            @Value("${zenith.frame-ancestors:}") String frameAncestors) {
+        this(paidPerWindow, searchPerWindow, windowMinutes, frameAncestors, Clock.systemUTC());
     }
 
     ApiSecurityFilter(int paidPerWindow, int searchPerWindow, int windowMinutes, Clock clock) {
+        this(paidPerWindow, searchPerWindow, windowMinutes, "", clock);
+    }
+
+    ApiSecurityFilter(int paidPerWindow, int searchPerWindow, int windowMinutes, String frameAncestors, Clock clock) {
         this.paidPerWindow = paidPerWindow;
         this.searchPerWindow = searchPerWindow;
         this.windowMillis = windowMinutes * 60_000L;
+        String origins = frameAncestors == null ? "" : frameAncestors.trim();
+        if (!origins.isEmpty() && !ORIGINS.matcher(origins).matches()) {
+            log.warn("Ignoring FRAME_ANCESTORS (expected space-separated https:// origins); the app can't be embedded");
+            origins = "";
+        }
+        this.frameAncestors = origins;
+        this.csp = csp(origins.isEmpty() ? "'none'" : origins);
         this.clock = clock;
     }
 
@@ -97,9 +119,11 @@ public class ApiSecurityFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
             throws ServletException, IOException {
-        res.setHeader("Content-Security-Policy", CSP);
+        res.setHeader("Content-Security-Policy", csp);
         res.setHeader("X-Content-Type-Options", "nosniff");
-        res.setHeader("X-Frame-Options", "DENY");
+        // X-Frame-Options can't name allowed sites, so it's only sent when nobody may embed the app; with
+        // FRAME_ANCESTORS set, the CSP frame-ancestors list is the rule.
+        if (frameAncestors.isEmpty()) res.setHeader("X-Frame-Options", "DENY");
         res.setHeader("Referrer-Policy", "no-referrer");
         res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
         res.setHeader("Cross-Origin-Opener-Policy", "same-origin");

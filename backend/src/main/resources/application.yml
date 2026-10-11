@@ -61,6 +61,9 @@ zenith:
     paid-per-window: ${RATE_LIMIT_PAID:12}
     search-per-window: ${RATE_LIMIT_SEARCH:60}
     window-minutes: ${RATE_LIMIT_WINDOW_MINUTES:10}
+  # Sites allowed to show the app in a frame, as space-separated https:// origins (e.g. https://huggingface.co for a
+  # Hugging Face Space page). Empty = nobody may frame it.
+  frame-ancestors: ${FRAME_ANCESTORS:}
   cache:
     dir: ${CACHE_DIR:}
     ttl-hours: ${CACHE_TTL_HOURS:12}

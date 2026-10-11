@@ -24,7 +24,9 @@ RUN mvn -q -B package -DskipTests
 # 3) Small runtime image: JRE only, non-root user
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-RUN useradd --system --create-home zenith
+# UID 1000, which Hugging Face Spaces runs containers as (the base image's "ubuntu" user had it), so the app can
+# always write its cache; nothing else depends on the number.
+RUN (userdel --remove ubuntu 2>/dev/null || true) && useradd --uid 1000 --create-home zenith
 COPY --from=backend /app/target/zenith.jar zenith.jar
 # Pre-cached demo tickers (run `npm run precache` before building) so the demo works even if APIs are rate-limited.
 COPY --chown=zenith cache/ cache/

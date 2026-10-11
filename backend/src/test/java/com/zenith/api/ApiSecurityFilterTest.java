@@ -78,6 +78,23 @@ class ApiSecurityFilterTest {
     }
 
     @Test
+    void framingIsDeniedByDefaultAndAllowedOnlyForTheConfiguredOrigins() throws Exception {
+        var locked = call(new ApiSecurityFilter(12, 60, 10, new TestClock()), new MockHttpServletRequest("GET", "/"));
+        assertThat(locked.getHeader("X-Frame-Options")).isEqualTo("DENY");
+
+        var space = call(new ApiSecurityFilter(12, 60, 10, "https://huggingface.co", new TestClock()),
+                new MockHttpServletRequest("GET", "/"));
+        assertThat(space.getHeader("Content-Security-Policy")).contains("frame-ancestors https://huggingface.co");
+        assertThat(space.getHeader("X-Frame-Options")).isNull();
+
+        var injected = call(new ApiSecurityFilter(12, 60, 10, "https://a.com; script-src *", new TestClock()),
+                new MockHttpServletRequest("GET", "/"));
+        assertThat(injected.getHeader("Content-Security-Policy")).as("a bad value falls back to no framing")
+                .contains("frame-ancestors 'none'").doesNotContain("script-src *");
+        assertThat(injected.getHeader("X-Frame-Options")).isEqualTo("DENY");
+    }
+
+    @Test
     void limitsEachVisitorSeparatelyOnPaidEndpointsThenLetsThemBackIn() throws Exception {
         var clock = new TestClock();
         var filter = new ApiSecurityFilter(2, 60, 10, clock);
