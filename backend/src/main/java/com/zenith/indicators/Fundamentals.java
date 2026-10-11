@@ -1,5 +1,7 @@
 package com.zenith.indicators;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import java.util.Map;
 
 /**
@@ -26,7 +28,9 @@ public final class Fundamentals {
             Double revenueGrowth, // latest fiscal year YoY (FMP), or trailing twelve months YoY (Finnhub): see growthTtm
             Double epsGrowth,
             Double forwardPe,
-            boolean growthTtm) {}
+            // Sessions saved before the Finnhub fallback existed have no growthTtm, and all their growth came from
+            // FMP, so absent means false. Without this, Jackson rejects the whole saved session.
+            @JsonSetter(nulls = Nulls.AS_EMPTY) boolean growthTtm) {}
 
     private Fundamentals() {}
 

@@ -3,11 +3,21 @@ package com.zenith.indicators;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
+import com.zenith.json.Json;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 class FundamentalsAndFormatTest {
+
+    @Test
+    void readsMetricsSavedBeforeGrowthTtmExisted() throws Exception {
+        // The shape of a session saved on 30 Sep: no forwardPe, no growthTtm.
+        var m = Json.MAPPER.readValue("{\"peRatio\":153.7,\"revenueGrowth\":0.343}", Fundamentals.Metrics.class);
+        assertThat(m.peRatio()).isEqualTo(153.7);
+        assertThat(m.forwardPe()).isNull();
+        assertThat(m.growthTtm()).isFalse();
+    }
 
     @Test
     void pickNumberReturnsTheFirstFiniteNumberAcrossFallbackKeys() {
