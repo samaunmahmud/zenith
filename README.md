@@ -27,7 +27,7 @@
 </p>
 
 <p align="center">
-  <b>Live demo:</b> <i>coming soon</i> &nbsp;·&nbsp; <b>Demo video:</b> <i>coming soon</i>
+  <b>Live demo:</b> <a href="https://zenith-h4ch.onrender.com">zenith-h4ch.onrender.com</a> <i>(free hosting: the first visit after a quiet spell takes about 2 minutes to wake)</i> &nbsp;·&nbsp; <b>Demo video:</b> <i>coming soon</i>
 </p>
 
 <p align="center">
@@ -52,6 +52,7 @@
 - [Security and trust](#security-and-trust)
 - [Where Nebius accelerated the work](#where-nebius-accelerated-the-work)
 - [Getting started](#getting-started)
+- [Deploying to Render](#deploying-to-render)
 - [Deploying to Nebius](#deploying-to-nebius)
 - [API](#api)
 - [Project structure](#project-structure)
@@ -219,10 +220,12 @@ A public demo that calls paid models needs guarding as much as the models do. In
 - **A per-request reasoning switch.** Turning Nemotron's reasoning pass off for the narrow jobs halved a session's wall-clock time without changing model or provider.
 - **Per-token pricing** makes the cost readout straightforward (tokens × list price, per call), and the same numbers drive the hard spending cap.
 
-**Other Nebius services**
+**Hosting**
 
-- **Nebius Serverless AI Endpoints** host the app: one container serving the React frontend and the Spring Boot API.
-- **Nebius Container Registry** holds the image, and **SecretStash (MysteryBox)** holds the API keys the endpoint reads.
+- The live demo is one container (the React frontend bundled into the Spring Boot jar) on **Render's free tier**, pulled
+  from GitHub Container Registry. Every model call still goes to Nebius Token Factory.
+- The repo also includes a deploy script for **Nebius Serverless AI Endpoints**, using **Nebius Container Registry** for
+  the image and **SecretStash (MysteryBox)** for the API keys (see [Deploying to Nebius](#deploying-to-nebius)).
 
 ## Getting started
 
@@ -306,6 +309,22 @@ When a live run isn't allowed or fails, the last saved decision for that ticker 
 
 </details>
 
+## Deploying to Render
+
+The live demo runs the image from GitHub Container Registry on a free Render web service (512 MB, 0.1 CPU):
+
+```bash
+npm run precache                 # bake demo data into the image
+docker buildx build --platform linux/amd64 -t ghcr.io/<you>/zenith:latest --push .
+```
+
+Then create a web service from that image (Existing Image, Free, health check `/api/health`) with these environment
+variables: the four API keys, `MAX_SPEND_USD=3.00`, `REUSE_HOURS=1000`, `LIVE_RUNS_PER_HOUR=10`, and
+`JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k`, which keeps the JVM inside
+512 MB and starts it in about a minute on a tenth of a CPU. The free tier sleeps after 15 idle minutes and its disk is
+wiped on every restart, so the spend ledger goes back to the value baked into the image: the cap limits spend per
+container lifetime, and `LIVE_RUNS_PER_HOUR` bounds it in between.
+
 ## Deploying to Nebius
 
 The Dockerfile builds the frontend, bundles it into the Spring Boot jar, and runs it on a slim JRE image as a non-root user on port 8080. `scripts/deploy-nebius.sh` does the rest with the [Nebius CLI](https://docs.nebius.com/cli):
@@ -379,7 +398,7 @@ frontend/src/
 └── styles/       tokens, base, layout, components, app
 
 .github/          CI (tests, audit, build, Docker), CodeQL, Dependabot
-scripts/          deploy-nebius.sh
+scripts/          deploy-nebius.sh (Nebius Serverless AI Endpoints)
 docs/screenshots/ README images
 SECURITY.md       threat model and controls
 ```
