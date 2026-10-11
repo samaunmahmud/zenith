@@ -94,7 +94,7 @@ Measured on real committee runs over the demo stocks (AAPL, NVDA, JPM, TSLA, GOO
 | **Model time for a full session**, after the reasoning switch and smarter scheduling | **about 50s → 24s** |
 | **Schema-valid JSON on the first attempt** | **every call measured (100+)** |
 | **Ultra calls per decision** | **exactly one** |
-| **Tests** | **148 backend (JUnit) + 52 frontend (Vitest)**, CI and CodeQL on every push |
+| **Tests** | **150 backend (JUnit) + 52 frontend (Vitest)**, CI and CodeQL on every push |
 
 ## Features
 
