@@ -444,7 +444,8 @@
 /* ── Head to head ────────────────────────────────────── */
 .versus2 { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; max-width: 680px; padding: 8px 8px 8px 20px; border: 1px solid var(--line-2); border-radius: 18px; background: var(--panel); box-shadow: var(--panel-edge), var(--shadow-lg); }
 .versus2:focus-within { border-color: var(--accent-line); box-shadow: var(--panel-edge), 0 0 0 5px var(--accent-soft), var(--shadow-lg); }
-.versus2 input { flex: 1 1 100px; width: 0; min-width: 0; height: 44px; border: 0; outline: none; background: none; color: var(--text); font: 700 20px var(--mono); text-transform: uppercase; }
+.versus2 .vs-field { position: relative; flex: 1 1 100px; display: flex; min-width: 0; }
+.versus2 input { flex: 1 1 auto; width: 0; min-width: 0; height: 44px; border: 0; outline: none; background: none; color: var(--text); font: 700 20px var(--mono); text-transform: uppercase; }
 .versus2 input::placeholder { color: var(--text-4); font-weight: 400; }
 .versus2 .btn { height: 46px; border-radius: 12px; margin-left: auto; }
 .vs-sep { padding: 4px 10px; border-radius: 999px; background: var(--panel-3); font-size: 12px; font-weight: 700; color: var(--text-3); }

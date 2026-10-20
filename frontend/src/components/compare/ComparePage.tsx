@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { usePlayback, type Playback } from "../../hooks/usePlayback";
 import { useSession } from "../../hooks/useSession";
+import { useSymbolSuggest } from "../../hooks/useSymbolSuggest";
 import { secs, usd } from "../../lib/format";
 import { statusAt } from "../../lib/tape";
 import type { CommitteeState } from "../../state/committee";
-import type { ChairDecision } from "../../types";
+import type { ChairDecision, SymbolMatch } from "../../types";
+import { SuggestList } from "../ui/SuggestList";
 import { Term } from "../ui/Term";
 import { Panel, clock } from "../session/Panel";
 import { StanceBoard } from "../session/StanceBoard";
@@ -19,6 +21,11 @@ interface Props {
 
 const params = () => new URLSearchParams(window.location.search);
 const clean = (t: string) => t.trim().toUpperCase();
+/** A company name ("apple") that isn't a ticker in the suggestions goes to the best match (AAPL), as in the top search. */
+const resolve = (typed: string, matches: SymbolMatch[]) => {
+  const t = clean(typed);
+  return matches[0] && !matches.some((m) => m.symbol === t) ? matches[0].symbol : t;
+};
 const duration = (s: CommitteeState) => {
   const r = s.timing.run;
   return r?.start !== undefined && r.end !== undefined ? r.end - r.start : null;
@@ -72,6 +79,8 @@ export function ComparePage({ onFile, onOpen }: Props) {
   const rp = usePlayback(right.state);
   const [a, setA] = useState(() => clean(params().get("a") ?? ""));
   const [b, setB] = useState(() => clean(params().get("b") ?? ""));
+  const suggestA = useSymbolSuggest(a, (m) => setA(m.symbol));
+  const suggestB = useSymbolSuggest(b, (m) => setB(m.symbol));
   const started = left.state.status !== "idle";
   const running = left.state.status === "running" || right.state.status === "running";
 
@@ -96,7 +105,7 @@ export function ComparePage({ onFile, onOpen }: Props) {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    convene(a, b);
+    convene(resolve(a, suggestA.matches), resolve(b, suggestB.matches));
   };
 
   // The comparison is laid out once both tapes have played to the end, not the moment the data arrives.
@@ -127,11 +136,25 @@ export function ComparePage({ onFile, onOpen }: Props) {
         </header>
 
         <form className="versus2" onSubmit={submit}>
-          <label className="sr-only" htmlFor="ta">First ticker</label>
-          <input id="ta" value={a} onChange={(e) => setA(e.target.value)} placeholder="NVDA" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
+          <label className="sr-only" htmlFor="ta">First ticker or company</label>
+          <span className="vs-field">
+            <input id="ta" value={a} onChange={(e) => { setA(e.target.value); suggestA.setOpen(true); }} placeholder="NVDA" maxLength={40}
+              onKeyDown={suggestA.onKeyDown} onFocus={() => suggestA.setOpen(true)} onBlur={() => suggestA.setOpen(false)}
+              role="combobox" aria-expanded={suggestA.shown} aria-controls="ta-suggest" aria-autocomplete="list"
+              aria-activedescendant={suggestA.active >= 0 ? `ta-suggest-${suggestA.active}` : undefined}
+              autoComplete="off" spellCheck={false} disabled={running} />
+            {suggestA.shown && <SuggestList id="ta-suggest" matches={suggestA.matches} active={suggestA.active} onPick={(m) => { setA(m.symbol); suggestA.setOpen(false); }} />}
+          </span>
           <span className="vs-sep" aria-hidden="true">vs</span>
-          <label className="sr-only" htmlFor="tb">Second ticker</label>
-          <input id="tb" value={b} onChange={(e) => setB(e.target.value)} placeholder="AMD" maxLength={10} autoComplete="off" spellCheck={false} disabled={running} />
+          <label className="sr-only" htmlFor="tb">Second ticker or company</label>
+          <span className="vs-field">
+            <input id="tb" value={b} onChange={(e) => { setB(e.target.value); suggestB.setOpen(true); }} placeholder="AMD" maxLength={40}
+              onKeyDown={suggestB.onKeyDown} onFocus={() => suggestB.setOpen(true)} onBlur={() => suggestB.setOpen(false)}
+              role="combobox" aria-expanded={suggestB.shown} aria-controls="tb-suggest" aria-autocomplete="list"
+              aria-activedescendant={suggestB.active >= 0 ? `tb-suggest-${suggestB.active}` : undefined}
+              autoComplete="off" spellCheck={false} disabled={running} />
+            {suggestB.shown && <SuggestList id="tb-suggest" matches={suggestB.matches} active={suggestB.active} onPick={(m) => { setB(m.symbol); suggestB.setOpen(false); }} />}
+          </span>
           <button className="btn btn-primary" type="submit" disabled={running || !clean(a) || !clean(b) || clean(a) === clean(b)}>
             {running ? "In session…" : "Convene both"}
           </button>
