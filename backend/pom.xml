@@ -64,6 +64,15 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- One carrier thread for virtual threads, like the 0.1-CPU host: a virtual thread that waits while
+                         pinned (inside synchronized, on Java 21) deadlocks here instead of only in production. -->
+                    <argLine>-Djdk.virtualThreadScheduler.parallelism=1 -Djdk.virtualThreadScheduler.maxPoolSize=1</argLine>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

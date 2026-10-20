@@ -318,7 +318,8 @@ npm run precache                 # bake demo data into the image
 docker buildx build --platform linux/amd64 -t ghcr.io/<you>/zenith:latest --push .
 ```
 
-Then create a web service from that image (Existing Image, Free, health check `/api/health`) with these environment
+Then create a web service from that image (Existing Image, Free, no health check path: Render's 5-second check can
+fail a cold start on a tenth of a CPU and restart the instance) with these environment
 variables: the four API keys, `MAX_SPEND_USD=3.00`, `REUSE_HOURS=1000`, `LIVE_RUNS_PER_HOUR=10`, and
 `JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k`, which keeps the JVM inside
 512 MB and starts it in about a minute on a tenth of a CPU. The free tier sleeps after 15 idle minutes and its disk is

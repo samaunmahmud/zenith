@@ -4,10 +4,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
 import com.zenith.data.PriceBar;
+import com.zenith.support.TestProps;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class TrackRecordServiceTest {
+
+    @TempDir Path dir;
 
     private static PriceBar bar(String date, double close) {
         return new PriceBar(date, close, close, close, close, 1_000);
@@ -65,5 +75,17 @@ class TrackRecordServiceTest {
 
         var s90 = TrackRecordService.summarise(List.of(buy, sell)).get(2);
         assertThat(s90.winRate()).isNull(); // nothing scored yet: no rate, rather than a made-up 0%
+    }
+
+    @Test
+    void reportCompletesOnASingleCarrierThread() throws InterruptedException {
+        // Requests run on virtual threads and the report fetches prices on more of them. On a one-CPU host there's a
+        // single carrier, so the report must not hold it (synchronized pins it on Java 21) while waiting for those fetches.
+        var service = new TrackRecordService(new DecisionLedger(TestProps.create(dir, false, 12)), t -> List.of(bar("2026-09-01", 100)),
+                Clock.fixed(Instant.parse("2026-10-01T00:00:00Z"), ZoneOffset.UTC));
+        AtomicReference<TrackRecordService.Report> report = new AtomicReference<>();
+        Thread request = Thread.ofVirtual().start(() -> report.set(service.report()));
+        assertThat(request.join(Duration.ofSeconds(10))).as("report finished").isTrue();
+        assertThat(report.get().unavailable()).isEmpty();
     }
 }

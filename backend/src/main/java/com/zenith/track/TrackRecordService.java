@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +74,7 @@ public class TrackRecordService {
     private final DecisionLedger ledger;
     private final Prices prices;
     private final Clock clock;
+    private final ReentrantLock lock = new ReentrantLock();
     private Report cached;
     private Instant cachedAt;
 
@@ -87,7 +89,18 @@ public class TrackRecordService {
         this.clock = clock;
     }
 
-    public synchronized Report report() {
+    public Report report() {
+        // A lock, not synchronized: the report waits for virtual threads below, and on Java 21 a virtual thread that
+        // waits inside synchronized pins its carrier. With one CPU that's the only carrier, and the app deadlocks.
+        lock.lock();
+        try {
+            return build();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private Report build() {
         Instant now = clock.instant();
         List<TrackedCall> calls = ledger.calls();
         // Prices change slowly, so the report is reused for a few minutes, but never once a new call has been recorded.
