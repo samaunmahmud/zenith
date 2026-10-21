@@ -1,18 +1,33 @@
 # Weekly update PRs for every dependency ecosystem in the repo; security fixes arrive as soon as they're published.
+# Major versions are ignored until the hackathon deadline (30 Oct 2026): they're migrations, not routine updates.
+# Ignore rules don't apply to security updates. Remove the ignore blocks after the deadline.
 version: 2
 updates:
   - package-ecosystem: npm
     directory: /
     schedule: { interval: weekly }
     groups:
+      # react and react-dom must move together, or neither PR can pass CI on its own.
+      # Listed first because a dependency joins the first group it matches (@types/* below would catch the types).
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
       frontend-tooling:
         patterns: ["vite", "vitest", "@vitejs/*", "typescript", "@types/*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: maven
     directory: /backend
     schedule: { interval: weekly }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
   - package-ecosystem: docker
     directory: /
     schedule: { interval: weekly }
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
