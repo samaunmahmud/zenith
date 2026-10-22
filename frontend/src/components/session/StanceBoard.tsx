@@ -4,6 +4,7 @@ import { ANALYSTS, ANALYST_TITLE } from "../../lib/format";
 import { statusAt } from "../../lib/tape";
 import type { Playback } from "../../hooks/usePlayback";
 import { Panel, TierTag } from "./Panel";
+import { afterRebuttal, shiftLabel, shiftTitle } from "../../lib/revision";
 
 /** Where a view sits on the bearish (0) to bullish (1) axis: its direction, pushed out by its confidence. */
 export function axisPos(stance: Stance, confidence: number): number {
@@ -14,10 +15,11 @@ export function axisPos(stance: Stance, confidence: number): number {
 
 const CALL_STANCE: Record<ChairDecision["recommendation"], Stance> = { BUY: "bullish", HOLD: "neutral", SELL: "bearish" };
 
-function Track({ pos, tone, pending, label }: { pos: number | null; tone: string; pending: boolean; label: string }) {
+function Track({ pos, tone, pending, label, from }: { pos: number | null; tone: string; pending: boolean; label: string; from?: { pos: number; tone: string } }) {
   return (
     <div className={`axis ${pending ? "is-pending" : ""}`} role="img" aria-label={label}>
       <span className="axis-mid" aria-hidden="true" />
+      {from && <span className={`axis-ghost ${from.tone}`} style={{ left: `${from.pos * 100}%` }} aria-hidden="true" />}
       <span className={`axis-dot ${tone}`} style={{ left: `${(pos ?? 0.5) * 100}%`, opacity: pos === null ? 0 : 1 }} aria-hidden="true" />
     </div>
   );
@@ -41,7 +43,11 @@ export function StanceBoard({ state, play, decision, id = "vot" }: { state: Comm
         <div className="axis-legend" aria-hidden="true"><span>Bearish</span><span>Neutral</span><span>Bullish</span></div>
         {ANALYSTS.map((a) => {
           const r = seen(a) ? state.reports[a] : undefined;
-          const changed = seen(`${a}-rebuttal`) && state.debate.find((x) => x.analyst === a)?.stanceChanged;
+          const rb = seen(`${a}-rebuttal`) ? state.debate.find((x) => x.analyst === a) : undefined;
+          const shift = shiftLabel(rb);
+          // Once the rebuttal lands, a measured change slides the dot to where the analyst ended up, leaving a ghost behind.
+          const after = r ? afterRebuttal(rb) : null;
+          const now = after ?? r;
           const failed = seen(a) === false && Boolean(state.errors[a]) && play.finished;
           return (
             <div key={a} className={`stance-row id-${a}`}>
@@ -50,10 +56,13 @@ export function StanceBoard({ state, play, decision, id = "vot" }: { state: Comm
                 <span className={`stance-val ${r ? `stance-${r.stance}` : "dim"}`}>
                   {r ? `${r.stance} ${Math.round(r.confidence * 100)}%` : failed ? "no report" : "…"}
                 </span>
-                {changed && <span className="t-changed" title="Changed position after the rebuttal round">Δ REVISED</span>}
+                {rb && shift && <span className="t-changed" title={shiftTitle(rb)}>Δ {shift.toUpperCase()}</span>}
               </div>
-              <Track pos={r ? axisPos(r.stance, r.confidence) : null} tone={r ? `stance-${r.stance}` : ""} pending={!r}
-                label={r ? `${ANALYST_TITLE[a]}: ${r.stance}, ${Math.round(r.confidence * 100)}% confidence` : `${ANALYST_TITLE[a]}: no report yet`} />
+              <Track pos={now ? axisPos(now.stance, now.confidence) : null} tone={now ? `stance-${now.stance}` : ""} pending={!r}
+                from={r && after && rb?.stanceChanged ? { pos: axisPos(r.stance, r.confidence), tone: `stance-${r.stance}` } : undefined}
+                label={!r ? `${ANALYST_TITLE[a]}: no report yet`
+                  : after && rb?.stanceChanged ? `${ANALYST_TITLE[a]}: moved from ${r.stance} ${Math.round(r.confidence * 100)}% to ${after.stance} ${Math.round(after.confidence * 100)}% after the rebuttal round`
+                  : `${ANALYST_TITLE[a]}: ${r.stance}, ${Math.round(r.confidence * 100)}% confidence`} />
             </div>
           );
         })}

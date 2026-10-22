@@ -5,6 +5,7 @@ import com.zenith.llm.TokenFactoryClient;
 import com.zenith.schema.AnalystName;
 import com.zenith.schema.AnalystReport;
 import com.zenith.schema.Rebuttal;
+import com.zenith.schema.RebuttalReply;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,12 +29,12 @@ public class RebuttalAgent {
         others.forEach(o -> parts.add(AgentInputs.reportBlock(o)));
         parts.addAll(List.of("", "Write your one rebuttal as JSON."));
 
-        return llm.callStructured(new TokenFactoryClient.StructuredCall<>(
+        RebuttalReply reply = llm.callStructured(new TokenFactoryClient.StructuredCall<>(
                 analyst.id() + "-rebuttal",
                 Roster.ANALYSTS.get(analyst).tier(),
                 Prompts.load("rebuttal", Map.of("analyst", analyst.id())),
                 String.join("\n", parts),
-                Rebuttal.class,
+                RebuttalReply.class,
                 0.3,
                 tracker,
                 r -> {
@@ -44,5 +45,6 @@ public class RebuttalAgent {
                     }
                     return problems;
                 }));
+        return Rebuttal.from(reply, own);
     }
 }

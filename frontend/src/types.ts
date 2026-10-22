@@ -19,7 +19,12 @@ export interface Rebuttal {
   analyst: AnalystName;
   respondingTo: AnalystName;
   response: string;
+  /** Worked out in code from stanceBefore and stanceAfter; on sessions saved before those existed, the model's own flag. */
   stanceChanged: boolean;
+  stanceBefore?: Stance;
+  confidenceBefore?: number;
+  stanceAfter?: Stance;
+  confidenceAfter?: number;
 }
 
 export interface ChairDecision {

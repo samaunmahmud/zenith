@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.zenith.schema.AnalystReport;
 import com.zenith.schema.ChairDecision;
-import com.zenith.schema.Rebuttal;
+import com.zenith.schema.RebuttalReply;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 
@@ -23,8 +23,11 @@ class JsonSchemasTest {
 
     @Test
     void helperValidationMethodsAreNotPartOfTheSchema() {
-        JsonNode s = JsonSchemas.forType(Rebuttal.class);
-        assertThat(s.path("properties").propertyNames()).containsExactlyInAnyOrder("analyst", "respondingTo", "response", "stanceChanged");
+        // The model reports where it stands after the round; whether that is a change is decided in code.
+        JsonNode s = JsonSchemas.forType(RebuttalReply.class);
+        assertThat(s.path("properties").propertyNames())
+                .containsExactlyInAnyOrder("analyst", "respondingTo", "response", "stanceAfter", "confidenceAfter");
+        assertThat(s.path("required").toString()).contains("stanceAfter", "confidenceAfter");
     }
 
     @Test

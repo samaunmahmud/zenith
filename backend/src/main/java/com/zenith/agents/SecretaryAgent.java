@@ -75,7 +75,7 @@ public class SecretaryAgent {
         if (session.rebuttals() != null && !session.rebuttals().isEmpty()) {
             parts.addAll(List.of("", "Rebuttal round:"));
             session.rebuttals().forEach(r -> parts.add("- " + r.analyst().id() + " → " + r.respondingTo().id()
-                    + (r.stanceChanged() ? " (STANCE CHANGED)" : "") + ": " + r.response()));
+                    + (r.changeNote().isEmpty() ? "" : " (" + r.changeNote().toUpperCase() + ")") + ": " + r.response()));
         }
         var d = session.decision();
         if (d != null) {

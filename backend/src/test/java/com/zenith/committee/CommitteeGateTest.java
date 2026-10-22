@@ -60,7 +60,7 @@ class CommitteeGateTest {
 
     private static CommitteeResult result(String ticker, Instant at, boolean withRebuttals) {
         List<Rebuttal> rebuttals = withRebuttals
-                ? List.of(new Rebuttal(AnalystName.RISK, AnalystName.FUNDAMENTALS, "Too volatile.", false))
+                ? List.of(Rebuttal.legacy(AnalystName.RISK, AnalystName.FUNDAMENTALS, "Too volatile.", false))
                 : List.of();
         return new CommitteeResult(ticker, at.toString(), null, List.of(), List.of(), null, List.of(), List.of(),
                 rebuttals, null, null, "", null, List.of(), List.of(), false, null, null);

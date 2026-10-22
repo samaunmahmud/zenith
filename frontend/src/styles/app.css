@@ -165,6 +165,7 @@
 .ac-conf { font-size: 15px; font-weight: 650; color: var(--text-2); }
 .ac-revised { margin-left: auto; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--warn); background: var(--warn-soft); }
 .ac-axis { position: relative; height: 6px; border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, var(--neg) 55%, transparent), color-mix(in srgb, var(--warn) 35%, transparent) 50%, color-mix(in srgb, var(--pos) 55%, transparent)); }
+.ac-rb-after { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-3); }
 .ac-axis-mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--text-4); }
 .ac-axis-dot { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px var(--panel), 0 0 12px currentColor; transition: left 1s cubic-bezier(0.2, 0.9, 0.2, 1.1); }
 .ac-headline { font-size: 14.5px; font-weight: 550; line-height: 1.55; color: var(--text); }
@@ -299,6 +300,7 @@
 .axis.is-pending { opacity: 0.35; }
 .axis-mid { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--text-4); }
 .axis-dot { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px var(--panel), 0 0 12px currentColor; transition: left 1.1s cubic-bezier(0.2, 0.9, 0.2, 1.1), opacity 0.3s; }
+.axis-ghost { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; border: 2px dashed currentColor; opacity: 0.6; animation: fade 0.4s ease both; }
 .stance-row.is-chair { padding-top: 12px; border-top: 1px solid var(--line); }
 .stance-row.is-chair .axis-dot { width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 4px; transform: rotate(45deg); }
 

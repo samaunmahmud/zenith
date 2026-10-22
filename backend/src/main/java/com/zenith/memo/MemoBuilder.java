@@ -87,7 +87,7 @@ public final class MemoBuilder {
         if (!result.rebuttals().isEmpty()) {
             lines.addAll(List.of("## Rebuttal round", ""));
             result.rebuttals().forEach(r -> lines.add("- **" + cap(r.analyst().id()) + " → " + cap(r.respondingTo().id()) + "**"
-                    + (r.stanceChanged() ? " _(stance changed)_" : "") + ": " + r.response()));
+                    + (r.changeNote().isEmpty() ? "" : " _(" + r.changeNote() + ")_") + ": " + r.response()));
             lines.add("");
         }
 

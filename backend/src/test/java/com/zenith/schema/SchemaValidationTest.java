@@ -34,15 +34,15 @@ class SchemaValidationTest {
 
     @Test
     void rebuttalEnforcesTheEightyWordLimit() {
-        var ok = new Rebuttal(AnalystName.RISK, AnalystName.TECHNICALS, "word ".repeat(80), false);
-        var tooLong = new Rebuttal(AnalystName.RISK, AnalystName.TECHNICALS, "word ".repeat(81), false);
+        var ok = new RebuttalReply(AnalystName.RISK, AnalystName.TECHNICALS, "word ".repeat(80), Stance.NEUTRAL, 0.5);
+        var tooLong = new RebuttalReply(AnalystName.RISK, AnalystName.TECHNICALS, "word ".repeat(81), Stance.NEUTRAL, 0.5);
         assertThat(validator.validate(ok)).isEmpty();
         assertThat(validator.validate(tooLong)).extracting(v -> v.getMessage()).containsExactly("response must be 80 words or fewer");
     }
 
     @Test
     void rebuttalCannotRespondToItself() {
-        var self = new Rebuttal(AnalystName.RISK, AnalystName.RISK, "hi", false);
+        var self = new RebuttalReply(AnalystName.RISK, AnalystName.RISK, "hi", Stance.NEUTRAL, 0.5);
         assertThat(validator.validate(self)).extracting(v -> v.getMessage()).containsExactly("an analyst cannot respond to itself");
     }
 
@@ -77,8 +77,26 @@ class SchemaValidationTest {
 
     @Test
     void serialisesEnumsInLowercase() {
-        var r = new Rebuttal(AnalystName.RISK, AnalystName.TECHNICALS, "hi", true);
+        var r = Rebuttal.legacy(AnalystName.RISK, AnalystName.TECHNICALS, "hi", true);
+        // A rebuttal saved before positions were measured serialises exactly as it did, so its receipt still matches.
         assertThat(Json.MAPPER.writeValueAsString(r))
                 .isEqualTo("{\"analyst\":\"risk\",\"respondingTo\":\"technicals\",\"response\":\"hi\",\"stanceChanged\":true}");
+        assertThat(Json.MAPPER.readValue(Json.MAPPER.writeValueAsString(r), Rebuttal.class)).isEqualTo(r);
+    }
+
+    @Test
+    void derivesAChangeOfStanceFromTheReportAndTheReply() {
+        var own = report(0.7, List.of("a", "b"), EVIDENCE, List.of());
+        var moved = Rebuttal.from(new RebuttalReply(AnalystName.FUNDAMENTALS, AnalystName.RISK, "Fair point.", Stance.NEUTRAL, 0.5), own);
+        var held = Rebuttal.from(new RebuttalReply(AnalystName.FUNDAMENTALS, AnalystName.RISK, "No.", Stance.BULLISH, 0.8), own);
+
+        assertThat(moved.stanceChanged()).isTrue();
+        assertThat(moved.shift()).isEqualTo("bullish → neutral");
+        assertThat(moved.changeNote()).isEqualTo("stance changed: bullish → neutral");
+        assertThat(held.stanceChanged()).isFalse();
+        assertThat(held.changeNote()).isEmpty();
+        assertThat(held.confidenceBefore()).isEqualTo(0.7);
+        assertThat(held.confidenceAfter()).isEqualTo(0.8);
+        assertThat(Rebuttal.legacy(AnalystName.RISK, AnalystName.TECHNICALS, "hi", true).changeNote()).isEqualTo("stance changed");
     }
 }

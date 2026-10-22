@@ -13,7 +13,7 @@
 <p align="center">
   <a href="https://github.com/samaunmahmud/zenith/actions/workflows/ci.yml"><img src="https://github.com/samaunmahmud/zenith/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://github.com/samaunmahmud/zenith/actions/workflows/codeql.yml"><img src="https://github.com/samaunmahmud/zenith/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" /></a>
-  <img src="https://img.shields.io/badge/tests-202_passing-2d6a4f?style=flat-square" alt="202 tests passing" />
+  <img src="https://img.shields.io/badge/tests-207_passing-2d6a4f?style=flat-square" alt="207 tests passing" />
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg?style=flat-square" alt="License: MIT" /></a>
   <img src="https://img.shields.io/badge/status-live_demo-b5651d?style=flat-square" alt="Status: live demo" />
 </p>
@@ -52,7 +52,7 @@
 - **Who it's for:** students and new investors learning how professionals reason about a stock, and anyone who wants to see *why* an AI reached a view instead of taking a confident paragraph on trust.
 - **What makes it different:** **the models interpret, the code calculates.** Every number (RSI, moving averages, volatility, drawdown, beta, P/E, margins) is computed in Java from real market data. The agents get closed fact sheets, return strict JSON, and any figure they cite that isn't in their input is sent back. The chair's "what would change my mind" conditions are checked by code against every new close, and every call is scored against the S&P 500.
 - **How it uses Nebius and NVIDIA:** every model call goes to **Nebius Token Factory**, using all three **Nemotron** sizes, each chosen for its seat: Nano for the fast, narrow jobs, Super for the mid-weight analysis, and exactly **one Ultra call per decision** for the chair. A full committee costs about **2 cents**.
-- **What it's built from:** Java 21 and Spring Boot 4 (virtual threads, Server-Sent Events), React and TypeScript, one Docker image, and **202 automated tests** (150 JUnit, 52 Vitest) with CI and CodeQL on every push.
+- **What it's built from:** Java 21 and Spring Boot 4 (virtual threads, Server-Sent Events), React and TypeScript, one Docker image, and **207 automated tests** (152 JUnit, 55 Vitest) with CI and CodeQL on every push.
 
 ## Contents
 
@@ -96,7 +96,7 @@ Investment committees solved the second problem long ago: specialists argue, a c
 1. **You name a stock.** A ticker (`NVDA`) or a company name ("nvidia"); the search box suggests matches as you type.
 2. **Code fetches the data and calculates every figure.** About a year of daily prices, fundamentals and recent headlines, from Financial Modeling Prep, Finnhub and Tiingo, cached on disk. Java computes returns, SMA 20/50/200, RSI(14), MACD, the 52-week range, volatility, maximum drawdown, beta against SPY, liquidity and valuation ratios. No model does any maths.
 3. **A news desk and three analysts build their cases.** The news desk condenses the headlines; **Fundamentals**, **Technicals** and **Risk** each take a stance with a confidence, key points, cited evidence and concerns, as strict JSON. Every cited value is matched against the analyst's fact sheet.
-4. **Each analyst gets one rebuttal** (optional, on by default): one short reply to a colleague, and a chance to revise. Never a loop.
+4. **Each analyst gets one rebuttal** (optional, on by default): one short reply to a colleague, and a chance to revise. The analyst states where it stands afterwards, and code compares that with its report to decide whether it changed position. Never a loop.
 5. **A chair running Nemotron Ultra rules.** BUY, HOLD or SELL with a confidence, each reason tagged with the analyst it came from, the strongest dissent recorded, and two or three conditions that would change the call, picked from a menu of price conditions built in code.
 6. **You get the paper trail.** An investment memo assembled in code, a cost readout per model, a SHA-256 receipt of exactly what the committee saw, and a place in the public track record, scored against the S&P 500 at 7, 30 and 90 days.
 
@@ -126,7 +126,7 @@ Measured on the real committee runs saved in this repo (AAPL, NVDA, JPM, TSLA, G
 | **Follow-up question** (Super) · **thesis review** (Ultra), measured on AMD | **9.1 s, $0.0017** · **11.8 s, $0.010** |
 | **Integrity on the AMD session** | **55** figures computed in Java, **24** cited values each matched to a fact sheet, **0** retries, **0** untraced figures in the prose |
 | **Track record so far** (local ledger, 20 Oct 2026) | **21 of 27** seven-day calls right (78%); 30 and 90-day results still pending. A small sample: the point is that it's measured, not that it's good |
-| **Tests** | **150 backend** (JUnit 5) + **52 frontend** (Vitest), CI and CodeQL on every push |
+| **Tests** | **152 backend** (JUnit 5) + **55 frontend** (Vitest), CI and CodeQL on every push |
 | **Code** | about **5,700 lines** of Java (80 files), **4,400** of TypeScript/React and **1,000** of CSS; **10** prompt files; **14** output schemas; **11** API endpoints |
 | **Built in** | **152 commits** from 26 September 2026 |
 
@@ -376,7 +376,7 @@ If a data provider fails, the stale cache is served and labelled. If Token Facto
 | **Fundamentals** | Super | Valuation, growth, margins, balance sheet + the news digest | `AnalystReport` |
 | **Technicals** | Nano | Trend, momentum, moving averages (prices only) | `AnalystReport` |
 | **Risk** | Super | Volatility, drawdown, beta, liquidity, leverage + the news digest | `AnalystReport` |
-| **Rebuttal** (each analyst, once) | Same as the analyst | Its own report and a colleague's | `Rebuttal`: reply, revised stance |
+| **Rebuttal** (each analyst, once) | Same as the analyst | Its own report and a colleague's | `RebuttalReply`: reply, stance and confidence afterwards (the change is worked out in code) |
 | **Chair** | Ultra | All reports and rebuttals, plus a menu of watch conditions computed in code | `ChairDecision`: call, confidence, rationale tagged by analyst, `Dissent`, key risks, `WatchItem`s |
 | **Secretary** ("Ask the committee") | Super | One finished session | `CommitteeAnswer`: answer, figures relied on |
 | **Devil's advocate** ("Test your thesis") | Ultra | One finished session and your thesis | `ThesisReview`: `ClaimCheck` per claim, `ThesisVerdict`, the case against you |
@@ -420,6 +420,7 @@ Model IDs are set in `.env`, so tiers can be swapped without changing code.
 - **LLMs interpret, code calculates.** Agents only see pre-computed figures and are told never to invent numbers.
 - **Structured output.** Each agent's JSON schema is generated from its Java record and sent with Token Factory's `json_schema` response format (falling back to `json_object` if a model rejects it).
 - **Validate and retry once.** Every reply is checked with Bean Validation plus rules specific to each agent. If a check fails, the errors are fed back to the model for **one** retry. If it fails again, the UI shows a clean error instead of crashing, and the chair decides on the reports that did arrive.
+- **Changes of position measured, not claimed.** After the rebuttal round each analyst states its stance and confidence; code compares them with its report and records `stanceBefore → stanceAfter`. The stance board slides the analyst's dot to where it ended up and leaves a ghost where it started.
 - **Number tracing.** Every figure an analyst cites as evidence must match (allowing for rounding) a figure in its input, or the reply is rejected and retried. Free text is scanned too, and any number that can't be traced is flagged in the UI.
 - **Checkable triggers.** The chair's "what would change the call" list must use ids from a menu of price conditions built in Java: crossing the 50 or 200-day average, RSI above 70 or below 30, a 15% move, 10 points against the S&P 500, a new 52-week high or low. An unknown id, a duplicate, or a "change" to the same call is sent back.
 - **Decision receipts.** When the meeting ends, code hashes the fact sheets, every prompt file, the model behind each seat and the ruling (SHA-256 over canonical JSON). `GET /api/receipt` re-hashes the saved decision and reports whether the figures and the ruling are still exactly what the committee produced, and which prompts have changed since.
@@ -646,16 +647,16 @@ See the [Serverless AI endpoints docs](https://docs.nebius.com/serverless/endpoi
 GitHub Actions runs every test, `npm audit`, the production build and the Docker image build on every push and pull request; CodeQL scans Java and TypeScript on every push and weekly.
 
 ```bash
-npm test             # 52 frontend tests, then 150 backend tests
+npm test             # 55 frontend tests, then 152 backend tests
 ```
 
-- **Backend (150, JUnit 5):**
+- **Backend (152, JUnit 5):**
   - **Figures:** the indicators and fundamentals formatting.
   - **Structured output:** schema generation, Bean Validation of every output record, and JSON extraction (stripping `<think>` blocks, orphan tags and fences; detecting a reply truncated mid-reasoning).
   - **Checks:** the number checker and the chair's watch-condition menu.
   - **The committee end to end with fake models:**
     - **Scheduling and routing:** each seat on the right Nemotron tier, reasoning off only for the narrow jobs, and technicals starting alongside the news desk.
-    - **Retries and flags:** an analyst that invented a number is retried, and both attempts are costed; only the rebuttal that invented a figure gets flagged.
+    - **Retries and flags:** an analyst that invented a number is retried, and both attempts are costed; only the rebuttal that invented a figure gets flagged; a change of position is decided by comparing stances, not by the model's flag.
     - **Running and stopping:** progress events stream in order, a budget that runs out mid-run surfaces as an error, and a visitor who leaves stops the run before the chair.
     - **Saving:** the run is saved and replayed.
   - **Budget and reuse:** reuse of saved decisions; the spending cap, including a corrupt ledger refusing calls; cost tracking.
@@ -664,7 +665,7 @@ npm test             # 52 frontend tests, then 150 backend tests
   - **The rest:** receipts, Ask and Thesis, the tape, the controller, and the security filter (headers, the CSP hash, rate limits, body cap).
 
   **No test calls a real model or market data API.** The suite runs with a **single virtual-thread carrier**, like the one-CPU host, so a pinning deadlock fails CI instead of production.
-- **Frontend (52, Vitest):** the committee reducer (pure), the session tape and replay, rationale tags, figure tracing, formatting, the glossary, the Markdown renderer, the head-to-head matrix, the API client, and the Ask and Since panels' logic.
+- **Frontend (55, Vitest):** the committee reducer (pure), the session tape and replay, stance changes after the rebuttal round, rationale tags, figure tracing, formatting, the glossary, the Markdown renderer, the head-to-head matrix, the API client, and the Ask and Since panels' logic.
 
 ## Project structure
 
@@ -704,18 +705,17 @@ zenith/
 
 - **Free-tier data.** Some fundamentals are missing for some tickers; the agents are told when data is missing instead of guessing. For symbols FMP's free plan doesn't cover, growth is trailing-twelve-month rather than fiscal-year, and the fact sheet says which.
 - **US stocks and ETFs only**, because of the free data plans. Without a `TIINGO_API_KEY`, only the symbols FMP's free plan covers can be analysed; others get a clear message.
-- **The number tracer catches invented figures, not wrong reasoning.** The analysts can still misread correct numbers, and a self-reported flag (such as a rebuttal's "stance changed") is a model's claim, not a fact.
+- **The number tracer catches invented figures, not wrong reasoning.** The analysts can still misread correct numbers. A change of position after the rebuttal round is measured in code from the stance before and after; on sessions saved before that, it is still the model's own flag.
 - **The track record is young.** A few dozen calls over a few weeks says nothing about skill; it's there to show the calls are measured honestly.
 - **Free hosting.** The live demo sleeps when idle and takes about 2 minutes to wake; its disk resets on restart, so new decisions made there don't persist across restarts.
 - **Not advice.** Zenith never knows your circumstances and never pretends to.
 
 ## What's next
 
-1. **Derive "changed position" in code** from the stance before and after a rebuttal, instead of trusting the model's flag.
-2. **Scheduled re-runs** of the demo stocks, so the track record grows on its own and every call is fresh.
-3. **A reasoning budget per seat**, rather than reasoning on or off, once Token Factory exposes one.
-4. **More markets**, with a data plan that covers non-US listings.
-5. **Hosting on Nebius Serverless AI Endpoints**, with the deploy script that's already in the repo.
+1. **Scheduled re-runs** of the demo stocks, so the track record grows on its own and every call is fresh.
+2. **A reasoning budget per seat**, rather than reasoning on or off, once Token Factory exposes one.
+3. **More markets**, with a data plan that covers non-US listings.
+4. **Hosting on Nebius Serverless AI Endpoints**, with the deploy script that's already in the repo.
 
 ## Credits
 

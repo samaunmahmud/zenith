@@ -5,6 +5,7 @@ import { ANALYST_TITLE } from "../../lib/format";
 import { statusAt, type Proc } from "../../lib/tape";
 import type { Playback } from "../../hooks/usePlayback";
 import { Panel, TierTag, clock } from "./Panel";
+import { shiftLabel, shiftTitle } from "../../lib/revision";
 import { Typed } from "./Typed";
 
 interface Line {
@@ -46,7 +47,7 @@ function linesFor(state: CommitteeState, play: Playback): Line[] {
       const rb = state.debate.find((x) => `${x.analyst}-rebuttal` === p.id);
       if (!rb) continue;
       out.push({ ...base, kind: "out",
-        tag: <>→ {ANALYST_TITLE[rb.respondingTo]}{rb.stanceChanged && <span className="t-changed">STANCE CHANGED</span>}</>, text: rb.response });
+        tag: <>→ {ANALYST_TITLE[rb.respondingTo]}{shiftLabel(rb) && <span className="t-changed" title={shiftTitle(rb)}>STANCE CHANGED{rb.stanceBefore && rb.stanceAfter ? `: ${rb.stanceBefore} → ${rb.stanceAfter}` : ""}</span>}</>, text: rb.response });
     } else if (p.phase === "chair") {
       const d = state.decision;
       if (!d) continue;

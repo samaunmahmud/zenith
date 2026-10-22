@@ -6,6 +6,7 @@ import type { Playback } from "../../hooks/usePlayback";
 import { TierTag } from "./Panel";
 import { axisPos } from "./StanceBoard";
 import { Typed } from "./Typed";
+import { shiftLabel, shiftTitle } from "../../lib/revision";
 
 const REMIT: Record<AnalystName, string> = {
   fundamentals: "Valuation, growth, margins, balance sheet",
@@ -47,7 +48,7 @@ function Card({ a, state, play }: { a: AnalystName; state: CommitteeState; play:
           <div className="ac-stance">
             <span className={`ac-call stance-${r.stance}`}>{r.stance}</span>
             <span className="ac-conf num">{Math.round(r.confidence * 100)}%</span>
-            {rb?.stanceChanged && <span className="ac-revised" title="Changed position after the rebuttal round">Revised</span>}
+            {rb && shiftLabel(rb) && <span className="ac-revised" title={shiftTitle(rb)}>{rb.stanceAfter && rb.stanceChanged ? `Now ${rb.stanceAfter}` : "Revised"}</span>}
           </div>
           <div className="ac-axis" role="img" aria-label={`${r.stance}, ${Math.round(r.confidence * 100)}% confidence`}>
             <span className="ac-axis-mid" />
@@ -59,7 +60,8 @@ function Card({ a, state, play }: { a: AnalystName; state: CommitteeState; play:
           </ul>
           {rb && (
             <div className="ac-rebuttal">
-              <span className="ac-rb-lbl">Rebuttal to {ANALYST_TITLE[rb.respondingTo]}</span>
+              <span className="ac-rb-lbl">Rebuttal to {ANALYST_TITLE[rb.respondingTo]}
+                {rb.stanceAfter && rb.confidenceAfter != null && <span className="ac-rb-after"> · {rb.stanceChanged ? "moved to" : "holds"} {rb.stanceAfter} {Math.round(rb.confidenceAfter * 100)}%</span>}</span>
               <p><Typed text={rb.response} flagged={rbFlags} checked={checked} animate={!play.finished} /></p>
             </div>
           )}

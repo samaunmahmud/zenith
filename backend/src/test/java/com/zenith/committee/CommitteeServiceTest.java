@@ -2,6 +2,7 @@ package com.zenith.committee;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.assertj.core.api.Assertions.within;
 
 import com.zenith.agents.AnalystAgent;
@@ -23,6 +24,7 @@ import com.zenith.llm.ModelTier;
 import com.zenith.llm.TokenFactoryClient;
 import com.zenith.schema.AnalystName;
 import com.zenith.schema.Recommendation;
+import com.zenith.schema.Stance;
 import com.zenith.support.TestProps;
 import jakarta.validation.Validation;
 import java.nio.file.Path;
@@ -118,7 +120,10 @@ class CommitteeServiceTest {
             String me = m.group(1);
             body = Map.of("analyst", me, "respondingTo", me.equals("risk") ? "technicals" : "risk", "response",
                     // The risk analyst's rebuttal invents a figure: the integrity check must flag it.
-                    me.equals("risk") ? "Margins could compress by 93.17%." : "I disagree.", "stanceChanged", false);
+                    me.equals("risk") ? "Margins could compress by 93.17%." : "I disagree.",
+                    // Risk moves from its report's bullish to neutral; fundamentals claims a change it didn't make.
+                    "stanceAfter", me.equals("risk") ? "neutral" : "bullish", "confidenceAfter", 0.55,
+                    "stanceChanged", me.equals("fundamentals"));
         } else {
             Matcher m = ANALYST_ID.matcher(system);
             m.find();
@@ -197,6 +202,18 @@ class CommitteeServiceTest {
         assertThat(result.decision().dissent().analyst()).isEqualTo(AnalystName.FUNDAMENTALS);
         assertThat(result.decision().watchFor()).extracting(w -> w.trigger()).containsExactly("up-15", "down-15");
         assertThat(result.snapshot().triggers()).extracting(t -> t.id()).contains("up-15", "down-15", "beats-spy-10");
+    }
+
+    @Test
+    void decidesAChangeOfPositionInCodeNotFromTheModelsFlag() {
+        assertThat(result.rebuttals()).extracting(r -> r.analyst(), r -> r.stanceChanged(), r -> r.stanceBefore(), r -> r.stanceAfter())
+                .containsExactly(
+                        tuple(AnalystName.FUNDAMENTALS, false, Stance.BULLISH, Stance.BULLISH),
+                        tuple(AnalystName.TECHNICALS, false, Stance.BULLISH, Stance.BULLISH),
+                        tuple(AnalystName.RISK, true, Stance.BULLISH, Stance.NEUTRAL));
+        assertThat(result.rebuttals().get(2).confidenceBefore()).isEqualTo(0.7);
+        assertThat(result.rebuttals().get(2).confidenceAfter()).isEqualTo(0.55);
+        assertThat(result.memoMarkdown()).contains("_(stance changed: bullish → neutral)_");
     }
 
     private String modelFor(String needle) {
