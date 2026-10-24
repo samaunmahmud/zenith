@@ -32,7 +32,7 @@
 </p>
 
 <p align="center">
-  <b>Live demo:</b> <a href="https://zenith-h4ch.onrender.com">zenith-h4ch.onrender.com</a> <i>(free hosting: the first visit after a quiet spell takes about 2 minutes to wake)</i> &nbsp;·&nbsp; <b>Demo video:</b> <i>coming soon</i>
+  <b>Live demo:</b> <a href="https://zenith-h4ch.onrender.com">zenith-h4ch.onrender.com</a> <i>(free hosting: the first visit after a quiet spell takes about 2 minutes to wake)</i> &nbsp;·&nbsp; <b>Demo video:</b> <a href="https://youtu.be/rmoAR6sJroM">watch on YouTube (2:45)</a>
 </p>
 
 <p align="center">
